@@ -574,41 +574,68 @@ namespace LCS_HR_MVC.Services
                         // ── Prerequisite check: CommissionProcess requires steps 1-4 ──
                         if (string.Equals(commType, "CommissionProcess", StringComparison.OrdinalIgnoreCase))
                         {
-                            var prerequisiteTypes = new[] { "CashCommission", "CodCommission", "OverLandCommission", "ReturnCodCommission" };
-                            var unfinished = prerequisiteTypes
-                                .Where(pt => !cityStepResults.TryGetValue(pt, out var s)
-                                    || s is not ("Completed" or "AlreadyProcessed" or "Skipped" or "NoData" or "Failed"))
+                            var prerequisiteTypes = new[]
+                            {
+        "CashCommission",
+        "CodCommission",
+        "OverLandCommission",
+        "ReturnCodCommission"
+    };
+
+                            var blockingPrerequisites = prerequisiteTypes
+                                .Where(pt =>
+                                    !cityStepResults.TryGetValue(pt, out var status)
+                                    || status is not ("Completed" or "AlreadyProcessed" or "NoData"))
                                 .ToList();
 
-                            if (unfinished.Any())
+                            if (blockingPrerequisites.Any())
                             {
-                                string reason = $"Skipped: prerequisite steps not in terminal state: {string.Join(", ", unfinished)}.";
+                                string reason =
+                                    $"Skipped: prerequisite steps not successfully completed: {string.Join(", ", blockingPrerequisites)}.";
+
                                 _logger.LogWarning(
                                     "[{JobRunId}] City={CityCode} Step {StepIndex}/6 ({CommType}): {Reason}",
                                     jobRunId, city.CityCode, stepIndex, commType, reason);
 
-                                // Persist to DB using existing 'Skipped' status so dashboard shows it correctly
                                 using (var skipConn = _connectionFactory.CreateConnection() as MySqlConnection
                                     ?? throw new InvalidOperationException("Cannot create database connection."))
                                 {
                                     await skipConn.OpenAsync();
                                     await skipConn.ExecuteAsync(
                                         @"UPDATE hr_commission_automation_log
-                                          SET status = 'Skipped', progress_pct = 0,
-                                              error_message = @Reason, completed_at = NOW(), updated_at = NOW()
-                                          WHERE id = @Id AND status IN ('Pending', 'Failed')",
+                  SET status = 'Skipped',
+                      progress_pct = 0,
+                      error_message = @Reason,
+                      completed_at = NOW(),
+                      updated_at = NOW()
+                  WHERE id = @Id AND status IN ('Pending', 'Failed')",
                                         new { Reason = reason, entry.Id });
                                 }
+
                                 entry.Status = "Skipped";
 
-                                await BroadcastAsync(jobRunId, entry.Id, "Skipped", 0, reason,
-                                    entry.CityName, entry.CommissionType, entry.RetryCount);
-                                await BroadcastLogAsync(jobRunId, "WARN", commType, city.CityCode, city.CityName, reason);
+                                await BroadcastAsync(
+                                    jobRunId,
+                                    entry.Id,
+                                    "Skipped",
+                                    0,
+                                    reason,
+                                    entry.CityName,
+                                    entry.CommissionType,
+                                    entry.RetryCount);
+
+                                await BroadcastLogAsync(
+                                    jobRunId,
+                                    "WARN",
+                                    commType,
+                                    city.CityCode,
+                                    city.CityName,
+                                    reason);
+
                                 cityStepResults[commType] = "Skipped";
                                 continue;
                             }
                         }
-
                         // ── Prerequisite check: FinalCommission requires CommissionProcess ──
                         if (string.Equals(commType, "FinalCommission", StringComparison.OrdinalIgnoreCase))
                         {

@@ -401,17 +401,18 @@ namespace LCS_HR_MVC.Services
             AppendCommissionSourceQueriesExtension(query, context);
 
             var ds = DAL.ExecuteDataset(
-                connection,
-                CommandType.Text,
-                query.ToString(),
-                new MySqlParameter("@todate", fromDate),
-                new MySqlParameter("@fromdate", toDate),
-                new MySqlParameter("@stationid", context.StationId),
-                new MySqlParameter("@Overnight_Zone", context.OvernightZone),
-                new MySqlParameter("@Overland_Zone", context.OverlandZone),
-                new MySqlParameter("@month", context.Month),
-                new MySqlParameter("@year", context.Year),
-                new MySqlParameter("@city", context.CityCode));
+       connection,
+       CommandType.Text,
+       query.ToString(),
+       600,
+       new MySqlParameter("@todate", fromDate),
+       new MySqlParameter("@fromdate", toDate),
+       new MySqlParameter("@stationid", context.StationId),
+       new MySqlParameter("@Overnight_Zone", context.OvernightZone),
+       new MySqlParameter("@Overland_Zone", context.OverlandZone),
+       new MySqlParameter("@month", context.Month),
+       new MySqlParameter("@year", context.Year),
+       new MySqlParameter("@city", context.CityCode));
 
             var tableNames = new[]
             {
