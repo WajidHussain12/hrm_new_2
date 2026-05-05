@@ -40,11 +40,11 @@ public static class DAL
     }
 
     public static DataSet ExecuteDataset(
-     MySqlConnection connection,
-     CommandType commandType,
-     string query,
-     int commandTimeoutSeconds,
-     params MySqlParameter[] parameters)
+       MySqlConnection connection,
+       CommandType commandType,
+       string query,
+       int commandTimeoutSeconds,
+       params MySqlParameter[] parameters)
     {
         using var command = connection.CreateCommand();
         command.CommandType = commandType;
