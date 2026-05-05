@@ -1,0 +1,150 @@
+@model LCS_HR_MVC.Models.Support.SupportFileLibraryViewModel
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["PageTitle"] = Model.Title;
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Library Table styling */
+        .library-table thead th {
+            @@apply tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-[0.15em] tw-py-4 tw-px-5 tw-border-b-2 tw-border-slate-100 !important;
+        }
+        .library-table tbody tr {
+            @@apply tw-border-b tw-border-slate-50 tw-transition-colors hover:tw-bg-amber-50/30;
+        }
+        .library-table tbody td {
+            @@apply tw-py-4 tw-px-5 tw-align-middle tw-text-sm;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-amber-500 tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-folder-open tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Repository</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">System Library</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">@Model.Title</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Static asset management and document redundancy vault. Folder: <span class="tw-font-mono tw-text-indigo-600 tw-font-bold">@Model.FolderName</span></p>
+        </div>
+    </div>
+
+    <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+        <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-slate-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none z-0"></div>
+
+        <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-bg-slate-50/80">
+            <div class="tw-flex tw-items-center tw-gap-4">
+                <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-gradient-to-br tw-from-indigo-500 tw-to-indigo-600 tw-flex tw-items-center tw-justify-center tw-shadow-lg">
+                    <i class="fas fa-file-archive tw-text-white tw-text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="tw-font-black tw-text-base tw-text-slate-800 tw-tracking-tight">Volume Manifest</h2>
+                    <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">Available Static Resources</p>
+                </div>
+            </div>
+            @if (Model.Files.Count == 0)
+            {
+                <span class="tw-text-xs tw-font-bold tw-text-slate-400 tw-italic">Registry Empty</span>
+            }
+        </div>
+
+        <div class="tw-relative tw-z-10 tw-p-6">
+            @if (Model.Files.Count > 0)
+            {
+                <div class="tw-overflow-x-auto custom-scrollbar tw-rounded-2xl tw-border tw-border-slate-100">
+                    <table class="tw-w-full library-table">
+                        <thead>
+                            <tr>
+                                <th>Operational Label</th>
+                                <th>Last Mutation</th>
+                                <th class="tw-text-right">Payload Size</th>
+                                <th class="tw-text-right tw-pr-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-100">
+                            @foreach (var file in Model.Files)
+                            {
+                                <tr class="hover:tw-bg-slate-50 tw-transition-colors group">
+                                    <td>
+                                        <div class="tw-flex tw-items-center tw-gap-3">
+                                            @{
+                                                var ext = System.IO.Path.GetExtension(file.FileName).ToLower();
+                                                var icon = "fa-file";
+                                                if(ext == ".pdf") icon = "fa-file-pdf tw-text-red-500";
+                                                else if(ext == ".xls" || ext == ".xlsx") icon = "fa-file-excel tw-text-emerald-500";
+                                                else if(ext == ".doc" || ext == ".docx") icon = "fa-file-word tw-text-indigo-500";
+                                                else if(ext == ".zip" || ext == ".rar") icon = "fa-file-archive tw-text-amber-500";
+                                            }
+                                            <i class="far @icon tw-text-base opacity-60 group-hover:opacity-100 tw-transition-opacity"></i>
+                                            <span class="tw-font-bold tw-text-slate-700">@file.FileName</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="tw-text-xs tw-font-bold tw-text-slate-500">@file.LastModified.ToString("dd MMM yyyy")</span>
+                                        <span class="tw-text-[10px] tw-text-slate-400 tw-ml-1">@file.LastModified.ToString("HH:mm")</span>
+                                    </td>
+                                    <td class="tw-text-right">
+                                        <span class="tw-text-xs tw-font-mono tw-font-bold tw-text-slate-600">@((file.Length / 1024d).ToString("N2")) KB</span>
+                                    </td>
+                                    <td class="tw-text-right tw-pr-4">
+                                        <a class="tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-py-2 tw-px-4 tw-bg-slate-900 tw-text-white tw-rounded-lg tw-font-black tw-text-[10px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-800 tw-transition-all tw-shadow-sm"
+                                           asp-action="DownloadLibraryFile"
+                                           asp-route-libraryKey="@Model.LibraryKey"
+                                           asp-route-fileName="@file.FileName">
+                                            <i class="fas fa-cloud-download-alt tw-text-[10px]"></i> Pull Resource
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="tw-py-20 tw-text-center">
+                    <div class="tw-w-20 tw-h-20 tw-bg-slate-50 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-mx-auto tw-mb-4">
+                        <i class="fas fa-folder-open tw-text-3xl tw-text-slate-200"></i>
+                    </div>
+                    <h3 class="tw-text-slate-400 tw-font-bold tw-text-sm">No operational resources detected in this library nexus.</h3>
+                    <p class="tw-text-slate-300 tw-text-xs tw-mt-1">Files uploaded to the systemic folder will appear here automatically.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

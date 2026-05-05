@@ -1,0 +1,300 @@
+@model LCS_HR_MVC.Models.EmpADDetailsModel
+@{
+    ViewData["PageTitle"] = "Employee Allowance/Deduction Details";
+    var dataList = ViewBag.EmpADDetailsList as IEnumerable<LCS_HR_MVC.Models.EmpADDetailsModel> ?? new List<LCS_HR_MVC.Models.EmpADDetailsModel>();
+    bool isNew = Model.Code == "Auto Generated";
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    <style>
+        @@keyframes slideUp { from { opacity:0; transform:translateY(15px); } to { opacity:1; transform:translateY(0); } }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+        .field-select { background-image:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat:no-repeat; background-position:right 0.75rem top 50%; background-size:0.65rem auto; }
+        .custom-scrollbar::-webkit-scrollbar { width:8px; } .custom-scrollbar::-webkit-scrollbar-track { background:#f1f5f9; border-radius:4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
+        .ui-autocomplete { background:#fff; border:1px solid #e2e8f0; border-radius:0.75rem; box-shadow:0 10px 25px rgba(0,0,0,0.08); padding:4px 0; z-index:9999 !important; }
+        .ui-menu-item-wrapper { padding:8px 14px; font-size:13px; font-weight:600; color:#334155; border-radius:6px; margin:2px 4px; }
+        .ui-menu-item-wrapper.ui-state-active { background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e293b; }
+        #dg1_wrapper .dataTables_filter { display:none; }
+        #dg1_wrapper .dataTables_paginate .paginate_button { display:inline-flex; align-items:center; justify-content:center; min-width:2rem; height:2rem; padding:0 0.5rem; border-radius:0.5rem; font-size:0.75rem; font-weight:700; color:#475569; margin:0 1px; transition:all 0.15s; }
+        #dg1_wrapper .dataTables_paginate .paginate_button:hover { background:#f1f5f9; color:#0f172a; }
+        #dg1_wrapper .dataTables_paginate .paginate_button.current { background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e293b; box-shadow:0 2px 8px rgba(245,158,11,0.3); }
+        #dg1_wrapper .dataTables_paginate .paginate_button.disabled { opacity:0.35; cursor:default; }
+        #dg1_wrapper .dataTables_info { font-size:0.7rem; color:#94a3b8; font-weight:600; padding-top:0.5rem; }
+        #dg1 thead th { background:linear-gradient(135deg,#475569,#334155) !important; color:#f1f5f9 !important; font-size:0.65rem !important; font-weight:800 !important; text-transform:uppercase !important; letter-spacing:0.08em !important; padding:0.625rem 0.75rem !important; border:none !important; white-space:nowrap; }
+        #dg1 tbody tr:hover td { background:#fffbeb !important; }
+        #dg1 tbody td { padding:0.5rem 0.75rem !important; font-size:0.8rem; color:#334155; border-bottom:1px solid #f1f5f9 !important; border-top:none !important; border-left:none !important; border-right:none !important; }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0"><i class="fas fa-exclamation-triangle tw-text-[10px]"></i></div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0"><i class="fas fa-check tw-text-[10px]"></i></div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-plus-minus tw-text-[10px] tw-text-slate-300"></i><span>Extras</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">A/D Details</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Employee A/D Details</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Manage employee allowance and deduction assignments with effective date ranges.</p>
+        </div>
+    </div>
+
+    <div class="tw-grid lg:tw-grid-cols-12 tw-gap-6">
+
+        <!-- LEFT: Data Table -->
+        <div class="lg:tw-col-span-7">
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+                <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-700 tw-to-slate-900">
+                    <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                        <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-list"></i></div>
+                        A/D Records
+                    </h3>
+                </div>
+                <div class="tw-p-4 tw-border-b tw-border-slate-100">
+                    <div class="tw-relative">
+                        <i class="fas fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none"></i>
+                        <input type="text" id="dtSearch" placeholder="Search records..."
+                               class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-medium tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                    </div>
+                </div>
+                <div class="tw-p-4 custom-scrollbar">
+                    <table id="dg1" class="tw-w-full">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Employee</th>
+                                <th>A/D Name</th>
+                                <th>Effective From</th>
+                                <th>Effective To</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in dataList)
+                            {
+                                <tr>
+                                    <td>
+                                        <a href="@Url.Action("EmpADDetails", "Extras", new { code = item.Code })"
+                                           class="tw-text-amber-600 tw-font-black hover:tw-text-amber-700 tw-transition-colors">@item.Code</a>
+                                    </td>
+                                    <td>@item.EmployeeName</td>
+                                    <td>@item.ADName</td>
+                                    <td>@(item.EffectiveFrom?.ToString("dd/MM/yyyy"))</td>
+                                    <td>@(item.EffectiveTo?.ToString("dd/MM/yyyy"))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Form -->
+        <div class="lg:tw-col-span-5">
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative lg:tw-sticky lg:tw-top-6">
+                <div class="tw-absolute tw-top-0 tw-right-0 tw-w-48 tw-h-48 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none" style="z-index:0"></div>
+                <div class="tw-p-5 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-relative tw-z-10">
+                    <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                        <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-file-invoice-dollar"></i></div>
+                        @if (isNew) { <text>New A/D Entry</text> } else { <text>Edit: @Model.Code</text> }
+                    </h3>
+                    <p class="tw-text-slate-400 tw-text-xs tw-font-medium tw-mt-1">Assign allowance or deduction to an employee.</p>
+                </div>
+
+                <form asp-controller="Extras" asp-action="EmpADDetails" method="post" id="adForm" enctype="multipart/form-data" class="tw-p-6 tw-space-y-4 tw-relative tw-z-10">
+                    <!-- Code -->
+                    <div>
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Code</label>
+                        <div class="tw-flex tw-items-center tw-gap-2">
+                            <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-2 tw-bg-slate-100 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-black tw-text-slate-600">
+                                <i class="fas fa-hashtag tw-text-amber-500 tw-text-xs"></i> @Model.Code
+                            </span>
+                            <input type="hidden" asp-for="Code" id="Code" />
+                        </div>
+                    </div>
+                    <!-- Employee -->
+                    <div>
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Employee <span class="tw-text-red-500">*</span></label>
+                        <div class="tw-flex tw-gap-2">
+                            <div class="tw-relative tw-flex-1">
+                                <i class="fas fa-user-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                <input type="text" asp-for="EmployeeDescription" id="txtEmployeeDescription" placeholder="Use wildcard '%'" autocomplete="off"
+                                       class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                            </div>
+                            <input type="text" asp-for="EmpNo" id="txtEmployeeCode" readonly
+                                   class="tw-w-24 tw-px-3 tw-py-2.5 tw-bg-slate-100 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-black tw-text-slate-600 tw-text-center tw-cursor-not-allowed" />
+                        </div>
+                        <span asp-validation-for="EmployeeDescription" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-0.5 tw-block"></span>
+                        <span asp-validation-for="EmpNo" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-0.5 tw-block"></span>
+                    </div>
+                    <!-- A/D Name -->
+                    <div>
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">A/D Name <span class="tw-text-red-500">*</span></label>
+                        <div class="tw-flex tw-gap-2">
+                            <div class="tw-relative tw-flex-1">
+                                <i class="fas fa-search-dollar tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                <input type="text" asp-for="ADDescription" id="txtADDescription" placeholder="Use wildcard '%'" autocomplete="off"
+                                       class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                            </div>
+                            <input type="text" asp-for="ADCode" id="txtADCode" readonly
+                                   class="tw-w-24 tw-px-3 tw-py-2.5 tw-bg-slate-100 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-black tw-text-slate-600 tw-text-center tw-cursor-not-allowed" />
+                        </div>
+                        <span asp-validation-for="ADDescription" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-0.5 tw-block"></span>
+                        <span asp-validation-for="ADCode" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-0.5 tw-block"></span>
+                    </div>
+                    <!-- From / To Date -->
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <div>
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">From Date <span class="tw-text-red-500">*</span></label>
+                            <div class="tw-relative">
+                                <i class="fas fa-calendar-alt tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                <input type="date" asp-for="EffectiveFrom" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                            </div>
+                            <span asp-validation-for="EffectiveFrom" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-0.5 tw-block"></span>
+                        </div>
+                        <div>
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">To Date</label>
+                            <div class="tw-relative">
+                                <i class="fas fa-calendar-check tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                <input type="date" asp-for="EffectiveTo" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                            </div>
+                            <span class="tw-text-[9px] tw-font-bold tw-text-slate-400 tw-mt-0.5 tw-block">* Leave blank for current</span>
+                        </div>
+                    </div>
+                    <!-- Comments -->
+                    <div>
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Comments</label>
+                        <div class="tw-relative">
+                            <i class="fas fa-comment-alt tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                            <input asp-for="Comments" maxlength="45" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                        </div>
+                    </div>
+                    <!-- Bulk Upload (new only) -->
+                    @if (isNew)
+                    {
+                        <div>
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Bulk Upload</label>
+                            <div class="tw-flex tw-items-center tw-gap-3 tw-p-3 tw-bg-slate-50 tw-border tw-border-dashed tw-border-slate-300 tw-rounded-xl">
+                                <i class="fas fa-file-excel tw-text-emerald-500 tw-text-sm tw-shrink-0"></i>
+                                <input type="file" asp-for="BulkUploadFile" accept=".xlsx" class="tw-text-sm tw-text-slate-600 tw-font-medium tw-flex-1 tw-min-w-0" />
+                                <button type="submit" name="action" value="BulkUpload" formnovalidate
+                                        class="tw-shrink-0 tw-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-2 tw-bg-slate-800 tw-text-white tw-rounded-lg tw-font-black tw-text-[10px] tw-uppercase tw-tracking-wider hover:tw-bg-slate-700 tw-transition-colors">
+                                    <i class="fas fa-upload tw-text-[10px]"></i> Bulk Insert
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="tw-pt-2 tw-border-t tw-border-slate-100"></div>
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="submit" name="action" value="Save" id="btnSave" @(isNew ? "" : "disabled")
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-40 disabled:tw-cursor-not-allowed disabled:tw-translate-y-0 disabled:tw-shadow-none">
+                            <i class="fas fa-save tw-text-sm"></i> Save
+                        </button>
+                        <button type="submit" name="action" value="Update" id="btnUpdate" @(isNew ? "disabled" : "")
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-slate-900 tw-text-white tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-800 hover:tw--translate-y-0.5 tw-transition-all tw-shadow-md disabled:tw-opacity-40 disabled:tw-cursor-not-allowed disabled:tw-translate-y-0">
+                            <i class="fas fa-sync tw-text-sm"></i> Update
+                        </button>
+                        <button type="submit" name="action" value="Delete" id="btnDelete" @(isNew ? "disabled" : "")
+                                onclick="return confirm('Do you want to delete?');"
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-white tw-text-red-600 tw-border tw-border-red-300 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-red-50 hover:tw--translate-y-0.5 tw-transition-all tw-shadow-sm disabled:tw-opacity-40 disabled:tw-cursor-not-allowed disabled:tw-translate-y-0">
+                            <i class="fas fa-trash-alt tw-text-sm"></i> Delete
+                        </button>
+                        <button type="submit" name="action" value="Reset" id="btnReset" formnovalidate
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                            <i class="fas fa-undo-alt tw-opacity-60"></i> Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var table = $('#dg1').DataTable({
+                "pageLength": 12,
+                "lengthChange": false,
+                "searching": true,
+                "info": true,
+                "dom": '<"tw-flex tw-items-center tw-justify-between tw-mb-2"i>t<"tw-flex tw-items-center tw-justify-end tw-mt-3"p>'
+            });
+            $('#dtSearch').on('keyup', function () { table.search(this.value).draw(); });
+
+            $("#txtEmployeeDescription").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("SearchActiveEmployees", "Setup")',
+                        type: "GET",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.label, value: item.desc, id: item.value };
+                            }))
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    $("#txtEmployeeDescription").val(ui.item.value);
+                    $("#txtEmployeeCode").val(ui.item.id);
+                    return false;
+                },
+                minLength: 1
+            });
+            $("#txtEmployeeDescription").keyup(function () {
+                if (!$(this).val()) { $("#txtEmployeeCode").val(''); }
+            });
+
+            $("#txtADDescription").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("SearchADCodes", "Extras")',
+                        type: "GET",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.label, value: item.label, id: item.value };
+                            }))
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    $("#txtADDescription").val(ui.item.value);
+                    $("#txtADCode").val(ui.item.id);
+                    return false;
+                },
+                minLength: 1
+            });
+            $("#txtADDescription").keyup(function () {
+                if (!$(this).val()) { $("#txtADCode").val(''); }
+            });
+        });
+    </script>
+}

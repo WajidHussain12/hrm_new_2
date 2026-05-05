@@ -1,0 +1,1161 @@
+@{
+    ViewData["Title"] = "Commission Creation Guide";
+}
+
+<style>
+    .guide-code {
+        background: #0f172a;
+        color: #e2e8f0;
+        font-family: 'Courier New', monospace;
+        font-size: 0.72rem;
+        line-height: 1.6;
+        border-radius: 0.75rem;
+        padding: 1rem 1.25rem;
+        overflow-x: auto;
+        white-space: pre;
+    }
+    .guide-code .kw  { color: #7dd3fc; }  /* keyword */
+    .guide-code .fn  { color: #86efac; }  /* function */
+    .guide-code .st  { color: #fde68a; }  /* string */
+    .guide-code .cm  { color: #94a3b8; font-style: italic; } /* comment */
+    .guide-code .tb  { color: #f9a8d4; }  /* table */
+    .guide-code .nm  { color: #fdba74; }  /* number */
+
+    .step-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.6rem;
+        border-radius: 99px;
+    }
+    .toc-link {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.4rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.78rem; font-weight: 600;
+        color: #475569; text-decoration: none;
+        transition: all 0.15s;
+    }
+    .toc-link:hover { background: #f1f5f9; color: #1e293b; }
+    .toc-link.active { background: #eff6ff; color: #2563eb; }
+
+    .db-badge {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        font-size: 0.68rem; font-weight: 700;
+        padding: 0.18rem 0.55rem; border-radius: 0.4rem;
+    }
+    .rate-table th { background: #f8fafc; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .rate-table td { font-size: 0.78rem; }
+    .rate-table tr:hover td { background: #f8fafc; }
+    .rate-table td, .rate-table th { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f1f5f9; }
+</style>
+
+<div class="tw-min-h-screen tw-bg-slate-50">
+
+    <!-- ── Page Header ──────────────────────────────────────────────────── -->
+    <div class="tw-bg-gradient-to-r tw-from-slate-800 tw-to-slate-900 tw-text-white tw-px-6 tw-py-8">
+        <div class="tw-max-w-6xl tw-mx-auto">
+            <div class="tw-flex tw-items-center tw-gap-4 tw-mb-3">
+                <div class="tw-w-12 tw-h-12 tw-rounded-2xl tw-bg-amber-400 tw-flex tw-items-center tw-justify-center tw-shadow-lg">
+                    <i class="fas fa-book-open tw-text-slate-900 tw-text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="tw-text-2xl tw-font-black tw-mb-0">Employee Commission Creation Guide</h1>
+                    <p class="tw-text-slate-400 tw-text-sm tw-mb-0">Complete reference — Servers · Databases · Tables · Calculations · Verification Queries</p>
+                </div>
+            </div>
+            <div class="tw-flex tw-flex-wrap tw-gap-2 tw-mt-4">
+                <span class="tw-bg-slate-700 tw-text-slate-300 tw-text-xs tw-font-semibold tw-px-3 tw-py-1 tw-rounded-full">For Non-Technical Users</span>
+                <span class="tw-bg-slate-700 tw-text-slate-300 tw-text-xs tw-font-semibold tw-px-3 tw-py-1 tw-rounded-full">For Developers</span>
+                <span class="tw-bg-amber-500/20 tw-text-amber-300 tw-text-xs tw-font-semibold tw-px-3 tw-py-1 tw-rounded-full">
+                    <i class="fas fa-calendar-alt tw-mr-1"></i>Period: 21st prev month → 20th current month
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tw-max-w-6xl tw-mx-auto tw-px-4 lg:tw-px-6 tw-py-6">
+        <div class="tw-flex tw-gap-6 tw-items-start">
+
+            <!-- ── Left Sidebar: Table of Contents ─────────────────────── -->
+            <div class="tw-hidden xl:tw-block tw-w-56 tw-flex-shrink-0">
+                <div class="tw-sticky tw-top-20 tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-p-3">
+                    <p class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-px-2 tw-mb-2">Contents</p>
+                    <nav class="tw-flex tw-flex-col tw-gap-0.5">
+                        <a class="toc-link" href="#overview"><i class="fas fa-layer-group tw-w-4 tw-text-slate-400"></i> Overview</a>
+                        <a class="toc-link" href="#servers"><i class="fas fa-server tw-w-4 tw-text-blue-400"></i> Servers & DBs</a>
+                        <a class="toc-link" href="#period"><i class="fas fa-calendar tw-w-4 tw-text-purple-400"></i> Commission Period</a>
+                        <a class="toc-link" href="#step1"><i class="fas fa-circle tw-w-4 tw-text-emerald-400"></i> Step 1 — Cash</a>
+                        <a class="toc-link" href="#step2"><i class="fas fa-circle tw-w-4 tw-text-blue-400"></i> Step 2 — COD</a>
+                        <a class="toc-link" href="#step3"><i class="fas fa-circle tw-w-4 tw-text-orange-400"></i> Step 3 — OverLand</a>
+                        <a class="toc-link" href="#step4"><i class="fas fa-circle tw-w-4 tw-text-pink-400"></i> Step 4 — Return COD</a>
+                        <a class="toc-link" href="#step5"><i class="fas fa-circle tw-w-4 tw-text-indigo-400"></i> Step 5 — Master</a>
+                        <a class="toc-link" href="#rates"><i class="fas fa-table tw-w-4 tw-text-amber-400"></i> All Rates Table</a>
+                        <a class="toc-link" href="#cod-tiers"><i class="fas fa-sort-amount-up tw-w-4 tw-text-blue-400"></i> COD Tiers</a>
+                        <a class="toc-link" href="#city-rules"><i class="fas fa-city tw-w-4 tw-text-teal-400"></i> City-Specific Rules</a>
+                        <a class="toc-link" href="#adjustments"><i class="fas fa-sliders-h tw-w-4 tw-text-violet-400"></i> Adjustments</a>
+                        <a class="toc-link" href="#verify"><i class="fas fa-search tw-w-4 tw-text-rose-400"></i> Verification Queries</a>
+                        <a class="toc-link" href="#verify"><i class="fas fa-microscope tw-w-4 tw-text-amber-400"></i> Cross-Verification</a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- ── Main Content ─────────────────────────────────────────── -->
+            <div class="tw-flex-1 tw-min-w-0 tw-space-y-6">
+
+                <!-- ══ OVERVIEW ══════════════════════════════════════════ -->
+                <section id="overview" class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-slate-100 tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-layer-group tw-text-slate-600"></i>
+                        </div>
+                        <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Overview — How Commission is Created</h2>
+                    </div>
+                    <p class="tw-text-sm tw-text-slate-600 tw-leading-relaxed tw-mb-4">
+                        Employee commission is calculated <strong>automatically every month</strong> in <strong>5 sequential steps</strong>.
+                        Data is first pulled from multiple external servers (billing, OPS) into staging tables, then consolidated into a final
+                        <strong>per-employee summary</strong> in <code class="tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-mono">hr_commissionprocess</code>.
+                    </p>
+                    <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-5 tw-gap-2">
+                        @{
+                            var steps = new[] {
+                                ("1","Cash","bg-emerald-500","Cash Commission","billing_details → hr_cash_consignments"),
+                                ("2","COD","bg-blue-500","COD Commission","lcs_db.arival → hr_cod_consignments"),
+                                ("3","OLE","bg-orange-500","OverLand Commission","billing_download → hr_olecommissionprocess"),
+                                ("4","RCod","bg-pink-500","Return COD","lcs_db.arival → hr_codreturncommissionprocess"),
+                                ("5","Master","bg-indigo-600","Master Rollup","All above → hr_commissionprocess"),
+                            };
+                        }
+                        @foreach (var s in steps)
+                        {
+                            <div class="tw-rounded-xl tw-border tw-border-slate-200 tw-p-3 tw-text-center">
+                                <div class="tw-w-8 tw-h-8 tw-rounded-full @s.Item3 tw-text-white tw-font-black tw-text-sm tw-flex tw-items-center tw-justify-center tw-mx-auto tw-mb-2">@s.Item1</div>
+                                <div class="tw-text-xs tw-font-bold tw-text-slate-700">@s.Item4</div>
+                                <div class="tw-text-[10px] tw-text-slate-400 tw-mt-1 tw-leading-tight">@s.Item5</div>
+                            </div>
+                        }
+                    </div>
+                    <div class="tw-mt-4 tw-p-3 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-xl tw-text-sm tw-text-amber-800">
+                        <i class="fas fa-exclamation-triangle tw-mr-2 tw-text-amber-500"></i>
+                        <strong>Important:</strong> Steps 1–4 MUST complete successfully before Step 5 can run.
+                        Step 5 reads the output of all previous steps.
+                    </div>
+                </section>
+
+                <!-- ══ SERVERS & DATABASES ════════════════════════════════ -->
+                <section id="servers" class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-blue-100 tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-server tw-text-blue-600"></i>
+                        </div>
+                        <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Servers &amp; Databases Used</h2>
+                    </div>
+                    <div class="tw-overflow-x-auto">
+                        <table class="rate-table tw-w-full">
+                            <thead>
+                                <tr>
+                                    <th>Connection Key</th>
+                                    <th>Server / Role</th>
+                                    <th>Databases</th>
+                                    <th>Used In</th>
+                                    <th>Direction</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code class="tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-mono">DefaultConnection</code></td>
+                                    <td><span class="tw-font-semibold tw-text-slate-700">HR Server</span><br><span class="tw-text-[11px] tw-text-slate-400">Main HR database</span></td>
+                                    <td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td>
+                                    <td>All Steps (output/staging)</td>
+                                    <td><span class="step-pill tw-bg-green-100 tw-text-green-700"><i class="fas fa-arrow-down"></i> Write (Destination)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code class="tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-mono">LHR_Billing</code></td>
+                                    <td><span class="tw-font-semibold tw-text-slate-700">Billing Server</span><br><span class="tw-text-[11px] tw-text-slate-400">Parcel billing records</span></td>
+                                    <td><span class="db-badge tw-bg-blue-100 tw-text-blue-700">lcs_billing</span> <span class="db-badge tw-bg-blue-100 tw-text-blue-700">lcs</span> <span class="db-badge tw-bg-blue-100 tw-text-blue-700">lcs_setup</span></td>
+                                    <td>Step 1 (Cash), Step 3 (OLE)</td>
+                                    <td><span class="step-pill tw-bg-blue-100 tw-text-blue-700"><i class="fas fa-arrow-up"></i> Read (Source)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code class="tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-mono">MIS</code></td>
+                                    <td><span class="tw-font-semibold tw-text-slate-700">MIS / Download Server</span><br><span class="tw-text-[11px] tw-text-slate-400">OverLand billing data</span></td>
+                                    <td><span class="db-badge tw-bg-orange-100 tw-text-orange-700">lcs_billing_download</span></td>
+                                    <td>Step 3 (OverLand)</td>
+                                    <td><span class="step-pill tw-bg-blue-100 tw-text-blue-700"><i class="fas fa-arrow-up"></i> Read (Source)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code class="tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-mono">Central_OPS</code></td>
+                                    <td><span class="tw-font-semibold tw-text-slate-700">Operations Server</span><br><span class="tw-text-[11px] tw-text-slate-400">Delivery arrival records, COD</span></td>
+                                    <td><span class="db-badge tw-bg-pink-100 tw-text-pink-700">lcs_db</span> <span class="db-badge tw-bg-pink-100 tw-text-pink-700">cod_payment_receive</span></td>
+                                    <td>Step 2 (COD), Step 4 (Return COD), Step 1 (VAS)</td>
+                                    <td><span class="step-pill tw-bg-blue-100 tw-text-blue-700"><i class="fas fa-arrow-up"></i> Read (Source)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code class="tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-mono">Central_OPSNew</code></td>
+                                    <td><span class="tw-font-semibold tw-text-slate-700">Bank Transaction Server</span><br><span class="tw-text-[11px] tw-text-slate-400">E-com bank deposit dates</span></td>
+                                    <td><span class="db-badge tw-bg-pink-100 tw-text-pink-700">ecom_*</span></td>
+                                    <td>Step 2 (COD deposit date backfill)</td>
+                                    <td><span class="step-pill tw-bg-blue-100 tw-text-blue-700"><i class="fas fa-arrow-up"></i> Read (Source)</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- ══ COMMISSION PERIOD ══════════════════════════════════ -->
+                <section id="period" class="tw-bg-white tw-rounded-2xl tw-border tw-border-purple-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-purple-100 tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-calendar-alt tw-text-purple-600"></i>
+                        </div>
+                        <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Commission Period — How Dates Work</h2>
+                    </div>
+                    <p class="tw-text-sm tw-text-slate-600 tw-mb-4 tw-leading-relaxed">
+                        Commission is processed for a <strong>calendar month</strong>, but the actual data window is:
+                    </p>
+                    <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-3 tw-gap-4 tw-mb-4">
+                        <div class="tw-bg-purple-50 tw-border tw-border-purple-200 tw-rounded-xl tw-p-4 tw-text-center">
+                            <div class="tw-text-xs tw-font-bold tw-text-purple-500 tw-uppercase tw-tracking-wider tw-mb-1">Start Date</div>
+                            <div class="tw-text-xl tw-font-black tw-text-purple-700">21st</div>
+                            <div class="tw-text-sm tw-text-purple-600">of the PREVIOUS month</div>
+                        </div>
+                        <div class="tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-arrow-right tw-text-2xl tw-text-slate-300"></i>
+                        </div>
+                        <div class="tw-bg-purple-50 tw-border tw-border-purple-200 tw-rounded-xl tw-p-4 tw-text-center">
+                            <div class="tw-text-xs tw-font-bold tw-text-purple-500 tw-uppercase tw-tracking-wider tw-mb-1">End Date</div>
+                            <div class="tw-text-xl tw-font-black tw-text-purple-700">20th</div>
+                            <div class="tw-text-sm tw-text-purple-600">of the SELECTED month</div>
+                        </div>
+                    </div>
+                    <div class="tw-overflow-x-auto">
+                        <table class="rate-table tw-w-full">
+                            <thead><tr><th>Commission Month Selected</th><th>Data Start (From)</th><th>Data End (To)</th></tr></thead>
+                            <tbody>
+                                <tr><td class="tw-font-semibold">January 2026</td><td class="tw-text-emerald-700 tw-font-semibold">21 December 2025</td><td class="tw-text-rose-600 tw-font-semibold">20 January 2026</td></tr>
+                                <tr><td class="tw-font-semibold">February 2026</td><td class="tw-text-emerald-700 tw-font-semibold">21 January 2026</td><td class="tw-text-rose-600 tw-font-semibold">20 February 2026</td></tr>
+                                <tr><td class="tw-font-semibold">March 2026</td><td class="tw-text-emerald-700 tw-font-semibold">21 February 2026</td><td class="tw-text-rose-600 tw-font-semibold">20 March 2026</td></tr>
+                                <tr><td class="tw-font-semibold">April 2026</td><td class="tw-text-emerald-700 tw-font-semibold">21 March 2026</td><td class="tw-text-rose-600 tw-font-semibold">20 April 2026</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tw-mt-3 tw-p-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl">
+                        <p class="tw-text-xs tw-text-slate-600 tw-mb-1 tw-font-semibold">Code formula (C#):</p>
+                        <code class="guide-code tw-block">fromDate = new DateTime(year, month, <span class="nm">21</span>).AddMonths(<span class="nm">-1</span>);
+toDate   = new DateTime(year, month, <span class="nm">20</span>);</code>
+                    </div>
+                </section>
+
+                <!-- ══ STEP 1: CASH COMMISSION ════════════════════════════ -->
+                <section id="step1" class="tw-bg-white tw-rounded-2xl tw-border tw-border-emerald-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-emerald-500 tw-flex tw-items-center tw-justify-center">
+                            <span class="tw-text-white tw-font-black">1</span>
+                        </div>
+                        <div>
+                            <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Step 1 — Cash Commission</h2>
+                            <p class="tw-text-xs tw-text-slate-500 tw-mb-0">Commission for couriers who physically delivered cash/retail parcels</p>
+                        </div>
+                    </div>
+
+                    <!-- Flow boxes -->
+                    <div class="tw-flex tw-items-center tw-gap-2 tw-flex-wrap tw-mb-5">
+                        <div class="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-xl tw-p-3 tw-text-center tw-flex-1 tw-min-w-32">
+                            <div class="tw-text-[10px] tw-font-bold tw-text-blue-400 tw-uppercase tw-tracking-wider">Source Server</div>
+                            <div class="tw-font-bold tw-text-blue-700 tw-text-sm">LHR_Billing</div>
+                            <div class="tw-text-[11px] tw-text-blue-500 tw-font-mono">lcs_billing</div>
+                        </div>
+                        <i class="fas fa-arrow-right tw-text-slate-300"></i>
+                        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-3 tw-text-center tw-flex-1 tw-min-w-40">
+                            <div class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-wider">Source Table</div>
+                            <div class="tw-font-bold tw-text-slate-700 tw-text-sm tw-font-mono">billing_details</div>
+                            <div class="tw-text-[11px] tw-text-slate-500">+ billing_details_hist</div>
+                        </div>
+                        <i class="fas fa-arrow-right tw-text-slate-300"></i>
+                        <div class="tw-bg-emerald-50 tw-border tw-border-emerald-200 tw-rounded-xl tw-p-3 tw-text-center tw-flex-1 tw-min-w-40">
+                            <div class="tw-text-[10px] tw-font-bold tw-text-emerald-500 tw-uppercase tw-tracking-wider">Destination (lcs_hr)</div>
+                            <div class="tw-font-bold tw-text-emerald-700 tw-text-sm tw-font-mono">hr_cash_consignments</div>
+                            <div class="tw-text-[11px] tw-text-emerald-500">hr_vas_incentive_detail</div>
+                        </div>
+                    </div>
+
+                    <!-- What it does -->
+                    <div class="tw-bg-slate-50 tw-rounded-xl tw-p-4 tw-mb-4">
+                        <h3 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-mb-2"><i class="fas fa-cogs tw-text-slate-400 tw-mr-2"></i>What this step does (Plain English)</h3>
+                        <ol class="tw-text-sm tw-text-slate-600 tw-space-y-1.5 tw-list-decimal tw-list-inside tw-leading-relaxed">
+                            <li>Reads <strong>all delivered parcels</strong> from the billing system for the commission period (21st prev → 20th current).</li>
+                            <li>Matches each parcel's <strong>courier ID</strong> (<code class="tw-font-mono tw-text-xs tw-bg-slate-200 tw-px-1 tw-rounded">cour_id</code>) to an employee via <code class="tw-font-mono tw-text-xs tw-bg-slate-200 tw-px-1 tw-rounded">hr_employeeroutecode</code>.</li>
+                            <li>Calculates commission based on the parcel's <strong>Shipment_ID</strong> (each type has a fixed rate).</li>
+                            <li>Also calculates <strong>VAS, MTD, and Insurance</strong> incentives separately.</li>
+                            <li>Inserts one row per CN into <code class="tw-font-mono tw-text-xs tw-bg-slate-200 tw-px-1 tw-rounded">hr_cash_consignments</code>.</li>
+                        </ol>
+                    </div>
+
+                    <!-- Key joining logic -->
+                    <div class="tw-bg-emerald-50 tw-border tw-border-emerald-200 tw-rounded-xl tw-p-4 tw-mb-4">
+                        <h3 class="tw-text-sm tw-font-bold tw-text-emerald-800 tw-mb-2"><i class="fas fa-link tw-mr-2"></i>Parcel → Employee Join Logic</h3>
+                        <div class="tw-text-sm tw-text-emerald-700 tw-space-y-1">
+                            <p><strong>billing_details.cour_id</strong> = <strong>hr_employeeroutecode.RouteCode</strong></p>
+                            <p>Also must match city: <code class="tw-font-mono tw-text-xs tw-bg-emerald-100 tw-px-1.5 tw-rounded">LPAD(CAST(Station_id AS UNSIGNED), 3, '0') = erc.citycode</code></p>
+                            <p>Only <strong>active routes</strong>: <code class="tw-font-mono tw-text-xs tw-bg-emerald-100 tw-px-1.5 tw-rounded">erc.ToDate IS NULL</code></p>
+                        </div>
+                    </div>
+
+                    <!-- Important tables -->
+                    <div class="tw-overflow-x-auto tw-mb-4">
+                        <table class="rate-table tw-w-full">
+                            <thead><tr><th>Table</th><th>Database</th><th>Role</th><th>Key Columns</th></tr></thead>
+                            <tbody>
+                                <tr><td class="tw-font-mono tw-text-xs">billing_details</td><td><span class="db-badge tw-bg-blue-100 tw-text-blue-700">lcs_billing</span></td><td>Source — all delivered parcels</td><td>cn_number, Station_id, billing_date, Shipment_id, weight, cour_id, Gross_Amount</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">billing_details_hist</td><td><span class="db-badge tw-bg-blue-100 tw-text-blue-700">lcs_billing</span></td><td>Historical source (same schema)</td><td>Same as above</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">rms_cod_booking</td><td><span class="db-badge tw-bg-blue-100 tw-text-blue-700">lcs</span></td><td>Retail COD source (Shipment_id=99)</td><td>cn_no, express_id, arvl_dest</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_employeeroutecode</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>RouteCode → Emp_No mapping</td><td>RouteCode, Emp_No, citycode, FromDate, ToDate</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_cash_consignments</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td class="tw-font-semibold tw-text-emerald-700">OUTPUT — one row per CN</td><td>cn_number, cour_id, billing_date, Shipment_id, TotalCommission, Criteria, Station_id</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_vas_incentive_detail</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td class="tw-font-semibold tw-text-emerald-700">OUTPUT — VAS incentives</td><td>Emp_No, IncentivePayable, Final_Incentive</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_acknowledgment</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Audit trail (ScreenID=1)</td><td>ScreenID, UserID, CreatedDate</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="tw-p-3 tw-bg-rose-50 tw-border tw-border-rose-200 tw-rounded-xl tw-text-xs tw-text-rose-700 tw-mb-3">
+                        <i class="fas fa-ban tw-mr-2"></i>
+                        <strong>Excluded shipment types:</strong> shipment_type_id IN (43, 38) &nbsp;|&nbsp;
+                        <strong>Excluded VAS IDs:</strong> 5, 6, 12, 13, 15, 16, 31, 32, 48 &nbsp;|&nbsp;
+                        <strong>Excluded express IDs (Retail COD):</strong> 41, 658
+                    </div>
+                </section>
+
+                <!-- ══ STEP 2: COD COMMISSION ════════════════════════════ -->
+                <section id="step2" class="tw-bg-white tw-rounded-2xl tw-border tw-border-blue-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-blue-500 tw-flex tw-items-center tw-justify-center">
+                            <span class="tw-text-white tw-font-black">2</span>
+                        </div>
+                        <div>
+                            <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Step 2 — COD Commission</h2>
+                            <p class="tw-text-xs tw-text-slate-500 tw-mb-0">Commission for couriers who collected and deposited Cash-on-Delivery amounts on time</p>
+                        </div>
+                    </div>
+
+                    <div class="tw-flex tw-items-center tw-gap-2 tw-flex-wrap tw-mb-5">
+                        <div class="tw-bg-pink-50 tw-border tw-border-pink-200 tw-rounded-xl tw-p-3 tw-text-center tw-flex-1 tw-min-w-32">
+                            <div class="tw-text-[10px] tw-font-bold tw-text-pink-400 tw-uppercase tw-tracking-wider">Source Server</div>
+                            <div class="tw-font-bold tw-text-pink-700 tw-text-sm">Central_OPS</div>
+                            <div class="tw-text-[11px] tw-text-pink-500 tw-font-mono">lcs_db</div>
+                        </div>
+                        <i class="fas fa-arrow-right tw-text-slate-300"></i>
+                        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-3 tw-text-center tw-flex-1 tw-min-w-40">
+                            <div class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-wider">Source Tables</div>
+                            <div class="tw-font-bold tw-text-slate-700 tw-text-sm tw-font-mono">lcs_db.arival</div>
+                            <div class="tw-text-[11px] tw-text-slate-500">cod_ranges · cod_receive</div>
+                        </div>
+                        <i class="fas fa-arrow-right tw-text-slate-300"></i>
+                        <div class="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-xl tw-p-3 tw-text-center tw-flex-1 tw-min-w-40">
+                            <div class="tw-text-[10px] tw-font-bold tw-text-blue-500 tw-uppercase tw-tracking-wider">Destination (lcs_hr)</div>
+                            <div class="tw-font-bold tw-text-blue-700 tw-text-sm tw-font-mono">hr_cod_consignments</div>
+                            <div class="tw-text-[11px] tw-text-blue-500">hr_codcommission</div>
+                        </div>
+                    </div>
+
+                    <div class="tw-bg-slate-50 tw-rounded-xl tw-p-4 tw-mb-4">
+                        <h3 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-mb-2"><i class="fas fa-cogs tw-text-slate-400 tw-mr-2"></i>What this step does (Plain English)</h3>
+                        <ol class="tw-text-sm tw-text-slate-600 tw-space-y-1.5 tw-list-decimal tw-list-inside tw-leading-relaxed">
+                            <li>Reads all <strong>COD (Cash on Delivery) parcels</strong> delivered during the month from <code class="tw-font-mono tw-text-xs tw-bg-slate-200 tw-px-1 tw-rounded">lcs_db.arival</code>.</li>
+                            <li>Checks if cash was <strong>deposited within 1 working day</strong> of delivery (<code class="tw-font-mono tw-text-xs tw-bg-slate-200 tw-px-1 tw-rounded">DateDif ≤ 1</code> after subtracting holidays).</li>
+                            <li>Counts <strong>timely CNs per courier</strong> and applies the tier rate (the more timely CNs, the higher the rate per CN).</li>
+                            <li>Also applies <strong>KPI bonus/deduction</strong> from dynamic score tables.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-xl tw-p-4 tw-mb-4">
+                        <h3 class="tw-text-sm tw-font-bold tw-text-blue-800 tw-mb-2"><i class="fas fa-link tw-mr-2"></i>Parcel → Employee Join Logic</h3>
+                        <p class="tw-text-sm tw-text-blue-700">
+                            <code class="tw-font-mono tw-text-xs tw-bg-blue-100 tw-px-1.5 tw-rounded">lcs_db.arival.COURIER_ID</code> is stored directly in
+                            <code class="tw-font-mono tw-text-xs tw-bg-blue-100 tw-px-1.5 tw-rounded">hr_cod_consignments.Cour_id</code> as a <strong>varchar(5) RouteCode</strong> (e.g. '00669').
+                            To match with employee: <code class="tw-font-mono tw-text-xs tw-bg-blue-100 tw-px-1.5 tw-rounded">JOIN hr_employeeroutecode erc ON erc.RouteCode = Cour_id AND erc.Emp_No = @@empNo</code>
+                            — <strong class="tw-text-red-600">NEVER use LPAD(Cour_id, 14, '0')</strong> — that produces '0000000000669' which matches nothing.
+                        </p>
+                    </div>
+
+                    <div class="tw-overflow-x-auto tw-mb-4">
+                        <table class="rate-table tw-w-full">
+                            <thead><tr><th>Table</th><th>Database</th><th>Role</th><th>Key Columns</th></tr></thead>
+                            <tbody>
+                                <tr><td class="tw-font-mono tw-text-xs">arival</td><td><span class="db-badge tw-bg-pink-100 tw-text-pink-700">lcs_db</span></td><td>Source — delivery records</td><td>CN_NUMBER, COURIER_ID, ARVL_DEST, COUR_DATE, DELIVERY_DATE, STATUS, cr_entry_date</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">cod_ranges</td><td><span class="db-badge tw-bg-pink-100 tw-text-pink-700">lcs_db</span></td><td>Identifies which CNs are COD</td><td>start_range, end_range</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">cod_receive</td><td><span class="db-badge tw-bg-pink-100 tw-text-pink-700">cod_payment_receive</span></td><td>Cash deposit records</td><td>cr_Amt, cr_entry_date, cr_depositslip</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_cod_consignments</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td class="tw-font-semibold tw-text-blue-700">OUTPUT — per-CN COD staging</td><td>CN_Number, Cour_id, Cour_date, Delivery_date, DateDif, ComAmnt, Reason, Cyear, CMonth, Arivl_Dest</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_codcommission</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td class="tw-font-semibold tw-text-blue-700">OUTPUT — final COD per courier</td><td>year, month, Cour_id, City, CnCount, Commission, CODBonus, CODDeduction</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">first_attempt_incentivce_validate%</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Dynamic KPI score table (pattern-matched)</td><td>courier_id, arvl_dest, Overall_Score, is_eligible</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tw-p-3 tw-bg-rose-50 tw-border tw-border-rose-200 tw-rounded-xl tw-text-xs tw-text-rose-700">
+                        <i class="fas fa-ban tw-mr-2"></i>
+                        <strong>Excluded client IDs:</strong> 560251, 545237, 558932, 101103, 100880, 101101, 101102, 102419, 545238, 554908, 049676, 567515, 021298, 021314, 090883, 229699 &nbsp;|&nbsp;
+                        <strong>Excluded statuses:</strong> DS, DW, DR, IT, DL &nbsp;|&nbsp;
+                        <strong>Excluded BH_REMARKS:</strong> RT, RV, RW, RS
+                    </div>
+                </section>
+
+                <!-- ══ STEP 3: OVERLAND COMMISSION ═══════════════════════ -->
+                <section id="step3" class="tw-bg-white tw-rounded-2xl tw-border tw-border-orange-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-orange-500 tw-flex tw-items-center tw-justify-center">
+                            <span class="tw-text-white tw-font-black">3</span>
+                        </div>
+                        <div>
+                            <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Step 3 — OverLand (OLE) Commission</h2>
+                            <p class="tw-text-xs tw-text-slate-500 tw-mb-0">Commission for OLE/Overland Express parcels — booking, dispatch, transit, delivery</p>
+                        </div>
+                    </div>
+
+                    <div class="tw-flex tw-items-center tw-gap-2 tw-flex-wrap tw-mb-5">
+                        <div class="tw-bg-orange-50 tw-border tw-border-orange-200 tw-rounded-xl tw-p-3 tw-text-center tw-flex-1 tw-min-w-32">
+                            <div class="tw-text-[10px] tw-font-bold tw-text-orange-400 tw-uppercase tw-tracking-wider">Source Server</div>
+                            <div class="tw-font-bold tw-text-orange-700 tw-text-sm">MIS</div>
+                            <div class="tw-text-[11px] tw-text-orange-500 tw-font-mono">lcs_billing_download</div>
+                        </div>
+                        <i class="fas fa-arrow-right tw-text-slate-300"></i>
+                        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-3 tw-text-center tw-flex-1 tw-min-w-40">
+                            <div class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-wider">Source Table</div>
+                            <div class="tw-font-bold tw-text-slate-700 tw-text-sm tw-font-mono">billing_details</div>
+                        </div>
+                        <i class="fas fa-arrow-right tw-text-slate-300"></i>
+                        <div class="tw-bg-orange-50 tw-border tw-border-orange-200 tw-rounded-xl tw-p-3 tw-text-center tw-flex-1 tw-min-w-40">
+                            <div class="tw-text-[10px] tw-font-bold tw-text-orange-500 tw-uppercase tw-tracking-wider">Destination (lcs_hr)</div>
+                            <div class="tw-font-bold tw-text-orange-700 tw-text-sm tw-font-mono">hr_olecommissionprocess</div>
+                        </div>
+                    </div>
+
+                    <div class="tw-bg-slate-50 tw-rounded-xl tw-p-4 tw-mb-4">
+                        <h3 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-mb-2"><i class="fas fa-cogs tw-text-slate-400 tw-mr-2"></i>What this step does (Plain English)</h3>
+                        <ol class="tw-text-sm tw-text-slate-600 tw-space-y-1.5 tw-list-decimal tw-list-inside tw-leading-relaxed">
+                            <li>Reads Overland/OLE parcels from the MIS billing server.</li>
+                            <li>Classifies them by <strong>RateID</strong> (1–8, 11–12, 75–103) — each RateID represents a different OLE service type.</li>
+                            <li>Distributes commission to employees based on their role (booking, dispatch, transit, or delivery).</li>
+                            <li>For Dispatch/Transit roles, commission is split proportionally among eligible employees by working days.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tw-overflow-x-auto tw-mb-4">
+                        <table class="rate-table tw-w-full">
+                            <thead><tr><th>RateID</th><th>OLE Commission Type</th><th>Who Gets It</th></tr></thead>
+                            <tbody>
+                                <tr><td class="tw-font-mono">1</td><td>OLE Credit Booking</td><td>CodeType 9 employees only</td></tr>
+                                <tr><td class="tw-font-mono">2</td><td>OLE Dispatch Proper</td><td>Distributed across eligible employees by location</td></tr>
+                                <tr><td class="tw-font-mono">3</td><td>OLE Transit Dispatch</td><td>Distributed by location + working days</td></tr>
+                                <tr><td class="tw-font-mono">4</td><td>OLE Delivery OPS</td><td>Distributed by location + working days</td></tr>
+                                <tr><td class="tw-font-mono">5</td><td>OLE Delivery</td><td>Non-CodeType 3/10/11 employees</td></tr>
+                                <tr><td class="tw-font-mono">6, 11</td><td>Dom Credit Source</td><td>Booking employees</td></tr>
+                                <tr><td class="tw-font-mono">7, 12</td><td>Local Credit Source</td><td>Booking employees</td></tr>
+                                <tr><td class="tw-font-mono">8</td><td>INTL Credit (Corporate RBI)</td><td>Booking employees</td></tr>
+                                <tr><td class="tw-font-mono">75–95</td><td>CEB / ECON / Project variants</td><td>Various (Existing/New client split)</td></tr>
+                                <tr><td class="tw-font-mono">96–103</td><td>VAS, Card, E-Com, Return</td><td>Various</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- ══ STEP 4: RETURN COD ════════════════════════════════ -->
+                <section id="step4" class="tw-bg-white tw-rounded-2xl tw-border tw-border-pink-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-pink-500 tw-flex tw-items-center tw-justify-center">
+                            <span class="tw-text-white tw-font-black">4</span>
+                        </div>
+                        <div>
+                            <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Step 4 — Return COD Commission</h2>
+                            <p class="tw-text-xs tw-text-slate-500 tw-mb-0">Commission for handling returned COD shipments (RTO parcels)</p>
+                        </div>
+                    </div>
+                    <div class="tw-bg-slate-50 tw-rounded-xl tw-p-4 tw-mb-4">
+                        <h3 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-mb-2"><i class="fas fa-cogs tw-text-slate-400 tw-mr-2"></i>What this step does</h3>
+                        <ol class="tw-text-sm tw-text-slate-600 tw-space-y-1.5 tw-list-decimal tw-list-inside tw-leading-relaxed">
+                            <li>Reads returned COD shipments from <code class="tw-font-mono tw-text-xs tw-bg-slate-200 tw-px-1 tw-rounded">lcs_db.arival</code> for the period.</li>
+                            <li>Calculates commission per courier based on the number of return CNs handled.</li>
+                            <li>Output goes into <code class="tw-font-mono tw-text-xs tw-bg-slate-200 tw-px-1 tw-rounded">hr_codreturncommissionprocess</code> and <code class="tw-font-mono tw-text-xs tw-bg-slate-200 tw-px-1 tw-rounded">cod_returnshipments</code>.</li>
+                        </ol>
+                    </div>
+                    <div class="tw-overflow-x-auto">
+                        <table class="rate-table tw-w-full">
+                            <thead><tr><th>Table</th><th>Database</th><th>Role</th></tr></thead>
+                            <tbody>
+                                <tr><td class="tw-font-mono tw-text-xs">arival</td><td><span class="db-badge tw-bg-pink-100 tw-text-pink-700">lcs_db (Central_OPS)</span></td><td>Source — return delivery records</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_codreturncommissionprocess</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td class="tw-font-semibold tw-text-pink-700">OUTPUT — return COD commission per courier</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">cod_returnshipments</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Return shipment count tracking (status codes: AC, PN, RN, NR, IT, DW, DR, DS, DV)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- ══ STEP 5: MASTER ROLLUP ════════════════════════════ -->
+                <section id="step5" class="tw-bg-white tw-rounded-2xl tw-border tw-border-indigo-300 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-indigo-600 tw-flex tw-items-center tw-justify-center">
+                            <span class="tw-text-white tw-font-black">5</span>
+                        </div>
+                        <div>
+                            <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Step 5 — Master Commission Rollup</h2>
+                            <p class="tw-text-xs tw-text-slate-500 tw-mb-0">Aggregates all commission types → final per-employee record in hr_commissionprocess</p>
+                        </div>
+                    </div>
+
+                    <div class="tw-bg-indigo-50 tw-border tw-border-indigo-200 tw-rounded-xl tw-p-4 tw-mb-4">
+                        <h3 class="tw-text-sm tw-font-bold tw-text-indigo-800 tw-mb-2"><i class="fas fa-cogs tw-mr-2"></i>What this step does (Plain English)</h3>
+                        <ol class="tw-text-sm tw-text-indigo-700 tw-space-y-1.5 tw-list-decimal tw-list-inside tw-leading-relaxed">
+                            <li>Reads <strong>all four output tables</strong> from Steps 1–4.</li>
+                            <li>Groups by <strong>Employee Number + City + Year + Month</strong>.</li>
+                            <li>Applies <strong>commission policy rates</strong> from <code class="tw-font-mono tw-text-xs tw-bg-indigo-100 tw-px-1 tw-rounded">hr_commissionpolicy</code> (IsPercent flag: fixed amount or % of value).</li>
+                            <li>Calculates <strong>working days</strong> from <code class="tw-font-mono tw-text-xs tw-bg-indigo-100 tw-px-1 tw-rounded">hr_employeeattendanceprocess</code>.</li>
+                            <li>Applies <strong>minimum guarantee</strong> top-up if commission &lt; 1,500 PKR.</li>
+                            <li>Applies <strong>RBI cap</strong> deduction if RBI commission &gt; 100,000 PKR.</li>
+                            <li>Inserts one row per employee per city into <code class="tw-font-mono tw-text-xs tw-bg-indigo-100 tw-px-1 tw-rounded">hr_commissionprocess</code>.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tw-overflow-x-auto tw-mb-4">
+                        <table class="rate-table tw-w-full">
+                            <thead><tr><th>Table</th><th>Database</th><th>Role</th><th>Key Columns</th></tr></thead>
+                            <tbody>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_cash_consignments</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Input — from Step 1</td><td>TotalCommission, cour_id, billing_date, Station_id</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_codcommission</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Input — from Step 2</td><td>Commission, CODBonus, CODDeduction, Cour_id</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_olecommissionprocess</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Input — from Step 3</td><td>CourierID, GlLocationId, RateID, Commission</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_codreturncommissionprocess</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Input — from Step 4</td><td>Cour_id, Commission</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_commissionpolicy</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Rate master (IsPercent, Rate)</td><td>RateID, Rate, IsPercent, IsDeleted</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_empcommissioneligibility</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>OLE eligibility check</td><td>CommissionId IN (2,3,4), IsEligible=TRUE</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_employeeattendanceprocess</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Working days calculation</td><td>TotalDays, Sundays, Absents, adjustmentAbsent</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_empcommadjdtl</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td class="tw-font-semibold tw-text-indigo-700">OUTPUT — adjustments (min guarantee, RBI cap)</td><td>Emp_No, Adjustment_Amount, Adjusment_Type_id</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_commissionprocess</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td class="tw-font-semibold tw-text-indigo-700">FINAL OUTPUT — one row per employee</td><td>Year, Month, citycode, emp_no, Cour_id, OVERNIGHT, COD, YB1KG, YB2KG, YB5KG, YB10KG, YB15KG, YB25KG, FLAYER, DETAIN, OVERLAND, PREPAID, LOVELINE, VAS, COD_Bonus, COD_Deduction, OLE_Delivery, …(90+ cols)</td></tr>
+                                <tr><td class="tw-font-mono tw-text-xs">hr_acknowledgment</td><td><span class="db-badge tw-bg-violet-100 tw-text-violet-700">lcs_hr</span></td><td>Audit trail (ScreenID=3)</td><td>ScreenID=3, UserID, CreatedDate</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="tw-p-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl">
+                        <p class="tw-text-xs tw-font-semibold tw-text-slate-600 tw-mb-1">Working Days Formula:</p>
+                        <code class="guide-code tw-block">WorkingDays = (TotalDays - Sundays + adjustmentAbsent) - Absents</code>
+                    </div>
+                </section>
+
+                <!-- ══ ALL CASH COMMISSION RATES ════════════════════════ -->
+                <section id="rates" class="tw-bg-white tw-rounded-2xl tw-border tw-border-amber-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-amber-400 tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-table tw-text-slate-900"></i>
+                        </div>
+                        <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Cash Commission Rates — By Shipment_ID</h2>
+                    </div>
+                    <p class="tw-text-sm tw-text-slate-500 tw-mb-4">Each Shipment_ID maps to a parcel type. The commission rate is hardcoded in the SQL for each type:</p>
+                    <div class="tw-overflow-x-auto">
+                        <table class="rate-table tw-w-full">
+                            <thead><tr><th>Shipment_ID(s)</th><th>Parcel Type</th><th>Criteria</th><th>Rate</th></tr></thead>
+                            <tbody>
+                                <tr><td class="tw-font-mono">1, 9, 17</td><td>Express (≤ 1,000g)</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 3</td></tr>
+                                <tr><td class="tw-font-mono">1, 9, 17</td><td>Express Non-Dox (> 1,000g)</td><td>Per KG</td><td class="tw-font-bold tw-text-emerald-700">PKR 5 / kg</td></tr>
+                                <tr><td class="tw-font-mono">2</td><td>Yellow Box 5KG (≤ 5,000g)</td><td>Per KG</td><td class="tw-font-bold tw-text-emerald-700">PKR 15</td></tr>
+                                <tr><td class="tw-font-mono">2</td><td>Yellow Box 5KG (> 5,000g)</td><td>Per KG</td><td class="tw-font-bold tw-text-emerald-700">PKR 3 / kg</td></tr>
+                                <tr><td class="tw-font-mono">3, 8</td><td>Economy (≤ 10,000g)</td><td>Per KG</td><td class="tw-font-bold tw-text-emerald-700">PKR 20</td></tr>
+                                <tr><td class="tw-font-mono">3, 8</td><td>Economy overweight (> 10,000g)</td><td>Per KG</td><td class="tw-font-bold tw-text-emerald-700">PKR 2 / kg</td></tr>
+                                <tr><td class="tw-font-mono">4</td><td>Item (Revenue-based)</td><td>On Revenue</td><td class="tw-font-bold tw-text-emerald-700">3% of Gross Amount</td></tr>
+                                <tr><td class="tw-font-mono">6, 63, 64</td><td>Oversize</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 300</td></tr>
+                                <tr><td class="tw-font-mono">7, 34, 62</td><td>Flayer / Large</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 200</td></tr>
+                                <tr><td class="tw-font-mono">10, 20, 61</td><td>Overnight</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 8</td></tr>
+                                <tr><td class="tw-font-mono">21, 65, 68, 71</td><td>YB 1KG</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 4</td></tr>
+                                <tr><td class="tw-font-mono">22, 66, 69, 72</td><td>YB 2KG</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 8</td></tr>
+                                <tr><td class="tw-font-mono">23, 52, 67, 70, 73</td><td>YB 5KG</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 20</td></tr>
+                                <tr><td class="tw-font-mono">24</td><td>YB 10KG</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 40</td></tr>
+                                <tr><td class="tw-font-mono">32</td><td>YB 15KG</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 60</td></tr>
+                                <tr><td class="tw-font-mono">25, 53</td><td>YB 25KG</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 100</td></tr>
+                                <tr><td class="tw-font-mono">27, 28</td><td>MOFA O2O / O2D</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 10</td></tr>
+                                <tr><td class="tw-font-mono">47</td><td>Loveline</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 250</td></tr>
+                                <tr><td class="tw-font-mono">48</td><td>All-in-One</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 8</td></tr>
+                                <tr><td class="tw-font-mono">49</td><td>Document Care</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 8</td></tr>
+                                <tr><td class="tw-font-mono">999</td><td>My Collect</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 3</td></tr>
+                                <tr><td class="tw-font-mono">Attestation</td><td>Attestation vendor CNs</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 10</td></tr>
+                                <tr><td colspan="4" class="tw-bg-slate-50 tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wider">Additional Commission Types</td></tr>
+                                <tr><td>MTD ≤ 2,000g</td><td>Multi-Tender Delivery</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 3</td></tr>
+                                <tr><td>MTD 2,001–5,000g</td><td>Multi-Tender Delivery</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 15</td></tr>
+                                <tr><td>MTD 5,001–10,000g</td><td>Multi-Tender Delivery</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 30</td></tr>
+                                <tr><td>MTD 10,001–15,000g</td><td>Multi-Tender Delivery</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 45</td></tr>
+                                <tr><td>MTD &gt; 15,000g</td><td>Multi-Tender Delivery</td><td>Per Shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 75</td></tr>
+                                <tr><td>Insurance</td><td>Insurance commission</td><td>On Insurance Amount</td><td class="tw-font-bold tw-text-emerald-700">3% of Insurance Amount</td></tr>
+                                <tr><td>VAS</td><td>Value-Added Services</td><td>Per VAS shipment</td><td class="tw-font-bold tw-text-emerald-700">PKR 10</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- ══ COD TIERS ═════════════════════════════════════════ -->
+                <section id="cod-tiers" class="tw-bg-white tw-rounded-2xl tw-border tw-border-blue-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-blue-100 tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-sort-amount-up tw-text-blue-600"></i>
+                        </div>
+                        <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">COD Commission — Tier Rates (More CNs = Higher Rate)</h2>
+                    </div>
+                    <p class="tw-text-sm tw-text-slate-600 tw-mb-4">
+                        COD commission is calculated per courier based on how many CNs were deposited <strong>on time</strong> (within 1 working day of delivery).
+                        The more timely CNs, the <strong>higher the rate per CN</strong>:
+                    </p>
+                    <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-3 tw-gap-4 tw-mb-4">
+                        <div class="tw-border-2 tw-border-blue-200 tw-rounded-2xl tw-p-5 tw-text-center">
+                            <div class="tw-text-3xl tw-font-black tw-text-blue-300 tw-mb-1">≤ 500</div>
+                            <div class="tw-text-sm tw-text-slate-500 tw-mb-3">Timely CNs</div>
+                            <div class="tw-text-3xl tw-font-black tw-text-blue-700">PKR 10</div>
+                            <div class="tw-text-xs tw-text-slate-400 tw-mt-1">per CN</div>
+                        </div>
+                        <div class="tw-border-2 tw-border-blue-400 tw-rounded-2xl tw-p-5 tw-text-center tw-bg-blue-50">
+                            <div class="tw-text-3xl tw-font-black tw-text-blue-500 tw-mb-1">501–750</div>
+                            <div class="tw-text-sm tw-text-slate-500 tw-mb-3">Timely CNs</div>
+                            <div class="tw-text-3xl tw-font-black tw-text-blue-700">PKR 15</div>
+                            <div class="tw-text-xs tw-text-slate-400 tw-mt-1">per CN</div>
+                        </div>
+                        <div class="tw-border-2 tw-border-blue-600 tw-rounded-2xl tw-p-5 tw-text-center tw-bg-blue-100">
+                            <div class="tw-text-3xl tw-font-black tw-text-blue-700 tw-mb-1">&gt; 750</div>
+                            <div class="tw-text-sm tw-text-slate-500 tw-mb-3">Timely CNs</div>
+                            <div class="tw-text-3xl tw-font-black tw-text-blue-900">PKR 20</div>
+                            <div class="tw-text-xs tw-text-slate-400 tw-mt-1">per CN</div>
+                        </div>
+                    </div>
+                    <div class="tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-xl tw-text-sm tw-text-blue-800">
+                        <i class="fas fa-info-circle tw-mr-2 tw-text-blue-400"></i>
+                        <strong>"Timely" definition:</strong> Cash deposited within <strong>1 working day</strong> of delivery date
+                        (<code class="tw-font-mono tw-text-xs tw-bg-blue-100 tw-px-1 tw-rounded">DateDif ≤ 1</code> after subtracting public holidays via <code class="tw-font-mono tw-text-xs tw-bg-blue-100 tw-px-1 tw-rounded">lcs_hr.count_Holiday()</code>).
+                    </div>
+                </section>
+
+                <!-- ══ CITY-SPECIFIC RULES ═══════════════════════════════ -->
+                <section id="city-rules" class="tw-bg-white tw-rounded-2xl tw-border tw-border-teal-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-teal-100 tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-city tw-text-teal-600"></i>
+                        </div>
+                        <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">City-Specific Rules</h2>
+                    </div>
+                    <p class="tw-text-sm tw-text-slate-600 tw-mb-4">Commission rates themselves are the same across cities, but the <strong>KPI delivery threshold</strong> differs:</p>
+                    <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-4 tw-mb-4">
+                        <div class="tw-bg-teal-50 tw-border tw-border-teal-300 tw-rounded-xl tw-p-4">
+                            <div class="tw-text-xs tw-font-bold tw-text-teal-500 tw-uppercase tw-tracking-wider tw-mb-2">High-Volume Cities</div>
+                            <div class="tw-flex tw-flex-wrap tw-gap-2 tw-mb-3">
+                                <span class="tw-bg-teal-200 tw-text-teal-900 tw-font-bold tw-text-xs tw-px-2 tw-py-1 tw-rounded">001 — Karachi</span>
+                                <span class="tw-bg-teal-200 tw-text-teal-900 tw-font-bold tw-text-xs tw-px-2 tw-py-1 tw-rounded">002 — Lahore</span>
+                                <span class="tw-bg-teal-200 tw-text-teal-900 tw-font-bold tw-text-xs tw-px-2 tw-py-1 tw-rounded">003 — Hyderabad</span>
+                                <span class="tw-bg-teal-200 tw-text-teal-900 tw-font-bold tw-text-xs tw-px-2 tw-py-1 tw-rounded">080</span>
+                            </div>
+                            <div class="tw-text-2xl tw-font-black tw-text-teal-700">85%</div>
+                            <div class="tw-text-sm tw-text-teal-600">KPI Delivery Rate Required</div>
+                        </div>
+                        <div class="tw-bg-slate-50 tw-border tw-border-slate-300 tw-rounded-xl tw-p-4">
+                            <div class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wider tw-mb-2">All Other Cities</div>
+                            <div class="tw-text-sm tw-text-slate-400 tw-mb-3">(Multan, Sukkur, Faisalabad, Peshawar, etc.)</div>
+                            <div class="tw-text-2xl tw-font-black tw-text-slate-700">80%</div>
+                            <div class="tw-text-sm tw-text-slate-600">KPI Delivery Rate Required</div>
+                        </div>
+                    </div>
+                    <div class="tw-p-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs">
+                        <code class="guide-code tw-block"><span class="cm">-- City KPI threshold in SQL</span>
+<span class="kw">IF</span>(<span class="nm">@@HrCity</span> <span class="kw">IN</span> (<span class="st">'001'</span>, <span class="st">'002'</span>, <span class="st">'003'</span>, <span class="st">'080'</span>), <span class="nm">85</span>, <span class="nm">80</span>)</code>
+                    </div>
+                </section>
+
+                <!-- ══ ADJUSTMENTS ═══════════════════════════════════════ -->
+                <section id="adjustments" class="tw-bg-white tw-rounded-2xl tw-border tw-border-violet-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-violet-100 tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-sliders-h tw-text-violet-600"></i>
+                        </div>
+                        <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Commission Adjustments</h2>
+                    </div>
+                    <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-4">
+                        <div class="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-xl tw-p-4">
+                            <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                                <i class="fas fa-arrow-up tw-text-green-500"></i>
+                                <span class="tw-text-sm tw-font-bold tw-text-green-800">Minimum Guarantee Top-Up</span>
+                            </div>
+                            <p class="tw-text-sm tw-text-green-700 tw-leading-relaxed">
+                                If an eligible employee's total commission is between <strong>PKR 1 and PKR 1,500</strong> and they have working days &gt; 0:
+                            </p>
+                            <div class="tw-bg-green-100 tw-rounded-lg tw-p-2 tw-mt-2 tw-font-mono tw-text-xs tw-text-green-800">
+                                Top-up = (1,500 ÷ 25) × WorkingDays — capped at 1,500
+                            </div>
+                            <p class="tw-text-xs tw-text-green-600 tw-mt-2">Stored in <code class="tw-font-mono tw-bg-green-100 tw-px-1 tw-rounded">hr_empcommadjdtl</code> as positive adjustment</p>
+                        </div>
+                        <div class="tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-xl tw-p-4">
+                            <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                                <i class="fas fa-arrow-down tw-text-red-500"></i>
+                                <span class="tw-text-sm tw-font-bold tw-text-red-800">RBI Commission Cap</span>
+                            </div>
+                            <p class="tw-text-sm tw-text-red-700 tw-leading-relaxed">
+                                If an employee's total RBI-category commission exceeds <strong>PKR 100,000</strong>:
+                            </p>
+                            <div class="tw-bg-red-100 tw-rounded-lg tw-p-2 tw-mt-2 tw-font-mono tw-text-xs tw-text-red-800">
+                                Deduction = (RBI Total − 100,000) × −1
+                            </div>
+                            <p class="tw-text-xs tw-text-red-600 tw-mt-2">Stored in <code class="tw-font-mono tw-bg-red-100 tw-px-1 tw-rounded">hr_empcommadjdtl</code> as negative adjustment</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ══ VERIFICATION QUERIES ══════════════════════════════ -->
+                <section id="verify" class="tw-bg-white tw-rounded-2xl tw-border tw-border-rose-200 tw-shadow-sm tw-p-6">
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-xl tw-bg-rose-100 tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-search tw-text-rose-600"></i>
+                        </div>
+                        <h2 class="tw-text-lg tw-font-black tw-text-slate-800 tw-mb-0">Verification Queries</h2>
+                        <span class="tw-text-xs tw-bg-amber-100 tw-text-amber-700 tw-px-2 tw-py-1 tw-rounded-full tw-font-bold">Run on: HR Database (lcs_hr)</span>
+                    </div>
+                    <p class="tw-text-sm tw-text-slate-500 tw-mb-5">
+                        Use these queries to verify data at each step. Replace <code class="tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-mono">2026</code>,
+                        <code class="tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-mono">1</code> (month), and
+                        <code class="tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-mono">'001'</code> (city) with your values.
+                    </p>
+
+                    <!-- Q1 -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-emerald-100 tw-text-emerald-700">Step 1 — Cash</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Cash commission summary per city</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="kw">SELECT</span>
+    hc.<span class="tb">Code</span> <span class="kw">AS</span> city_code, hc.<span class="tb">FullName</span> <span class="kw">AS</span> city_name,
+    <span class="fn">COUNT</span>(*) <span class="kw">AS</span> cn_count,
+    <span class="fn">SUM</span>(cc.<span class="tb">TotalCommission</span>) <span class="kw">AS</span> total_commission,
+    <span class="fn">MAX</span>(cc.<span class="tb">CreatedDate</span>) <span class="kw">AS</span> processed_at
+<span class="kw">FROM</span> <span class="tb">hr_cash_consignments</span> cc
+<span class="kw">JOIN</span> <span class="tb">hr_city</span> hc <span class="kw">ON</span> hc.<span class="tb">station_id</span> = cc.<span class="tb">Station_id</span>  <span class="cm">-- CORRECT: station_id join, then use hc.Code</span>
+<span class="kw">WHERE</span> cc.<span class="tb">billing_date</span> <span class="kw">BETWEEN</span> <span class="st">'2025-12-21'</span> <span class="kw">AND</span> <span class="st">'2026-01-20'</span>  <span class="cm">-- Jan 2026 period</span>
+<span class="kw">GROUP BY</span> hc.<span class="tb">Code</span>, hc.<span class="tb">FullName</span> <span class="kw">ORDER BY</span> cn_count <span class="kw">DESC</span>;</code>
+                    </div>
+
+                    <!-- Q2 -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-emerald-100 tw-text-emerald-700">Step 1 — Cash</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Cash commission for a specific employee</span>
+                        </div>
+                        <div class="tw-mb-2 tw-p-2.5 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-text-xs tw-text-amber-800">
+                            <i class="fas fa-exclamation-triangle tw-mr-1"></i>
+                            <strong>Schema fact (verified):</strong> <code class="tw-font-mono">hr_city.Code='001'</code> ≠ <code class="tw-font-mono">station_id='00592'</code>.
+                            Join via <code class="tw-font-mono">hc.station_id = cc.Station_id</code> first, then match <code class="tw-font-mono">erc.citycode = hc.Code</code>.
+                            LPAD of station_id produces '592' ≠ '001' — always wrong.
+                        </div>
+                        <code class="guide-code tw-block"><span class="kw">SELECT</span>
+    cc.<span class="tb">cn_number</span>, cc.<span class="tb">billing_date</span>, cc.<span class="tb">Shipment_id</span>,
+    cc.<span class="tb">cour_id</span> <span class="kw">AS</span> route_code, cc.<span class="tb">Criteria</span>, cc.<span class="tb">TotalCommission</span>
+<span class="kw">FROM</span> <span class="tb">hr_cash_consignments</span> cc
+<span class="kw">JOIN</span> <span class="tb">hr_city</span> hc <span class="kw">ON</span> hc.<span class="tb">station_id</span> = cc.<span class="tb">Station_id</span>   <span class="cm">-- step 1: get city Code</span>
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeeroutecode</span> erc
+    <span class="kw">ON</span>  erc.<span class="tb">RouteCode</span> = cc.<span class="tb">cour_id</span>
+    <span class="kw">AND</span> erc.<span class="tb">citycode</span>  = hc.<span class="tb">Code</span>              <span class="cm">-- step 2: match 3-char city Code</span>
+    <span class="kw">AND</span> erc.<span class="tb">ToDate</span>   <span class="kw">IS NULL</span>
+<span class="kw">WHERE</span> erc.<span class="tb">Emp_No</span> = <span class="st">'00000000003028'</span>            <span class="cm">-- replace with emp_no</span>
+  <span class="kw">AND</span> cc.<span class="tb">billing_date</span> <span class="kw">BETWEEN</span> <span class="st">'2025-12-21'</span> <span class="kw">AND</span> <span class="st">'2026-01-20'</span>
+<span class="kw">ORDER BY</span> cc.<span class="tb">billing_date</span> <span class="kw">DESC</span>;</code>
+                    </div>
+
+                    <!-- Q3 -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-blue-100 tw-text-blue-700">Step 2 — COD</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">COD commission summary per city</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="kw">SELECT</span>
+    <span class="tb">City</span>, <span class="fn">SUM</span>(<span class="tb">CnCount</span>) <span class="kw">AS</span> total_cns,
+    <span class="fn">SUM</span>(<span class="tb">Commission</span>) <span class="kw">AS</span> total_commission,
+    <span class="fn">SUM</span>(<span class="tb">CODBonus</span>) <span class="kw">AS</span> total_bonus,
+    <span class="fn">SUM</span>(<span class="tb">CODDeduction</span>) <span class="kw">AS</span> total_deduction
+<span class="kw">FROM</span> <span class="tb">hr_codcommission</span>
+<span class="kw">WHERE</span> <span class="tb">year</span> = <span class="nm">2026</span> <span class="kw">AND</span> <span class="tb">month</span> = <span class="nm">1</span>
+<span class="kw">GROUP BY</span> <span class="tb">City</span> <span class="kw">ORDER BY</span> total_commission <span class="kw">DESC</span>;</code>
+                    </div>
+
+                    <!-- Q4 -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-blue-100 tw-text-blue-700">Step 2 — COD</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">COD CNs for a specific employee (on-time vs delayed)</span>
+                        </div>
+                        <div class="tw-mb-2 tw-p-2.5 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-text-xs tw-text-amber-800">
+                            <i class="fas fa-exclamation-triangle tw-mr-1"></i>
+                            <strong>Schema fact (verified):</strong> <code class="tw-font-mono">hr_cod_consignments.Cour_id</code> is <strong>varchar(5) RouteCode</strong> (e.g. '00669') — NOT an employee number.
+                            <code class="tw-font-mono">LPAD(Cour_id, 14, '0')</code> produces '0000000000669' which never matches any EMP_NO. Always join via <code class="tw-font-mono">hr_employeeroutecode</code>.
+                        </div>
+                        <code class="guide-code tw-block"><span class="kw">SELECT</span>
+    hcc.<span class="tb">CN_Number</span>, hcc.<span class="tb">Cour_date</span>, hcc.<span class="tb">Delivery_date</span>,
+    hcc.<span class="tb">DateDif</span>,
+    <span class="kw">CASE WHEN</span> <span class="fn">IFNULL</span>(hcc.<span class="tb">DateDif</span>,<span class="nm">0</span>) <= <span class="nm">0</span> <span class="kw">THEN</span> <span class="st">'On-Time'</span> <span class="kw">ELSE</span> <span class="st">'Delayed'</span> <span class="kw">END</span> <span class="kw">AS</span> delivery_status,
+    hcc.<span class="tb">ComAmnt</span>, hcc.<span class="tb">Reason</span>, hcc.<span class="tb">Cour_id</span> <span class="kw">AS</span> route_code
+<span class="kw">FROM</span> <span class="tb">hr_cod_consignments</span> hcc
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeeroutecode</span> erc     <span class="cm">-- Cour_id = RouteCode (5-char), NOT emp_no</span>
+    <span class="kw">ON</span>  erc.<span class="tb">RouteCode</span> = hcc.<span class="tb">Cour_id</span>
+    <span class="kw">AND</span> erc.<span class="tb">Emp_No</span>    = <span class="st">'00000000003028'</span>  <span class="cm">-- replace with emp_no</span>
+    <span class="kw">AND</span> erc.<span class="tb">ToDate</span>   <span class="kw">IS NULL</span>
+<span class="kw">WHERE</span> hcc.<span class="tb">Cyear</span> = <span class="nm">2026</span> <span class="kw">AND</span> hcc.<span class="tb">CMonth</span> = <span class="nm">1</span>
+<span class="kw">ORDER BY</span> hcc.<span class="tb">Cour_date</span> <span class="kw">DESC</span>;</code>
+                    </div>
+
+                    <!-- Q5 -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-orange-100 tw-text-orange-700">Step 3 — OLE</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">OverLand commission summary per city</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="kw">SELECT</span>
+    hc.<span class="tb">Code</span> <span class="kw">AS</span> city_code, hc.<span class="tb">FullName</span> <span class="kw">AS</span> city_name,  <span class="cm">-- FullName, NOT city_name</span>
+    p.<span class="tb">RateID</span>,
+    <span class="fn">COUNT</span>(*) <span class="kw">AS</span> record_count,
+    <span class="fn">SUM</span>(p.<span class="tb">Commission</span>) <span class="kw">AS</span> total_commission,
+    <span class="fn">MAX</span>(p.<span class="tb">CreatedDate</span>) <span class="kw">AS</span> processed_at
+<span class="kw">FROM</span> <span class="tb">hr_olecommissionprocess</span> p
+<span class="kw">INNER JOIN</span> <span class="tb">hr_locationmapping</span> lm <span class="kw">ON</span> lm.<span class="tb">GlLocationId</span> = p.<span class="tb">GlLocationId</span>
+<span class="kw">INNER JOIN</span> <span class="tb">hr_city</span> hc <span class="kw">ON</span> hc.<span class="tb">station_id</span> = lm.<span class="tb">BStationId</span>
+<span class="kw">WHERE</span> p.<span class="tb">Year</span> = <span class="nm">2026</span> <span class="kw">AND</span> p.<span class="tb">Month</span> = <span class="nm">1</span>
+<span class="kw">GROUP BY</span> hc.<span class="tb">Code</span>, hc.<span class="tb">FullName</span>, p.<span class="tb">RateID</span>
+<span class="kw">ORDER BY</span> hc.<span class="tb">Code</span>, p.<span class="tb">RateID</span>;</code>
+                    </div>
+
+                    <!-- Q6 -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-indigo-100 tw-text-indigo-700">Step 5 — Master</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Final commission per employee (all types combined)</span>
+                        </div>
+                        <div class="tw-mb-2 tw-p-2.5 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-text-xs tw-text-amber-800">
+                            <i class="fas fa-exclamation-triangle tw-mr-1"></i>
+                            <strong>Grand total warning:</strong> hr_commissionprocess has 90+ columns. The formula below includes ALL of them (verified on live DB).
+                            Missing even one column (e.g. <code class="tw-font-mono">CASH_Economy_Booking</code>) gives completely wrong totals.
+                            Also: city name column is <code class="tw-font-mono">FullName</code>, NOT <code class="tw-font-mono">city_name</code>.
+                        </div>
+                        <code class="guide-code tw-block"><span class="kw">SELECT</span>
+    cp.<span class="tb">emp_no</span>, epd.<span class="tb">NAME</span>,
+    cp.<span class="tb">citycode</span>, hc.<span class="tb">FullName</span> <span class="kw">AS</span> city_name,  <span class="cm">-- FullName, NOT city_name</span>
+    <span class="cm">-- Key commission columns (there are 90+ total — see grand_total below for full list)</span>
+    <span class="fn">IFNULL</span>(cp.<span class="tb">OVERNIGHT</span>,<span class="nm">0</span>)           <span class="kw">AS</span> overnight,
+    <span class="fn">IFNULL</span>(cp.<span class="tb">CASH_Economy_Booking</span>,<span class="nm">0</span>) <span class="kw">AS</span> cash_economy,  <span class="cm">-- often largest column!</span>
+    <span class="fn">IFNULL</span>(cp.<span class="tb">COD</span>,<span class="nm">0</span>)                  <span class="kw">AS</span> cod,
+    <span class="fn">IFNULL</span>(cp.<span class="tb">COD_Bonus</span>,<span class="nm">0</span>)            <span class="kw">AS</span> cod_bonus,
+    <span class="fn">IFNULL</span>(cp.<span class="tb">COD_Deduction</span>,<span class="nm">0</span>)        <span class="kw">AS</span> cod_deduction,
+    <span class="fn">IFNULL</span>(cp.<span class="tb">OLE_Delivery</span>,<span class="nm">0</span>)         <span class="kw">AS</span> ole_delivery,
+    <span class="fn">IFNULL</span>(cp.<span class="tb">OVERLAND</span>,<span class="nm">0</span>)             <span class="kw">AS</span> overland,
+    <span class="fn">IFNULL</span>(cp.<span class="tb">VAS</span>,<span class="nm">0</span>)                  <span class="kw">AS</span> vas,
+    <span class="cm">-- COMPLETE grand total (all 90+ columns — verified 2026-04-02)</span>
+    (<span class="fn">IFNULL</span>(cp.<span class="tb">DOM_CREDIT</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">LOCAL_CREDIT</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">LOCAL_DLD</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">PMCL</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">DomesticDelivery</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">INTL_CREDIT</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">Porter</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">COD</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">OVERNIGHT</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB1KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB2KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB5KG</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">YB10KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB15KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB25KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">FLAYER</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">DETAIN</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">OVERLAND</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">PREPAID</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">LOVELINE</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">INTL_CASH</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">OLE_Credit_Booking</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">OLE_Dispatch_Proper</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">OLE_Transit_Dispatch</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">OLE_Delivery_OPS</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">OLE_Delivery</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">MOFA_OTO</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">MOFA_OTD</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">Rms_Cod_Booking</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">AllInOne</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">DocumnetCare</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">MTD</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">VAS</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">IntlDox</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">IntlEconomy</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">IntlParcel</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">ONUpto1kg</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">ONAbove1kg</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">EconomyRetail</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">MyCollect</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">Attestation</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">CEB_UpTo_2Kg</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">CEB_Above_2Kg</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">CASH_Economy_Booking</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">CASH_OLE_Booking</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">COD_Bonus</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">Pickup_Leopard</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">Ecom_overall_SR_Bonus</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">General_Light_Delivery</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">General_Heavy_Delivery</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">MTD_Delivery</span>,<span class="nm">0</span>)
+     -<span class="fn">IFNULL</span>(cp.<span class="tb">Retail_Deduction</span>,<span class="nm">0</span>)-<span class="fn">IFNULL</span>(cp.<span class="tb">COD_Deduction</span>,<span class="nm">0</span>)) <span class="kw">AS</span> grand_total
+<span class="kw">FROM</span> <span class="tb">hr_commissionprocess</span> cp
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeepersonaldetail</span> epd <span class="kw">ON</span> epd.<span class="tb">EMP_NO</span> = cp.<span class="tb">emp_no</span>
+<span class="kw">INNER JOIN</span> <span class="tb">hr_city</span> hc <span class="kw">ON</span> hc.<span class="tb">Code</span> = cp.<span class="tb">citycode</span>
+<span class="kw">WHERE</span> cp.<span class="tb">Year</span> = <span class="nm">2026</span> <span class="kw">AND</span> cp.<span class="tb">Month</span> = <span class="nm">1</span>
+  <span class="kw">AND</span> cp.<span class="tb">citycode</span> = <span class="st">'001'</span>     <span class="cm">-- optional: filter by city</span>
+<span class="kw">ORDER BY</span> grand_total <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="nm">50</span>;</code>
+                    </div>
+
+                    <!-- Q7 -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-indigo-100 tw-text-indigo-700">Step 5 — Master</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Check if commission was processed for a city/month</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="cm">-- Quick existence check</span>
+<span class="kw">SELECT</span>
+    <span class="tb">citycode</span>, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> employee_count,
+    <span class="fn">MAX</span>(<span class="tb">CreatedDate</span>) <span class="kw">AS</span> processed_at
+<span class="kw">FROM</span> <span class="tb">hr_commissionprocess</span>
+<span class="kw">WHERE</span> <span class="tb">Year</span> = <span class="nm">2026</span> <span class="kw">AND</span> <span class="tb">Month</span> = <span class="nm">1</span>
+<span class="kw">GROUP BY</span> <span class="tb">citycode</span>
+<span class="kw">ORDER BY</span> <span class="tb">citycode</span>;</code>
+                    </div>
+
+                    <!-- Q8 -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-violet-100 tw-text-violet-700">Adjustments</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">View minimum guarantee and RBI cap adjustments</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="kw">SELECT</span>
+    adj.<span class="tb">Emp_No</span>, epd.<span class="tb">NAME</span>,
+    adj.<span class="tb">Adjusment_Type_id</span>,
+    <span class="kw">CASE</span> adj.<span class="tb">Adjusment_Type_id</span>
+        <span class="kw">WHEN</span> <span class="nm">3</span> <span class="kw">THEN</span> <span class="st">'Min Guarantee Top-Up'</span>
+        <span class="kw">WHEN</span> <span class="nm">4</span> <span class="kw">THEN</span> <span class="st">'RBI Cap Deduction'</span>
+        <span class="kw">ELSE</span> <span class="st">'Other'</span>
+    <span class="kw">END</span> <span class="kw">AS</span> adj_type,
+    adj.<span class="tb">Adjustment_Amount</span>
+<span class="kw">FROM</span> <span class="tb">hr_empcommadjdtl</span> adj
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeepersonaldetail</span> epd <span class="kw">ON</span> epd.<span class="tb">EMP_NO</span> = adj.<span class="tb">Emp_No</span>
+<span class="kw">WHERE</span> adj.<span class="tb">year</span> = <span class="nm">2026</span> <span class="kw">AND</span> adj.<span class="tb">month</span> = <span class="nm">1</span>
+  <span class="kw">AND</span> adj.<span class="tb">Adjusment_Type_id</span> <span class="kw">NOT IN</span> (<span class="nm">1</span>, <span class="nm">2</span>)  <span class="cm">-- exclude legacy types</span>
+<span class="kw">ORDER BY</span> adj.<span class="tb">Adjustment_Amount</span> <span class="kw">DESC</span>;</code>
+                    </div>
+
+                    <!-- Q9 -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-slate-200 tw-text-slate-700">Route Lookup</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Find employee by route code or employee number</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="cm">-- Find employee → route → city (all in one)</span>
+<span class="kw">SELECT</span>
+    erc.<span class="tb">Emp_No</span>, epd.<span class="tb">NAME</span>,
+    erc.<span class="tb">RouteCode</span>, erc.<span class="tb">citycode</span>,
+    hc.<span class="tb">FullName</span> <span class="kw">AS</span> city_name, hc.<span class="tb">Code</span>, hc.<span class="tb">station_id</span>,  <span class="cm">-- FullName + both IDs</span>
+    erc.<span class="tb">FromDate</span>, erc.<span class="tb">ToDate</span>,
+    <span class="kw">IF</span>(erc.<span class="tb">ToDate</span> <span class="kw">IS NULL</span>, <span class="st">'Active'</span>, <span class="st">'Inactive'</span>) <span class="kw">AS</span> route_status
+<span class="kw">FROM</span> <span class="tb">hr_employeeroutecode</span> erc
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeepersonaldetail</span> epd <span class="kw">ON</span> epd.<span class="tb">EMP_NO</span> = erc.<span class="tb">Emp_No</span>
+<span class="kw">INNER JOIN</span> <span class="tb">hr_city</span> hc <span class="kw">ON</span> hc.<span class="tb">Code</span> = erc.<span class="tb">citycode</span>  <span class="cm">-- CORRECT: direct 3-char Code match</span>
+<span class="kw">WHERE</span> erc.<span class="tb">Emp_No</span> = <span class="st">'00000000003028'</span>    <span class="cm">-- replace with emp_no</span>
+   <span class="kw">OR</span> erc.<span class="tb">RouteCode</span> = <span class="st">'00202'</span>           <span class="cm">-- or search by route code</span>
+<span class="kw">ORDER BY</span> erc.<span class="tb">FromDate</span> <span class="kw">DESC</span>;</code>
+                    </div>
+
+                    <!-- ── NEW: Cross-Verification Queries (added 2026-04-02) ── -->
+                    <div class="tw-mb-3 tw-mt-6 tw-border-t tw-border-rose-100 tw-pt-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-4">
+                            <div class="tw-w-7 tw-h-7 tw-rounded-lg tw-bg-rose-100 tw-flex tw-items-center tw-justify-center">
+                                <i class="fas fa-microscope tw-text-rose-600 tw-text-xs"></i>
+                            </div>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Employee Cross-Verification Queries</span>
+                            <span class="tw-text-xs tw-bg-rose-100 tw-text-rose-700 tw-px-2 tw-py-0.5 tw-rounded-full tw-font-bold">Verified on live DB 2026-04-02</span>
+                        </div>
+                        <p class="tw-text-xs tw-text-slate-500 tw-mb-4">
+                            Use these to diagnose why a specific employee's commission data is missing or wrong.
+                            All queries use the <strong>correct schema patterns</strong> discovered during the Commission Verification screen fix.
+                        </p>
+                    </div>
+
+                    <!-- QA: hr_city schema fact -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-rose-100 tw-text-rose-700">Schema Fact</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Verify hr_city Code vs station_id for a city</span>
+                        </div>
+                        <div class="tw-mb-2 tw-p-2.5 tw-bg-slate-800 tw-rounded-lg tw-text-xs tw-text-slate-300 tw-font-mono">
+                            CRITICAL: Code='001' ≠ LPAD(station_id) — e.g. KHI has Code='001' but station_id='00592'.
+                            These are completely unrelated fields. Always join tables via station_id, then use Code for display/filtering.
+                        </div>
+                        <code class="guide-code tw-block"><span class="cm">-- Check Code vs station_id for a city (e.g. Karachi)</span>
+<span class="kw">SELECT</span> <span class="tb">Code</span>, <span class="tb">FullName</span>, <span class="tb">station_id</span>
+<span class="kw">FROM</span> <span class="tb">hr_city</span>
+<span class="kw">WHERE</span> <span class="tb">Code</span> = <span class="st">'001'</span>       <span class="cm">-- or filter by FullName LIKE '%Karachi%'</span>
+<span class="kw">ORDER BY</span> <span class="tb">Code</span>;
+
+<span class="cm">-- List all cities with both IDs (for reference)</span>
+<span class="kw">SELECT</span> <span class="tb">Code</span>, <span class="tb">FullName</span>, <span class="tb">station_id</span>
+<span class="kw">FROM</span> <span class="tb">hr_city</span>
+<span class="kw">WHERE</span> <span class="tb">Code</span> <span class="kw">IS NOT NULL</span> <span class="kw">AND</span> <span class="tb">Code</span> <> <span class="st">''</span>
+<span class="kw">ORDER BY</span> <span class="tb">Code</span>;</code>
+                    </div>
+
+                    <!-- QB: Cash CNs count with correct join -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-emerald-100 tw-text-emerald-700">Step 1 — Cash</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Count + total cash commission for one employee (correct join)</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="cm">-- Count how many cash CNs an employee has + their total commission</span>
+<span class="cm">-- Uses the correct 2-step city join (station_id → Code)</span>
+<span class="kw">SELECT</span>
+    <span class="fn">COUNT</span>(*) <span class="kw">AS</span> cn_count,
+    <span class="fn">SUM</span>(cc.<span class="tb">TotalCommission</span>) <span class="kw">AS</span> total_commission,
+    <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> cc.<span class="tb">TotalCommission</span> = <span class="nm">0</span> <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>) <span class="kw">AS</span> zero_commission_cns
+<span class="kw">FROM</span> <span class="tb">hr_cash_consignments</span> cc
+<span class="kw">JOIN</span> <span class="tb">hr_city</span> hc <span class="kw">ON</span> hc.<span class="tb">station_id</span> = cc.<span class="tb">Station_id</span>
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeeroutecode</span> erc
+    <span class="kw">ON</span>  erc.<span class="tb">RouteCode</span> = cc.<span class="tb">cour_id</span>
+    <span class="kw">AND</span> erc.<span class="tb">citycode</span>  = hc.<span class="tb">Code</span>
+    <span class="kw">AND</span> erc.<span class="tb">ToDate</span>   <span class="kw">IS NULL</span>
+<span class="kw">WHERE</span> erc.<span class="tb">Emp_No</span> = <span class="st">'00000000010188'</span>           <span class="cm">-- replace with emp_no</span>
+  <span class="kw">AND</span> cc.<span class="tb">billing_date</span> <span class="kw">BETWEEN</span> <span class="st">'2026-02-21'</span> <span class="kw">AND</span> <span class="st">'2026-03-20'</span>;  <span class="cm">-- Mar 2026 period</span>
+
+<span class="cm">-- Show CNs with commission = 0 (missing commissions)</span>
+<span class="kw">SELECT</span>
+    cc.<span class="tb">cn_number</span>, cc.<span class="tb">billing_date</span>, cc.<span class="tb">Shipment_id</span>,
+    cc.<span class="tb">cour_id</span> <span class="kw">AS</span> route_code, cc.<span class="tb">Criteria</span>, cc.<span class="tb">TotalCommission</span>
+<span class="kw">FROM</span> <span class="tb">hr_cash_consignments</span> cc
+<span class="kw">JOIN</span> <span class="tb">hr_city</span> hc <span class="kw">ON</span> hc.<span class="tb">station_id</span> = cc.<span class="tb">Station_id</span>
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeeroutecode</span> erc
+    <span class="kw">ON</span>  erc.<span class="tb">RouteCode</span> = cc.<span class="tb">cour_id</span>
+    <span class="kw">AND</span> erc.<span class="tb">citycode</span>  = hc.<span class="tb">Code</span>
+    <span class="kw">AND</span> erc.<span class="tb">ToDate</span>   <span class="kw">IS NULL</span>
+<span class="kw">WHERE</span> erc.<span class="tb">Emp_No</span> = <span class="st">'00000000010188'</span>
+  <span class="kw">AND</span> cc.<span class="tb">billing_date</span> <span class="kw">BETWEEN</span> <span class="st">'2026-02-21'</span> <span class="kw">AND</span> <span class="st">'2026-03-20'</span>
+  <span class="kw">AND</span> cc.<span class="tb">TotalCommission</span> = <span class="nm">0</span>              <span class="cm">-- only missing commissions</span>
+<span class="kw">ORDER BY</span> cc.<span class="tb">billing_date</span>;</code>
+                    </div>
+
+                    <!-- QC: COD CNs count with correct join -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-blue-100 tw-text-blue-700">Step 2 — COD</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Count + total COD commission for one employee (correct join)</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="cm">-- Count COD CNs for one employee via RouteCode join (NOT LPAD)</span>
+<span class="kw">SELECT</span>
+    <span class="fn">COUNT</span>(*) <span class="kw">AS</span> cod_cn_count,
+    <span class="fn">SUM</span>(hcc.<span class="tb">ComAmnt</span>) <span class="kw">AS</span> total_cod_commission,
+    <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> <span class="fn">IFNULL</span>(hcc.<span class="tb">DateDif</span>,<span class="nm">0</span>) <= <span class="nm">0</span> <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>) <span class="kw">AS</span> on_time,
+    <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> <span class="fn">IFNULL</span>(hcc.<span class="tb">DateDif</span>,<span class="nm">0</span>) >  <span class="nm">0</span> <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>) <span class="kw">AS</span> delayed,
+    <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> hcc.<span class="tb">ComAmnt</span> = <span class="nm">0</span> <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>) <span class="kw">AS</span> zero_commission_cns
+<span class="kw">FROM</span> <span class="tb">hr_cod_consignments</span> hcc
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeeroutecode</span> erc
+    <span class="kw">ON</span>  erc.<span class="tb">RouteCode</span> = hcc.<span class="tb">Cour_id</span>  <span class="cm">-- Cour_id is varchar(5) RouteCode, NOT emp_no</span>
+    <span class="kw">AND</span> erc.<span class="tb">Emp_No</span>    = <span class="st">'00000000010188'</span>  <span class="cm">-- replace with emp_no</span>
+    <span class="kw">AND</span> erc.<span class="tb">ToDate</span>   <span class="kw">IS NULL</span>
+<span class="kw">WHERE</span> hcc.<span class="tb">Cyear</span> = <span class="nm">2026</span> <span class="kw">AND</span> hcc.<span class="tb">CMonth</span> = <span class="nm">3</span>;  <span class="cm">-- replace year/month</span>
+
+<span class="cm">-- Show COD CNs with commission = 0 for this employee</span>
+<span class="kw">SELECT</span>
+    hcc.<span class="tb">CN_Number</span>, hcc.<span class="tb">Cour_date</span>, hcc.<span class="tb">Delivery_date</span>, hcc.<span class="tb">DateDif</span>,
+    hcc.<span class="tb">ComAmnt</span>, hcc.<span class="tb">Reason</span>, hcc.<span class="tb">Remarks</span>
+<span class="kw">FROM</span> <span class="tb">hr_cod_consignments</span> hcc
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeeroutecode</span> erc
+    <span class="kw">ON</span>  erc.<span class="tb">RouteCode</span> = hcc.<span class="tb">Cour_id</span>
+    <span class="kw">AND</span> erc.<span class="tb">Emp_No</span>    = <span class="st">'00000000010188'</span>
+    <span class="kw">AND</span> erc.<span class="tb">ToDate</span>   <span class="kw">IS NULL</span>
+<span class="kw">WHERE</span> hcc.<span class="tb">Cyear</span> = <span class="nm">2026</span> <span class="kw">AND</span> hcc.<span class="tb">CMonth</span> = <span class="nm">3</span>
+  <span class="kw">AND</span> hcc.<span class="tb">ComAmnt</span> = <span class="nm">0</span>
+<span class="kw">ORDER BY</span> hcc.<span class="tb">Cour_date</span>;</code>
+                    </div>
+
+                    <!-- QD: Grand total spot check -->
+                    <div class="tw-mb-5">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-indigo-100 tw-text-indigo-700">Step 5 — Master</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Spot-check grand total for one employee</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="cm">-- Quick check: what did this employee get processed as?</span>
+<span class="kw">SELECT</span>
+    cp.<span class="tb">emp_no</span>, epd.<span class="tb">NAME</span>, cp.<span class="tb">citycode</span>,
+    cp.<span class="tb">OVERNIGHT</span>, cp.<span class="tb">CASH_Economy_Booking</span>,  <span class="cm">-- often the biggest cash column</span>
+    cp.<span class="tb">COD</span>, cp.<span class="tb">COD_Bonus</span>, cp.<span class="tb">COD_Deduction</span>,
+    cp.<span class="tb">OLE_Delivery</span>, cp.<span class="tb">OVERLAND</span>, cp.<span class="tb">VAS</span>,
+    <span class="cm">-- Grand total: all 90+ columns (see Q6 for full formula)</span>
+    (<span class="fn">IFNULL</span>(cp.<span class="tb">DOM_CREDIT</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">LOCAL_CREDIT</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">COD</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">OVERNIGHT</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB1KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB2KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB5KG</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">YB10KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB15KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">YB25KG</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">FLAYER</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">DETAIN</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">OVERLAND</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">PREPAID</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">LOVELINE</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">OLE_Delivery</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">VAS</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">CASH_Economy_Booking</span>,<span class="nm">0</span>)+
+     <span class="fn">IFNULL</span>(cp.<span class="tb">CASH_OLE_Booking</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">COD_Bonus</span>,<span class="nm">0</span>)+<span class="fn">IFNULL</span>(cp.<span class="tb">Ecom_overall_SR_Bonus</span>,<span class="nm">0</span>)
+     -<span class="fn">IFNULL</span>(cp.<span class="tb">Retail_Deduction</span>,<span class="nm">0</span>)-<span class="fn">IFNULL</span>(cp.<span class="tb">COD_Deduction</span>,<span class="nm">0</span>)) <span class="kw">AS</span> grand_total
+<span class="kw">FROM</span> <span class="tb">hr_commissionprocess</span> cp
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeepersonaldetail</span> epd <span class="kw">ON</span> epd.<span class="tb">EMP_NO</span> = cp.<span class="tb">emp_no</span>
+<span class="kw">WHERE</span> cp.<span class="tb">emp_no</span> = <span class="st">'00000000010188'</span>   <span class="cm">-- replace with emp_no</span>
+  <span class="kw">AND</span> cp.<span class="tb">Year</span> = <span class="nm">2026</span> <span class="kw">AND</span> cp.<span class="tb">Month</span> = <span class="nm">3</span>;</code>
+                    </div>
+
+                    <!-- QE: Missing CNs diagnostic -->
+                    <div class="tw-mb-0">
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                            <span class="step-pill tw-bg-amber-100 tw-text-amber-700">Diagnostics</span>
+                            <span class="tw-text-sm tw-font-bold tw-text-slate-700">Find all missing commissions for an employee (Cash + COD combined)</span>
+                        </div>
+                        <code class="guide-code tw-block"><span class="cm">-- Cash CNs with TotalCommission = 0 (assigned to employee but no commission calculated)</span>
+<span class="kw">SELECT</span>
+    <span class="st">'Cash'</span> <span class="kw">AS</span> commission_type,
+    cc.<span class="tb">cn_number</span>, cc.<span class="tb">billing_date</span> <span class="kw">AS</span> cn_date,
+    <span class="kw">NULL</span> <span class="kw">AS</span> delivery_date,
+    cc.<span class="tb">Shipment_id</span>, cc.<span class="tb">Gross_Amount</span> <span class="kw">AS</span> billed_amount,
+    cc.<span class="tb">Criteria</span>, <span class="kw">NULL</span> <span class="kw">AS</span> reason
+<span class="kw">FROM</span> <span class="tb">hr_cash_consignments</span> cc
+<span class="kw">JOIN</span> <span class="tb">hr_city</span> hc <span class="kw">ON</span> hc.<span class="tb">station_id</span> = cc.<span class="tb">Station_id</span>
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeeroutecode</span> erc
+    <span class="kw">ON</span>  erc.<span class="tb">RouteCode</span> = cc.<span class="tb">cour_id</span>
+    <span class="kw">AND</span> erc.<span class="tb">citycode</span>  = hc.<span class="tb">Code</span>
+    <span class="kw">AND</span> erc.<span class="tb">ToDate</span>   <span class="kw">IS NULL</span>
+<span class="kw">WHERE</span> erc.<span class="tb">Emp_No</span> = <span class="st">'00000000010188'</span>
+  <span class="kw">AND</span> cc.<span class="tb">billing_date</span> <span class="kw">BETWEEN</span> <span class="st">'2026-02-21'</span> <span class="kw">AND</span> <span class="st">'2026-03-20'</span>
+  <span class="kw">AND</span> cc.<span class="tb">TotalCommission</span> = <span class="nm">0</span>
+
+<span class="kw">UNION ALL</span>
+
+<span class="cm">-- COD CNs with ComAmnt = 0 (assigned to employee but no commission calculated)</span>
+<span class="kw">SELECT</span>
+    <span class="st">'COD'</span> <span class="kw">AS</span> commission_type,
+    hcc.<span class="tb">CN_Number</span>, hcc.<span class="tb">Cour_date</span> <span class="kw">AS</span> cn_date,
+    hcc.<span class="tb">Delivery_date</span>,
+    hcc.<span class="tb">Remarks</span> <span class="kw">AS</span> shipment_id, hcc.<span class="tb">ComAmnt</span> <span class="kw">AS</span> billed_amount,
+    <span class="kw">NULL</span> <span class="kw">AS</span> criteria, hcc.<span class="tb">Reason</span>
+<span class="kw">FROM</span> <span class="tb">hr_cod_consignments</span> hcc
+<span class="kw">INNER JOIN</span> <span class="tb">hr_employeeroutecode</span> erc
+    <span class="kw">ON</span>  erc.<span class="tb">RouteCode</span> = hcc.<span class="tb">Cour_id</span>
+    <span class="kw">AND</span> erc.<span class="tb">Emp_No</span>    = <span class="st">'00000000010188'</span>
+    <span class="kw">AND</span> erc.<span class="tb">ToDate</span>   <span class="kw">IS NULL</span>
+<span class="kw">WHERE</span> hcc.<span class="tb">Cyear</span> = <span class="nm">2026</span> <span class="kw">AND</span> hcc.<span class="tb">CMonth</span> = <span class="nm">3</span>
+  <span class="kw">AND</span> hcc.<span class="tb">ComAmnt</span> = <span class="nm">0</span>
+
+<span class="kw">ORDER BY</span> commission_type, cn_date;</code>
+                    </div>
+                </section>
+
+                <!-- Bottom back link -->
+                <div class="tw-flex tw-items-center tw-justify-between tw-pb-4">
+                    <a href="@Url.Action("History", "Automation")"
+                       class="tw-text-sm tw-text-slate-500 hover:tw-text-slate-700 tw-flex tw-items-center tw-gap-1">
+                        <i class="fas fa-arrow-left tw-text-xs"></i> Commission History
+                    </a>
+                    <a href="@Url.Action("Index", "CommissionVerification")"
+                       class="tw-text-sm tw-text-indigo-600 hover:tw-text-indigo-800 tw-flex tw-items-center tw-gap-1">
+                        Commission Verification <i class="fas fa-arrow-right tw-text-xs"></i>
+                    </a>
+                </div>
+
+            </div><!-- /main content -->
+        </div><!-- /flex -->
+    </div><!-- /max-w -->
+</div>
+
+@section Scripts {
+<script>
+    // Highlight active TOC link based on scroll position
+    document.addEventListener('DOMContentLoaded', function () {
+        var sections = document.querySelectorAll('section[id]');
+        var tocLinks = document.querySelectorAll('.toc-link');
+
+        function onScroll() {
+            var scrollY = window.scrollY + 120;
+            sections.forEach(function (sec) {
+                if (sec.offsetTop <= scrollY && (sec.offsetTop + sec.offsetHeight) > scrollY) {
+                    tocLinks.forEach(function (l) { l.classList.remove('active'); });
+                    var active = document.querySelector('.toc-link[href="#' + sec.id + '"]');
+                    if (active) active.classList.add('active');
+                }
+            });
+        }
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        // Smooth scroll for TOC links
+        tocLinks.forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                var target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    });
+</script>
+}

@@ -1,0 +1,749 @@
+@model LCS_HR_MVC.Models.ConfigurationIndexViewModel
+@{
+    ViewData["Title"] = "Commission & Salary Configuration";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+<style>
+    .cfg-tab-btn {
+        padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; font-size: 0.8rem;
+        font-weight: 600; color: #64748b; border: 1px solid transparent;
+        border-bottom: none; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        background: transparent;
+    }
+    .cfg-tab-btn:hover { background: #f8fafc; color: #0f172a; }
+    .cfg-tab-btn.active { background: #ffffff; color: #0f172a; border-color: #e2e8f0; border-bottom-color: #ffffff; margin-bottom: -1px; }
+    .cfg-tab-panel { display: none; }
+    .cfg-tab-panel.active { display: block; }
+    .cfg-tbl th { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; padding: 0.6rem 0.75rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    .cfg-tbl td { font-size: 0.82rem; color: #334155; padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .cfg-tbl tr:hover td { background: #fafafa; }
+    .badge-active { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; background: #dcfce7; color: #15803d; border: none; cursor: pointer; }
+    .badge-inactive { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; background: #fee2e2; color: #b91c1c; border: none; cursor: pointer; }
+    .btn-edit { font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 0.35rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; cursor: pointer; transition: all 0.15s; }
+    .btn-edit:hover { background: #1d4ed8; color: #fff; }
+    .btn-del { font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 0.35rem; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; cursor: pointer; transition: all 0.15s; }
+    .btn-del:hover { background: #b91c1c; color: #fff; }
+    .btn-add { font-size: 0.78rem; padding: 0.4rem 1rem; border-radius: 0.5rem; background: #f5c518; color: #1a1a1a; border: none; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+    .btn-add:hover { background: #d97706; color: #fff; }
+    .form-input { font-size: 0.82rem; padding: 0.35rem 0.6rem; border: 1px solid #e2e8f0; border-radius: 0.4rem; outline: none; color: #0f172a; }
+    .form-input:focus { border-color: #f5c518; box-shadow: 0 0 0 2px rgba(245,197,24,0.2); }
+    #cfgModal { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; }
+    #cfgModal.open { display: flex; }
+</style>
+}
+
+<div class="tw-px-1 tw-py-2">
+
+    @* ── Flash Messages ─────────────────────────────────────────────────── *@
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="tw-mb-4 tw-flex tw-items-center tw-gap-3 tw-bg-green-50 tw-border tw-border-green-200 tw-text-green-800 tw-rounded-xl tw-px-4 tw-py-3">
+            <i class="fas fa-circle-check tw-text-green-500"></i>
+            <span class="tw-text-sm tw-font-medium">@Model.SuccessMessage</span>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="tw-mb-4 tw-flex tw-items-center tw-gap-3 tw-bg-red-50 tw-border tw-border-red-200 tw-text-red-800 tw-rounded-xl tw-px-4 tw-py-3">
+            <i class="fas fa-circle-exclamation tw-text-red-500"></i>
+            <span class="tw-text-sm tw-font-medium">@Model.ErrorMessage</span>
+        </div>
+    }
+
+    @* ── Validation Bar ──────────────────────────────────────────────────── *@
+    <div class="tw-flex tw-items-center tw-justify-between tw-bg-indigo-50 tw-border tw-border-indigo-200 tw-rounded-xl tw-px-4 tw-py-3 tw-mb-4">
+        <div class="tw-flex tw-items-center tw-gap-2.5">
+            <div class="tw-w-8 tw-h-8 tw-bg-indigo-100 tw-rounded-lg tw-flex tw-items-center tw-justify-center">
+                <i class="fas fa-shield-halved tw-text-indigo-500 tw-text-sm"></i>
+            </div>
+            <div>
+                <span class="tw-text-sm tw-font-bold tw-text-indigo-800">Config Validation &amp; Safety Check</span>
+                <span class="tw-text-xs tw-text-indigo-400 tw-ml-2">Auto-runs every 6 hours · Validates all commission tables + restores if deleted</span>
+            </div>
+        </div>
+        <form method="post" asp-action="RunSync" asp-controller="Configuration">
+            @Html.AntiForgeryToken()
+            <button type="submit"
+                    class="tw-text-xs tw-font-bold tw-bg-indigo-500 hover:tw-bg-indigo-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-transition-all tw-flex tw-items-center tw-gap-1.5">
+                <i class="fas fa-shield-halved"></i>
+                Validate Now
+            </button>
+        </form>
+    </div>
+
+    @* ── Page Title ──────────────────────────────────────────────────────── *@
+    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-6">
+        <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-amber-100 tw-flex tw-items-center tw-justify-center tw-border tw-border-amber-200">
+            <i class="fas fa-sliders tw-text-amber-500"></i>
+        </div>
+        <div>
+            <h1 class="tw-text-lg tw-font-black tw-text-slate-800 tw-m-0 tw-leading-tight">Commission &amp; Salary Configuration</h1>
+            <p class="tw-text-xs tw-text-slate-400 tw-m-0 tw-mt-0.5">All config values are loaded from the database at each process run.</p>
+        </div>
+    </div>
+
+    @* ── Tab Bar ─────────────────────────────────────────────────────────── *@
+    <div class="tw-flex tw-flex-wrap tw-gap-0.5 tw-border-b tw-border-slate-200 tw-mb-0 tw-overflow-x-auto">
+        <button class="cfg-tab-btn active" data-tab="tab-comm-scalars"><i class="fas fa-cog tw-mr-1.5"></i>Commission Config</button>
+        <button class="cfg-tab-btn" data-tab="tab-sal-scalars"><i class="fas fa-coins tw-mr-1.5"></i>Salary Config</button>
+        <button class="cfg-tab-btn" data-tab="tab-cod-clients"><i class="fas fa-ban tw-mr-1.5"></i>COD Excl. Clients</button>
+        <button class="cfg-tab-btn" data-tab="tab-cod-cities"><i class="fas fa-city tw-mr-1.5"></i>COD Thresholds</button>
+        <button class="cfg-tab-btn" data-tab="tab-vas"><i class="fas fa-box-open tw-mr-1.5"></i>VAS Exclusions</button>
+        <button class="cfg-tab-btn" data-tab="tab-tax"><i class="fas fa-file-invoice-dollar tw-mr-1.5"></i>Tax Exclusions</button>
+        <button class="cfg-tab-btn" data-tab="tab-shipments"><i class="fas fa-truck tw-mr-1.5"></i>Excl. Shipments</button>
+        <button class="cfg-tab-btn" data-tab="tab-sysexcl"><i class="fas fa-shield-halved tw-mr-1.5"></i>System Exclusions</button>
+        <button class="cfg-tab-btn" data-tab="tab-typemap"><i class="fas fa-diagram-project tw-mr-1.5"></i>OLE Type Mapping</button>
+        <button class="cfg-tab-btn" data-tab="tab-codetypes"><i class="fas fa-table-list tw-mr-1.5"></i>CodeType Rules</button>
+    </div>
+
+    <div class="tw-bg-white tw-border tw-border-slate-200 tw-border-t-0 tw-rounded-b-xl tw-shadow-sm">
+
+        @* ══ TAB 1: Commission Scalars ══════════════════════════════════════ *@
+        <div id="tab-comm-scalars" class="cfg-tab-panel active tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">Commission Config Scalars <span class="tw-text-slate-400 tw-font-normal">(hr_commission_config)</span></h2>
+                <span class="tw-text-xs tw-text-slate-400">@Model.CommissionScalars.Count rows — click Edit to change a value</span>
+            </div>
+            <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100">
+                <table class="cfg-tbl tw-w-full">
+                    <thead><tr>
+                        <th class="tw-w-72">Config Key</th>
+                        <th>Value</th>
+                        <th class="tw-w-16 tw-text-center">Edit</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.CommissionScalars)
+                    {
+                        <tr>
+                            <td><code class="tw-text-xs tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-font-mono">@row.ConfigKey</code></td>
+                            <td class="tw-font-semibold tw-text-slate-800">@row.ConfigValue</td>
+                            <td class="tw-text-center">
+                                <button class="btn-edit"
+                                        onclick="openScalarModal('commission','@Html.Raw(row.ConfigKey.Replace("'","\\'" ))','@Html.Raw(row.ConfigValue.Replace("'","\\'" ))')">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.CommissionScalars.Any())
+                    {
+                        <tr><td colspan="3" class="tw-text-center tw-text-slate-400 tw-py-8">No rows found in hr_commission_config.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* ══ TAB 2: Salary Scalars ══════════════════════════════════════════ *@
+        <div id="tab-sal-scalars" class="cfg-tab-panel tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">Salary Config Scalars <span class="tw-text-slate-400 tw-font-normal">(hr_salary_config)</span></h2>
+                <span class="tw-text-xs tw-text-slate-400">@Model.SalaryScalars.Count rows — click Edit to change a value</span>
+            </div>
+            <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100">
+                <table class="cfg-tbl tw-w-full">
+                    <thead><tr>
+                        <th class="tw-w-72">Config Key</th>
+                        <th>Value</th>
+                        <th class="tw-w-16 tw-text-center">Edit</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.SalaryScalars)
+                    {
+                        <tr>
+                            <td><code class="tw-text-xs tw-bg-slate-100 tw-px-1.5 tw-py-0.5 tw-rounded tw-font-mono">@row.ConfigKey</code></td>
+                            <td class="tw-font-semibold tw-text-slate-800">@row.ConfigValue</td>
+                            <td class="tw-text-center">
+                                <button class="btn-edit"
+                                        onclick="openScalarModal('salary','@Html.Raw(row.ConfigKey.Replace("'","\\'" ))','@Html.Raw(row.ConfigValue.Replace("'","\\'" ))')">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.SalaryScalars.Any())
+                    {
+                        <tr><td colspan="3" class="tw-text-center tw-text-slate-400 tw-py-8">No rows found in hr_salary_config.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* ══ TAB 3: COD Excluded Clients ════════════════════════════════════ *@
+        <div id="tab-cod-clients" class="cfg-tab-panel tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">COD Excluded Clients <span class="tw-text-slate-400 tw-font-normal">(hr_cod_excluded_clients)</span></h2>
+                <span class="tw-text-xs tw-text-slate-400">@Model.CodExcludedClients.Count records</span>
+            </div>
+            <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100 tw-mb-5">
+                <table class="cfg-tbl tw-w-full">
+                    <thead><tr>
+                        <th>Client ID</th>
+                        <th class="tw-w-28 tw-text-center">Status</th>
+                        <th class="tw-w-24 tw-text-center">Delete</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.CodExcludedClients)
+                    {
+                        <tr>
+                            <td class="tw-font-mono tw-text-xs tw-font-semibold">@row.ClientId</td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="ToggleActive" asp-controller="Configuration" class="tw-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="table" value="cod_clients" />
+                                    <input type="hidden" name="key" value="@row.ClientId" />
+                                    <input type="hidden" name="isActive" value="@(row.IsActive ? "false" : "true")" />
+                                    <button type="submit" class="@(row.IsActive ? "badge-active" : "badge-inactive")">
+                                        <i class="fas @(row.IsActive ? "fa-check" : "fa-xmark")"></i>
+                                        @(row.IsActive ? "Active" : "Inactive")
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="DeleteRow" asp-controller="Configuration" class="tw-inline"
+                                      onsubmit="return confirm('Delete client @Html.Raw(row.ClientId.Replace("'","\\'" ))? This cannot be undone.')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="table" value="cod_clients" />
+                                    <input type="hidden" name="key" value="@row.ClientId" />
+                                    <button type="submit" class="btn-del"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.CodExcludedClients.Any())
+                    {
+                        <tr><td colspan="3" class="tw-text-center tw-text-slate-400 tw-py-8">No excluded clients configured.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-4">
+                <p class="tw-text-xs tw-font-bold tw-text-slate-600 tw-uppercase tw-tracking-wider tw-mb-3">Add New Excluded Client</p>
+                <form method="post" asp-action="AddCodClient" asp-controller="Configuration" class="tw-flex tw-flex-wrap tw-gap-2 tw-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">Client ID <span class="tw-text-red-500">*</span></label>
+                        <input type="text" name="ClientId" class="form-input tw-w-44" placeholder="e.g. C00123" required />
+                    </div>
+                    <button type="submit" class="btn-add"><i class="fas fa-plus tw-mr-1"></i>Add</button>
+                </form>
+            </div>
+        </div>
+
+        @* ══ TAB 4: COD Threshold Cities ════════════════════════════════════ *@
+        <div id="tab-cod-cities" class="cfg-tab-panel tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">COD Threshold Cities <span class="tw-text-slate-400 tw-font-normal">(hr_commission_cod_threshold_cities)</span></h2>
+                <span class="tw-text-xs tw-text-slate-400">Cities not listed use 80% default</span>
+            </div>
+            <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100 tw-mb-5">
+                <table class="cfg-tbl tw-w-full">
+                    <thead><tr>
+                        <th class="tw-w-32">City Code</th>
+                        <th class="tw-text-right tw-w-36">Threshold %</th>
+                        <th class="tw-w-28 tw-text-center">Status</th>
+                        <th class="tw-w-24 tw-text-center">Delete</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.CodThresholdCities)
+                    {
+                        <tr>
+                            <td class="tw-font-mono tw-text-xs tw-font-bold">@row.CityCode</td>
+                            <td class="tw-text-right tw-font-bold tw-text-slate-700">@row.ThresholdPct.ToString("0.##")%</td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="ToggleActive" asp-controller="Configuration" class="tw-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="table" value="cod_cities" />
+                                    <input type="hidden" name="key" value="@row.CityCode" />
+                                    <input type="hidden" name="isActive" value="@(row.IsActive ? "false" : "true")" />
+                                    <button type="submit" class="@(row.IsActive ? "badge-active" : "badge-inactive")">
+                                        <i class="fas @(row.IsActive ? "fa-check" : "fa-xmark")"></i>
+                                        @(row.IsActive ? "Active" : "Inactive")
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="DeleteRow" asp-controller="Configuration" class="tw-inline"
+                                      onsubmit="return confirm('Delete city @Html.Raw(row.CityCode.Replace("'","\\'" ))?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="table" value="cod_cities" />
+                                    <input type="hidden" name="key" value="@row.CityCode" />
+                                    <button type="submit" class="btn-del"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.CodThresholdCities.Any())
+                    {
+                        <tr><td colspan="4" class="tw-text-center tw-text-slate-400 tw-py-8">No city thresholds configured — all cities use 80% default.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-4">
+                <p class="tw-text-xs tw-font-bold tw-text-slate-600 tw-uppercase tw-tracking-wider tw-mb-3">Add City Threshold Override</p>
+                <form method="post" asp-action="AddCodCity" asp-controller="Configuration" class="tw-flex tw-flex-wrap tw-gap-2 tw-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">City Code <span class="tw-text-red-500">*</span></label>
+                        <input type="text" name="CityCode" class="form-input tw-w-24" placeholder="001" maxlength="10" required />
+                    </div>
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">Threshold % <span class="tw-text-red-500">*</span></label>
+                        <input type="number" name="ThresholdPct" class="form-input tw-w-24" placeholder="85.00" min="1" max="100" step="0.01" required />
+                    </div>
+                    <button type="submit" class="btn-add"><i class="fas fa-plus tw-mr-1"></i>Add</button>
+                </form>
+            </div>
+        </div>
+
+        @* ══ TAB 5: VAS Exclusions ══════════════════════════════════════════ *@
+        <div id="tab-vas" class="cfg-tab-panel tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">VAS Exclusions <span class="tw-text-slate-400 tw-font-normal">(hr_commission_vas_exclusions)</span></h2>
+                <span class="tw-text-xs tw-text-slate-400">@Model.VasExclusions.Count VAS IDs excluded from Cash commission</span>
+            </div>
+            <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100 tw-mb-5">
+                <table class="cfg-tbl tw-w-full">
+                    <thead><tr>
+                        <th class="tw-w-32">VAS ID</th>
+                        <th class="tw-w-28 tw-text-center">Status</th>
+                        <th class="tw-w-24 tw-text-center">Delete</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.VasExclusions)
+                    {
+                        <tr>
+                            <td class="tw-font-mono tw-text-xs tw-font-bold">@row.VasId</td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="ToggleActive" asp-controller="Configuration" class="tw-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="table" value="vas" />
+                                    <input type="hidden" name="key" value="@row.VasId" />
+                                    <input type="hidden" name="isActive" value="@(row.IsActive ? "false" : "true")" />
+                                    <button type="submit" class="@(row.IsActive ? "badge-active" : "badge-inactive")">
+                                        <i class="fas @(row.IsActive ? "fa-check" : "fa-xmark")"></i>
+                                        @(row.IsActive ? "Active" : "Inactive")
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="DeleteRow" asp-controller="Configuration" class="tw-inline"
+                                      onsubmit="return confirm('Delete VAS ID @row.VasId?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="table" value="vas" />
+                                    <input type="hidden" name="key" value="@row.VasId" />
+                                    <button type="submit" class="btn-del"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.VasExclusions.Any())
+                    {
+                        <tr><td colspan="3" class="tw-text-center tw-text-slate-400 tw-py-8">No VAS exclusions configured.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-4">
+                <p class="tw-text-xs tw-font-bold tw-text-slate-600 tw-uppercase tw-tracking-wider tw-mb-3">Add VAS Exclusion</p>
+                <form method="post" asp-action="AddVasExclusion" asp-controller="Configuration" class="tw-flex tw-flex-wrap tw-gap-2 tw-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">VAS ID <span class="tw-text-red-500">*</span></label>
+                        <input type="number" name="VasId" class="form-input tw-w-28" placeholder="e.g. 48" min="1" required />
+                    </div>
+                    <button type="submit" class="btn-add"><i class="fas fa-plus tw-mr-1"></i>Add</button>
+                </form>
+            </div>
+        </div>
+
+        @* ══ TAB 6: Salary Tax Exclusions ════════════════════════════════════ *@
+        <div id="tab-tax" class="cfg-tab-panel tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">Salary Tax Exclusions <span class="tw-text-slate-400 tw-font-normal">(hr_salary_tax_exclusions)</span></h2>
+                <span class="tw-text-xs tw-text-slate-400">Employees whose salary is excluded from tax correction</span>
+            </div>
+            <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100 tw-mb-5">
+                <table class="cfg-tbl tw-w-full">
+                    <thead><tr>
+                        <th class="tw-w-56">Employee No</th>
+                        <th class="tw-w-28 tw-text-center">Status</th>
+                        <th class="tw-w-24 tw-text-center">Delete</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.SalaryTaxExclusions)
+                    {
+                        <tr>
+                            <td class="tw-font-mono tw-text-xs tw-font-bold">@row.EmpNo</td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="ToggleActive" asp-controller="Configuration" class="tw-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="table" value="tax" />
+                                    <input type="hidden" name="key" value="@row.EmpNo" />
+                                    <input type="hidden" name="isActive" value="@(row.IsActive ? "false" : "true")" />
+                                    <button type="submit" class="@(row.IsActive ? "badge-active" : "badge-inactive")">
+                                        <i class="fas @(row.IsActive ? "fa-check" : "fa-xmark")"></i>
+                                        @(row.IsActive ? "Active" : "Inactive")
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="DeleteRow" asp-controller="Configuration" class="tw-inline"
+                                      onsubmit="return confirm('Remove @Html.Raw(row.EmpNo.Replace("'","\\'" )) from tax exclusions?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="table" value="tax" />
+                                    <input type="hidden" name="key" value="@row.EmpNo" />
+                                    <button type="submit" class="btn-del"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.SalaryTaxExclusions.Any())
+                    {
+                        <tr><td colspan="3" class="tw-text-center tw-text-slate-400 tw-py-8">No tax exclusions configured.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-4">
+                <p class="tw-text-xs tw-font-bold tw-text-slate-600 tw-uppercase tw-tracking-wider tw-mb-3">Add Employee Tax Exclusion</p>
+                <form method="post" asp-action="AddTaxExclusion" asp-controller="Configuration" class="tw-flex tw-flex-wrap tw-gap-2 tw-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">Employee No <span class="tw-text-red-500">*</span></label>
+                        <input type="text" name="EmpNo" class="form-input tw-w-48" placeholder="00000000013203" required />
+                    </div>
+                    <button type="submit" class="btn-add"><i class="fas fa-plus tw-mr-1"></i>Add</button>
+                </form>
+            </div>
+        </div>
+
+        @* ══ TAB 8: Excluded Shipments ════════════════════════════════════════ *@
+        <div id="tab-shipments" class="cfg-tab-panel tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">Excluded Shipment Types <span class="tw-text-slate-400 tw-font-normal">(hr_commission_excluded_shipments)</span></h2>
+                <span class="tw-text-xs tw-text-slate-400">@Model.ShipmentExclusions.Count rows</span>
+            </div>
+            <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100 tw-mb-5">
+                <table class="cfg-tbl tw-w-full">
+                    <thead><tr>
+                        <th>Process Name</th>
+                        <th class="tw-w-36 tw-text-right">Shipment Type ID</th>
+                        <th class="tw-w-24 tw-text-center">Delete</th>
+                    </tr></thead>
+                    <tbody>
+                    @{
+                        var shipGroups = Model.ShipmentExclusions.GroupBy(r => r.ProcessName).OrderBy(g => g.Key);
+                    }
+                    @foreach (var sg in shipGroups)
+                    {
+                        <tr>
+                            <td colspan="3" class="tw-bg-slate-50 tw-py-1 tw-px-3">
+                                <span class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wider">@sg.Key</span>
+                            </td>
+                        </tr>
+                        @foreach (var row in sg.OrderBy(r => r.ShipmentTypeId))
+                        {
+                            <tr>
+                                <td class="tw-pl-6 tw-text-slate-400 tw-text-xs">↳</td>
+                                <td class="tw-text-right tw-font-mono tw-font-bold tw-text-slate-700">@row.ShipmentTypeId</td>
+                                <td class="tw-text-center">
+                                    <form method="post" asp-action="DeleteShipmentExclusion" asp-controller="Configuration" class="tw-inline"
+                                          onsubmit="return confirm('Remove Shipment Type @row.ShipmentTypeId from @sg.Key?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="processName" value="@sg.Key" />
+                                        <input type="hidden" name="shipmentTypeId" value="@row.ShipmentTypeId" />
+                                        <button type="submit" class="btn-del"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    @if (!Model.ShipmentExclusions.Any())
+                    {
+                        <tr><td colspan="3" class="tw-text-center tw-text-slate-400 tw-py-8">No shipment exclusions configured.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-4">
+                <p class="tw-text-xs tw-font-bold tw-text-slate-600 tw-uppercase tw-tracking-wider tw-mb-3">Add Shipment Exclusion</p>
+                <form method="post" asp-action="AddShipmentExclusion" asp-controller="Configuration" class="tw-flex tw-flex-wrap tw-gap-2 tw-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">Process Name <span class="tw-text-red-500">*</span></label>
+                        <select name="ProcessName" class="form-input tw-w-56" required>
+                            <option value="">— select —</option>
+                            <option value="BillingGeneral">BillingGeneral</option>
+                            <option value="OverLandCreditExclude">OverLandCreditExclude</option>
+                            <option value="OverLandExpressInclude">OverLandExpressInclude</option>
+                            <option value="OverLandDeliveryOPS">OverLandDeliveryOPS</option>
+                        </select>
+                    </div>
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">Shipment Type ID <span class="tw-text-red-500">*</span></label>
+                        <input type="number" name="ShipmentTypeId" class="form-input tw-w-32" placeholder="e.g. 5" min="1" required />
+                    </div>
+                    <button type="submit" class="btn-add"><i class="fas fa-plus tw-mr-1"></i>Add</button>
+                </form>
+            </div>
+        </div>
+
+        @* ══ TAB 9: System Exclusions ═════════════════════════════════════════ *@
+        <div id="tab-sysexcl" class="cfg-tab-panel tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">System Exclusions <span class="tw-text-slate-400 tw-font-normal">(hr_commission_system_exclusions)</span></h2>
+                <span class="tw-text-xs tw-text-slate-400">@Model.SystemExclusions.Count records</span>
+            </div>
+            <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100 tw-mb-5">
+                <table class="cfg-tbl tw-w-full">
+                    <thead><tr>
+                        <th>Exclusion Type</th>
+                        <th>Value</th>
+                        <th class="tw-w-24">Rule</th>
+                        <th class="tw-w-28 tw-text-center">Status</th>
+                        <th class="tw-w-24 tw-text-center">Delete</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.SystemExclusions)
+                    {
+                        <tr>
+                            <td class="tw-text-xs tw-font-semibold tw-text-slate-600">@row.ExclusionType</td>
+                            <td class="tw-font-mono tw-text-xs tw-font-bold">@row.ExclusionValue</td>
+                            <td>
+                                <span class="tw-text-xs tw-px-1.5 tw-py-0.5 tw-rounded tw-font-semibold
+                                      @(row.RuleType == "INCLUDE" ? "tw-bg-green-100 tw-text-green-700" : "tw-bg-red-100 tw-text-red-700")">
+                                    @row.RuleType
+                                </span>
+                            </td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="ToggleSysExclusion" asp-controller="Configuration" class="tw-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="exclusionType" value="@row.ExclusionType" />
+                                    <input type="hidden" name="exclusionValue" value="@row.ExclusionValue" />
+                                    <input type="hidden" name="isActive" value="@(row.IsActive ? "false" : "true")" />
+                                    <button type="submit" class="@(row.IsActive ? "badge-active" : "badge-inactive")">
+                                        <i class="fas @(row.IsActive ? "fa-check" : "fa-xmark")"></i>
+                                        @(row.IsActive ? "Active" : "Inactive")
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="tw-text-center">
+                                <form method="post" asp-action="DeleteSysExclusion" asp-controller="Configuration" class="tw-inline"
+                                      onsubmit="return confirm('Delete @Html.Raw(row.ExclusionType.Replace("'","\\'" ))/@Html.Raw(row.ExclusionValue.Replace("'","\\'" ))?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="exclusionType" value="@row.ExclusionType" />
+                                    <input type="hidden" name="exclusionValue" value="@row.ExclusionValue" />
+                                    <button type="submit" class="btn-del"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.SystemExclusions.Any())
+                    {
+                        <tr><td colspan="5" class="tw-text-center tw-text-slate-400 tw-py-8">No system exclusions configured.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-4">
+                <p class="tw-text-xs tw-font-bold tw-text-slate-600 tw-uppercase tw-tracking-wider tw-mb-3">Add System Exclusion</p>
+                <form method="post" asp-action="AddSysExclusion" asp-controller="Configuration" class="tw-flex tw-flex-wrap tw-gap-2 tw-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">Exclusion Type <span class="tw-text-red-500">*</span></label>
+                        <select name="ExclusionType" class="form-input tw-w-64" required>
+                            <option value="">— select —</option>
+                            <option value="EXCLUDED_EXPRESS_ID">EXCLUDED_EXPRESS_ID</option>
+                            <option value="CASH_LOCATION_TYPE">CASH_LOCATION_TYPE</option>
+                            <option value="RETURNCOD_EXCLUDE_LOCATION_TYPE">RETURNCOD_EXCLUDE_LOCATION_TYPE</option>
+                        </select>
+                    </div>
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">Value <span class="tw-text-red-500">*</span></label>
+                        <input type="text" name="ExclusionValue" class="form-input tw-w-32" placeholder="e.g. 42" required />
+                    </div>
+                    <div class="tw-flex tw-flex-col tw-gap-1">
+                        <label class="tw-text-xs tw-font-semibold tw-text-slate-500">Rule Type</label>
+                        <select name="RuleType" class="form-input tw-w-28">
+                            <option value="EXCLUDE">EXCLUDE</option>
+                            <option value="INCLUDE">INCLUDE</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-add"><i class="fas fa-plus tw-mr-1"></i>Add</button>
+                </form>
+            </div>
+        </div>
+
+        @* ══ TAB 10: OLE Type Mapping (read-only) ═════════════════════════════ *@
+        <div id="tab-typemap" class="cfg-tab-panel tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">OLE Type Mapping <span class="tw-text-slate-400 tw-font-normal">(hr_commission_type_mapping)</span></h2>
+                <span class="tw-text-xs tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200 tw-px-2 tw-py-0.5 tw-rounded-full tw-font-semibold">Read-Only — developer-maintained, @Model.TypeMappings.Count rows</span>
+            </div>
+            @{
+                var typeGroups = Model.TypeMappings.GroupBy(r => r.CommissionType).OrderBy(g => g.Key);
+            }
+            @foreach (var tg in typeGroups)
+            {
+                <div class="tw-mb-4">
+                    <div class="tw-mb-2">
+                        <span class="tw-text-xs tw-font-bold tw-text-slate-600 tw-bg-slate-100 tw-px-2 tw-py-0.5 tw-rounded tw-uppercase tw-tracking-wider">@tg.Key</span>
+                    </div>
+                    <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100">
+                        <table class="cfg-tbl tw-w-full">
+                            <thead><tr>
+                                <th class="tw-w-24 tw-text-right">Rate ID</th>
+                                <th>Commission Column</th>
+                                <th class="tw-w-24 tw-text-center">Status</th>
+                            </tr></thead>
+                            <tbody>
+                            @foreach (var row in tg.OrderBy(r => r.RateID))
+                            {
+                                <tr class="@(row.IsActive ? "" : "tw-opacity-40")">
+                                    <td class="tw-text-right tw-font-mono tw-font-bold tw-text-slate-700">@(row.RateID?.ToString() ?? "—")</td>
+                                    <td class="tw-font-mono tw-text-xs tw-text-slate-600">@row.CommissionColumn</td>
+                                    <td class="tw-text-center">
+                                        <span class="@(row.IsActive ? "badge-active" : "badge-inactive")">
+                                            <i class="fas @(row.IsActive ? "fa-check" : "fa-xmark")"></i>
+                                            @(row.IsActive ? "Active" : "Inactive")
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            @if (!Model.TypeMappings.Any())
+            {
+                <div class="tw-text-center tw-text-slate-400 tw-py-12">No type mappings found.</div>
+            }
+        </div>
+
+        @* ══ TAB 7: CodeType Rules (read-only) ══════════════════════════════ *@
+        <div id="tab-codetypes" class="cfg-tab-panel tw-p-5">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-3">
+                <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-m-0">CodeType Rules <span class="tw-text-slate-400 tw-font-normal">(hr_commission_codetype_rules)</span></h2>
+                <span class="tw-text-xs tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200 tw-px-2 tw-py-0.5 tw-rounded-full tw-font-semibold">Read-Only — edit directly in DB</span>
+            </div>
+            @{
+                var grouped = Model.CodeTypeRules.GroupBy(r => r.ProcessName).OrderBy(g => g.Key);
+            }
+            @foreach (var group in grouped)
+            {
+                <div class="tw-mb-4">
+                    <div class="tw-mb-2">
+                        <span class="tw-text-xs tw-font-bold tw-text-slate-600 tw-bg-slate-100 tw-px-2 tw-py-0.5 tw-rounded tw-uppercase tw-tracking-wider">@group.Key</span>
+                    </div>
+                    <div class="tw-overflow-x-auto tw-rounded-lg tw-border tw-border-slate-100">
+                        <table class="cfg-tbl tw-w-full">
+                            <thead><tr>
+                                <th class="tw-w-36">Rule Type</th>
+                                <th class="tw-text-right">CodeType ID</th>
+                            </tr></thead>
+                            <tbody>
+                            @foreach (var row in group.OrderBy(r => r.RuleType).ThenBy(r => r.CodeTypeId))
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="tw-text-xs tw-px-1.5 tw-py-0.5 tw-rounded tw-font-semibold
+                                              @(row.RuleType == "INCLUDE" ? "tw-bg-green-100 tw-text-green-700" : "tw-bg-red-100 tw-text-red-700")">
+                                            @row.RuleType
+                                        </span>
+                                    </td>
+                                    <td class="tw-text-right tw-font-mono tw-font-bold tw-text-slate-700">@row.CodeTypeId</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            @if (!Model.CodeTypeRules.Any())
+            {
+                <div class="tw-text-center tw-text-slate-400 tw-py-12">No CodeType rules found.</div>
+            }
+        </div>
+
+    </div>@* /panel *@
+</div>
+
+@* ══ Scalar Edit Modal ══════════════════════════════════════════════════════ *@
+<div id="cfgModal" role="dialog" aria-modal="true" aria-labelledby="cfgModalTitle">
+    <div class="tw-bg-white tw-rounded-2xl tw-shadow-2xl tw-w-full tw-max-w-md tw-p-6 tw-mx-4">
+        <div class="tw-flex tw-items-center tw-justify-between tw-mb-5">
+            <h3 id="cfgModalTitle" class="tw-text-base tw-font-bold tw-text-slate-800 tw-m-0">Edit Config Value</h3>
+            <button onclick="closeScalarModal()" class="tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-700 tw-transition-all">
+                <i class="fas fa-xmark"></i>
+            </button>
+        </div>
+        <form method="post" asp-action="UpdateScalar" asp-controller="Configuration">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="Table" id="modalTable" />
+            <input type="hidden" name="ConfigKey" id="modalKey" />
+            <div class="tw-mb-4">
+                <label class="tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-block tw-mb-1.5">Config Key</label>
+                <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-px-3 tw-py-2">
+                    <code id="modalKeyDisplay" class="tw-text-sm tw-font-mono tw-text-slate-700"></code>
+                </div>
+            </div>
+            <div class="tw-mb-5">
+                <label for="modalValue" class="tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-block tw-mb-1.5">New Value <span class="tw-text-red-500">*</span></label>
+                <input type="text" id="modalValue" name="ConfigValue" class="form-input tw-w-full tw-text-base" required autocomplete="off" />
+                <p class="tw-text-xs tw-text-slate-400 tw-mt-1.5">For comma-separated lists enter values as: 1,2,3 (no spaces).</p>
+            </div>
+            <div class="tw-flex tw-gap-3 tw-justify-end">
+                <button type="button" onclick="closeScalarModal()"
+                        class="tw-px-4 tw-py-2 tw-rounded-lg tw-text-sm tw-font-semibold tw-text-slate-600 tw-bg-slate-100 hover:tw-bg-slate-200 tw-transition-all">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="tw-px-5 tw-py-2 tw-rounded-lg tw-text-sm tw-font-bold tw-bg-[#f5c518] tw-text-slate-900 hover:tw-bg-amber-500 hover:tw-text-white tw-transition-all">
+                    <i class="fas fa-save tw-mr-1.5"></i>Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // ── Tab switching ─────────────────────────────────────────────────────────
+    (function () {
+        var buttons = document.querySelectorAll('.cfg-tab-btn');
+        var panels  = document.querySelectorAll('.cfg-tab-panel');
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var target = btn.dataset.tab;
+                buttons.forEach(function (b) { b.classList.remove('active'); });
+                panels.forEach(function (p)  { p.classList.remove('active'); });
+                btn.classList.add('active');
+                document.getElementById(target).classList.add('active');
+            });
+        });
+    })();
+
+    // ── Scalar edit modal ─────────────────────────────────────────────────────
+    var _modal = document.getElementById('cfgModal');
+
+    function openScalarModal(table, key, value) {
+        document.getElementById('modalTable').value          = table;
+        document.getElementById('modalKey').value            = key;
+        document.getElementById('modalKeyDisplay').textContent = key;
+        document.getElementById('modalValue').value          = value;
+        _modal.classList.add('open');
+        setTimeout(function () { document.getElementById('modalValue').focus(); }, 50);
+    }
+
+    function closeScalarModal() { _modal.classList.remove('open'); }
+
+    _modal.addEventListener('click', function (e) { if (e.target === _modal) closeScalarModal(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeScalarModal(); });
+</script>
+}

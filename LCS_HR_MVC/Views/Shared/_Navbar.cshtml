@@ -1,0 +1,327 @@
+@using System.Security.Claims
+@using LCS_HR_MVC.Services
+@inject IMenuService MenuService
+
+@{
+    var username = User.Identity?.Name ?? "User";
+    var userRole = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? "";
+    var roleDesc = User.Claims.FirstOrDefault(c => c.Type == "RoleDescription")?.Value ?? "";
+    var workingDate = Context.Session.GetString("workingdate") ?? DateTime.Now.ToString("dd-MMMM-yyyy");
+    var menuHtml    = await MenuService.GetMenuHtmlAsync(userRole);
+}
+
+<style>
+/* ── Modern Dynamic Menu Scope (Light Theme) ── */
+#dynamicmenu, #dynamicmenu ul {
+    list-style: none !important; margin: 0; padding: 0;
+}
+#dynamicmenu li {
+    list-style: none !important;
+}
+#dynamicmenu {
+    display: flex; flex-direction: column; gap: 0.25rem;
+}
+@@media (min-width: 1024px) {
+    #dynamicmenu { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+}
+
+#dynamicmenu > li { position: relative; }
+
+/* Level 1 Links */
+#dynamicmenu > li > a {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.8rem; border-radius: 0.5rem;
+    font-size: 0.85rem; font-weight: 600; color: #475569;
+    text-decoration: none; white-space: nowrap;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+}
+#dynamicmenu > li:hover > a, #dynamicmenu > li:focus-within > a {
+    color: #0a0a0a; background: #f8fafc; border-color: #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transform: translateY(-1px);
+}
+
+/* Caret/Icon adjustments for generated HTML */
+#dynamicmenu > li > a .caret, #dynamicmenu > li > a b {
+    color: inherit; font-size: 0.7rem; margin-left: auto; opacity: 0.7;
+}
+#dynamicmenu > li.dropdown > a > span.lcs-caret {
+    display: inline-block; font-family: 'Font Awesome 5 Free'; font-weight: 900;
+    content: '\f078'; font-size: 0.65rem; opacity: 0.7; transition: transform 0.3s ease;
+}
+#dynamicmenu > li.dropdown:hover > a > span.lcs-caret, #dynamicmenu > li.dropdown:focus-within > a > span.lcs-caret {
+    transform: rotate(-180deg);
+}
+
+/* Bridge the hover gap */
+#dynamicmenu > li > ul.dropdown-menu::after,
+#dynamicmenu li.dropdown-submenu.mul > ul.dropdown-menu::after {
+    content: ''; position: absolute; top: -20px; bottom: -20px; left: -20px; right: -20px; z-index: -1;
+}
+
+/* Level 1 Dropdown Panel */
+#dynamicmenu > li > ul.dropdown-menu {
+    visibility: hidden; opacity: 0; position: absolute; z-index: 200;
+    background: #ffffff; border-radius: 0.75rem;
+    padding: 0.5rem; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+    transform: translateY(10px) scale(0.98);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+    top: 100%; left: 0; min-width: 14rem; margin-top: 2px;
+}
+#dynamicmenu > li:hover > ul.dropdown-menu, #dynamicmenu > li:focus-within > ul.dropdown-menu {
+    visibility: visible; opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+}
+#dynamicmenu > li > ul.dropdown-menu::before {
+    content: ''; position: absolute; top: -5px; left: 20px;
+    width: 10px; height: 10px; background: #ffffff;
+    transform: rotate(45deg); border-left: 1px solid rgba(0,0,0,0.05); border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Level 2 Submenu Items */
+#dynamicmenu li.dropdown-submenu.mul { position: relative; }
+#dynamicmenu li.dropdown-submenu.mul > a {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.5rem 1rem; border-radius: 0.375rem;
+    font-size: 0.8rem; font-weight: 600; color: #475569;
+    text-decoration: none; transition: all 0.2s ease;
+}
+#dynamicmenu li.dropdown-submenu.mul > a::after {
+    content: '\f054'; font-family: 'Font Awesome 5 Free'; font-weight: 900;
+    font-size: 0.6rem; opacity: 0.6; transition: transform 0.2s ease;
+}
+#dynamicmenu li.dropdown-submenu.mul:hover > a {
+    background: #f8fafc; color: #0a0a0a;
+}
+#dynamicmenu li.dropdown-submenu.mul:hover > a::after {
+    transform: translateX(3px); color: #f5c518; opacity: 1;
+}
+
+/* Level 3 Dropdown Panel */
+#dynamicmenu li.dropdown-submenu.mul > ul.dropdown-menu {
+    visibility: hidden; opacity: 0; position: absolute; z-index: 200;
+    background: #ffffff; border-radius: 0.75rem;
+    padding: 0.5rem; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+    transform: translateY(10px) scale(0.98);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+    top: -8px; left: 100%; min-width: 14rem; margin-left: 2px;
+}
+#dynamicmenu li.dropdown-submenu.mul:hover > ul.dropdown-menu, #dynamicmenu li.dropdown-submenu.mul:focus-within > ul.dropdown-menu {
+    visibility: visible; opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+}
+
+/* Regular Links in Dropdowns */
+#dynamicmenu ul.dropdown-menu > li:not(.dropdown-submenu) > a {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 1rem; border-radius: 0.375rem;
+    font-size: 0.8rem; font-weight: 500; color: #475569;
+    text-decoration: none; transition: all 0.2s ease;
+}
+#dynamicmenu ul.dropdown-menu > li:not(.dropdown-submenu) > a::before {
+    content: none !important;
+    display: none !important;
+}
+#dynamicmenu ul.dropdown-menu > li:not(.dropdown-submenu) > a:hover {
+    background: rgba(245,197,24,0.1); color: #0a0a0a; font-weight: 600;
+}
+
+/* Multi-Column Layout */
+@@media (min-width: 1024px) {
+    .multi-col {
+        column-count: 2;
+        column-gap: 0.5rem;
+        min-width: 32rem !important; /* Wide enough for 2 columns */
+    }
+    .multi-col > li {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        display: block;
+    }
+}
+
+/* Mobile Adjustments */
+@@media (max-width: 1023px) {
+    #dynamicmenu > li > ul.dropdown-menu, #dynamicmenu li.dropdown-submenu.mul > ul.dropdown-menu {
+        position: static; visibility: hidden; opacity: 0; display: none; margin: 0; box-shadow: none; border: none;
+        background: #f8fafc; padding-left: 1rem; border-left: 2px solid #e2e8f0;
+        border-radius: 0.5rem; margin-top: 0.5rem; transform: none; pointer-events: none;
+    }
+    #dynamicmenu ul.dropdown-menu > li > a { color: #64748b !important; }
+    #dynamicmenu ul.dropdown-menu > li > a:hover { background: #f1f5f9 !important; color: #0f172a !important; }
+    #dynamicmenu > li > ul.dropdown-menu::before { display: none; }
+    #dynamicmenu > li:hover > ul.dropdown-menu, #dynamicmenu li.dropdown-submenu.mul:hover > ul.dropdown-menu {
+        display: block; visibility: visible; opacity: 1; pointer-events: auto;
+    }
+    .multi-col {
+        column-count: 1 !important;
+        min-width: auto !important;
+    }
+}
+
+/* Ultra Modern Glass Header - Light */
+.glass-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+/* Subtle Glow for Logo */
+.logo-glow {
+    box-shadow: 0 0 20px rgba(245, 197, 24, 0.15);
+}
+</style>
+
+<header class="tw-sticky tw-top-0 tw-z-50 glass-header tw-border-b tw-border-slate-200 tw-shadow-sm">
+    <div class="tw-h-1 tw-bg-gradient-to-r tw-from-transparent tw-via-[#f5c518] tw-to-transparent tw-opacity-60"></div>
+    <nav class="tw-w-full tw-bg-transparent" aria-label="Main navigation">
+    <div class="tw-max-w-[96rem] tw-mx-auto tw-px-4 sm:tw-px-6 lg:tw-px-8">
+        
+        <!-- TOP/Header Section -->
+        <div class="tw-flex tw-items-center tw-justify-between tw-py-3 tw-border-b tw-border-slate-100 lg:tw-border-none">
+            
+            <!-- Logo Section -->
+            <div class="tw-flex tw-items-center tw-gap-4 tw-group tw-cursor-pointer" onclick="window.location.href='@Url.Action("Index", "Home")'">
+                <div class="tw-relative logo-glow tw-bg-[#f5c518] tw-p-2 tw-rounded-xl tw-transition-transform tw-duration-300 group-hover:tw-scale-105 tw-shadow-sm">
+                    <img src="~/images/lcs_trans.png" alt="LCS" class="tw-w-7 tw-h-7 tw-object-contain tw-brightness-0" onerror="this.src='/images/favicon.ico'; this.classList.remove('tw-brightness-0');" />
+                </div>
+                <div class="tw-leading-none">
+                    <h1 class="tw-text-lg tw-font-black tw-text-slate-800 tw-tracking-tight tw-mb-0.5">LCS <span class="tw-text-[#eab308]">HRM</span></h1>
+                    <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-[0.2em]">Enterprise Portal</p>
+                </div>
+            </div>
+
+            <!-- Right Profile/Icons Section -->
+            <div class="tw-flex tw-items-center tw-gap-4 lg:tw-gap-6">
+                <!-- Desktop Working Date -->
+                <div class="tw-hidden xl:tw-flex tw-items-center tw-gap-3 tw-pr-4 tw-border-r tw-border-slate-200">
+                    <div class="tw-w-8 tw-h-8 tw-flex tw-items-center tw-justify-center tw-bg-amber-50 tw-rounded-full tw-border tw-border-amber-100">
+                        <i class="fas fa-calendar-day tw-text-amber-500 tw-text-xs"></i>
+                    </div>
+                    <div class="tw-text-right">
+                        <p class="tw-text-[0.60rem] tw-font-bold tw-tracking-wider tw-uppercase tw-text-slate-400 tw-m-0 tw-leading-none tw-mb-1">Working Date</p>
+                        <p class="tw-text-xs tw-font-bold tw-text-slate-700 tw-m-0 tw-leading-none">@workingDate</p>
+                    </div>
+                </div>
+
+                <div class="tw-hidden md:tw-flex tw-items-center tw-gap-1">
+                    <button class="tw-w-9 tw-h-9 tw-flex tw-items-center tw-justify-center tw-rounded-xl tw-text-slate-400 hover:tw-text-[#f5c518] hover:tw-bg-slate-50 tw-transition-all">
+                        <i class="fa-regular fa-bell tw-text-sm"></i>
+                    </button>
+                    <button class="tw-w-9 tw-h-9 tw-flex tw-items-center tw-justify-center tw-rounded-xl tw-text-slate-400 hover:tw-text-[#f5c518] hover:tw-bg-slate-50 tw-transition-all">
+                        <i class="fa-regular fa-circle-question tw-text-sm"></i>
+                    </button>
+                </div>
+
+                <div class="tw-flex tw-items-center tw-gap-3 tw-bg-white tw-pl-4 tw-pr-1.5 tw-py-1.5 tw-rounded-full tw-border tw-border-slate-200 tw-shadow-sm">
+                    <div class="tw-hidden sm:tw-flex tw-flex-col tw-text-right">
+                        <span class="tw-text-xs tw-font-bold tw-text-slate-700">@username</span>
+                        <span class="tw-text-[9px] tw-text-amber-500 tw-font-black tw-uppercase tw-tracking-widest">@roleDesc</span>
+                    </div>
+                    
+                    <div class="tw-relative">
+                        <div class="tw-w-9 tw-h-9 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-bg-amber-100 tw-border tw-border-amber-200 tw-text-amber-600 tw-shadow-sm">
+                            <i class="fa-solid fa-user tw-text-sm"></i>
+                        </div>
+                        <div class="tw-absolute -tw-bottom-0.5 -tw-right-0.5 tw-w-3.5 tw-h-3.5 tw-bg-green-500 tw-border-2 tw-border-white tw-rounded-full"></div>
+                    </div>
+
+                    <a href="@Url.Action("Logout", "Account")" class="tw-ml-1 tw-w-8 tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded-full tw-bg-red-50 tw-text-red-500 hover:tw-bg-red-500 hover:tw-text-white tw-transition-all" title="Logout">
+                        <i class="fa-solid fa-arrow-right-from-bracket tw-text-xs"></i>
+                    </a>
+                </div>
+
+                <!-- Mobile Toggle -->
+                <button id="tailwind-menu-toggle" type="button" class="lg:tw-hidden tw-inline-flex tw-items-center tw-justify-center tw-w-10 tw-h-10 tw-bg-slate-50 tw-rounded-xl tw-text-slate-600 tw-border tw-border-slate-200 hover:tw-bg-slate-100 tw-transition-all" aria-label="Toggle navigation">
+                    <i class="fas fa-bars tw-text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- NAVBAR / Menu Section -->
+        <div id="navbar-collapse-1" class="tw-hidden lg:tw-block tw-pb-3 lg:tw-pb-0 tw-border-t tw-border-slate-100">
+            <div class="tw-flex tw-flex-col lg:tw-flex-row lg:tw-items-center tw-justify-between tw-py-2 lg:tw-py-2 lg:tw-min-h-[3rem]">
+                <!-- Dynamic Menu Wrapper -->
+                <ul class="tw-w-full tw-flex tw-flex-col lg:tw-flex-row lg:tw-items-center tw-gap-1 lg:tw-gap-2" id="dynamicmenu">
+                    @Html.Raw(menuHtml)
+                    <li>
+                        <a href='/AttendanceManagement'>
+                            <i class='fas fa-clipboard-user'></i> Employee Attendance
+                        </a>
+                    </li>
+                    <li class='dropdown'>
+                        <a href='/Automation/Commission'>
+                            <i class='fas fa-robot'></i> Automation
+                        </a>
+                        <ul class='dropdown-menu'>
+                            <li><a href='/Automation/Commission'><i class='fas fa-cogs'></i> Commission</a></li>
+                            <li><a href='/Automation/History'><i class='fas fa-history'></i> Commission History</a></li>
+                            <li><a href='/Automation/WorkingFlow'><i class='fas fa-project-diagram'></i> Commission Working Flow</a></li>
+                            <li><a href='/CommissionVerification'><i class='fas fa-search-dollar'></i> Commission Verification</a></li>
+                            <li><a href='/Automation/CommissionGuide'><i class='fas fa-book-open'></i> Commission Guide</a></li>
+                            <li><a href='/Automation/CommissionFlowExplained'><i class='fas fa-chalkboard-teacher'></i> Commission Flow Explained</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href='/CommissionInvestigation'>
+                            <i class='fas fa-user-magnifying-glass'></i> Employee Commission Process
+                        </a>
+                    </li>
+                    <li class='dropdown'>
+                        <a href='/TestDataMigration'>
+                            <i class='fas fa-database'></i> Data Dump
+                        </a>
+                        <ul class='dropdown-menu'>
+                            <li><a href='/TestDataMigration'><i class='fas fa-cloud-download-alt'></i> Live → Local Migration</a></li>
+                            <li><a href='/TestDataMigration/DestinationTables'><i class='fas fa-table'></i> Destination Tables</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href='/Configuration'>
+                            <i class='fas fa-sliders'></i> Admin Config
+                        </a>
+                    </li>
+                    <li>
+                        <a href='/ac-test'>
+                            <i class='fas fa-flask'></i> AC Test Tables
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Mobile Working Date Display (Inside collapsed menu) -->
+                <div class="tw-flex xl:tw-hidden tw-items-center tw-gap-3 tw-mt-4 tw-p-3 tw-bg-slate-50 tw-rounded-lg tw-border tw-border-slate-200 lg:tw-hidden">
+                    <i class="fas fa-calendar-day tw-text-amber-500"></i>
+                    <div class="tw-flex tw-flex-col">
+                        <span class="tw-text-[0.6rem] tw-font-bold tw-tracking-widest tw-uppercase tw-text-slate-400 tw-leading-none tw-mb-1">Working Date</span>
+                        <span class="tw-text-xs tw-font-bold tw-text-slate-700 tw-leading-none">@workingDate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</nav>
+</header>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Automatically split long dropdown menus into two columns
+        var dropdowns = document.querySelectorAll('#dynamicmenu ul.dropdown-menu');
+        dropdowns.forEach(function (menu) {
+            // If a dropdown has 12 or more items, apply multi-column layout
+            if (menu.children.length >= 12) {
+                menu.classList.add('multi-col');
+            }
+        });
+
+        // Toggle mobile menu properly
+        var toggleBtn = document.getElementById('tailwind-menu-toggle');
+        var collapseMenu = document.getElementById('navbar-collapse-1');
+        if(toggleBtn && collapseMenu) {
+            toggleBtn.addEventListener('click', function() {
+                collapseMenu.classList.toggle('tw-hidden');
+            });
+        }
+    });
+</script>

@@ -1,0 +1,397 @@
+@model LCS_HR_MVC.Models.RouteModel
+@{
+    ViewData["Title"] = "Route Detail Entry";
+    ViewData["PageTitle"] = "Route Detail Entry";
+    var citiesList = ViewBag.CitiesList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var oldCityCode = ViewBag.OldCityCode as string ?? "";
+    var isNewRecord = Model.RouteCode == "Auto Generated";
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Custom Checkbox Toggle */
+        .toggle-switch {
+            @@apply tw-relative tw-inline-block tw-w-10 tw-h-5.5;
+        }
+        .toggle-switch input {
+            @@apply tw-opacity-0 tw-w-0 tw-h-0;
+        }
+        .toggle-slider {
+            @@apply tw-absolute tw-cursor-pointer tw-top-0 tw-left-0 tw-right-0 tw-bottom-0 tw-bg-slate-200 tw-transition-all tw-duration-300 tw-rounded-full;
+        }
+        .toggle-slider:before {
+            content: "";
+            @@apply tw-absolute tw-h-4 tw-w-4 tw-left-1 tw-bottom-[3px] tw-bg-white tw-transition-all tw-duration-300 tw-rounded-full tw-shadow-sm;
+        }
+        input:checked + .toggle-slider {
+            @@apply tw-bg-amber-400;
+        }
+        input:focus + .toggle-slider {
+            @@apply tw-ring-2 tw-ring-amber-400/50;
+        }
+        input:checked + .toggle-slider:before {
+            @@apply tw-translate-x-[18px];
+        }
+
+        /* Detail Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-cogs tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Setup</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Logistics Setup</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Route Blueprint</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Compile route paths with hierarchical area mapping and operational validity.</p>
+        </div>
+        
+        <div>
+             <a asp-action="Routes" class="tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-py-2.5 tw-px-6 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-bold tw-text-xs tw-tracking-wide tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                <i class="fas fa-arrow-left"></i> Return to Registry
+            </a>
+        </div>
+    </div>
+
+
+    <div class="tw-grid xl:tw-grid-cols-[1.2fr_0.8fr] tw-gap-6 xl:tw-gap-8 align-top">
+        
+        <!-- Left Side: Breakdown Grid -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative tw-h-full">
+            <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none z-0"></div>
+
+            <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-bg-slate-50/80">
+                <div class="tw-flex tw-items-center tw-gap-4">
+                    <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-gradient-to-br tw-from-slate-900 tw-to-slate-800 tw-flex tw-items-center tw-justify-center tw-shadow-[0_4px_10px_rgba(15,23,42,0.3)]">
+                        <i class="fas fa-layer-group tw-text-amber-400 tw-text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="tw-font-black tw-text-base tw-text-slate-800 tw-tracking-tight">Area Grid Breakdown</h2>
+                        <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">Hierarchical Mapping</p>
+                    </div>
+                </div>
+                <button type="button" id="btnAddRow" class="tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-py-2 tw-px-4 tw-bg-slate-900 tw-text-amber-400 tw-rounded-lg tw-font-bold tw-text-[10px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-800 tw-transition-colors">
+                    <i class="fas fa-plus"></i> Add Scope Layer
+                </button>
+            </div>
+
+            <div class="tw-relative tw-z-10 tw-p-6">
+                <form id="detailForm"> @* Wrapper to avoid nested forms if necessary, but we'll use the main form *@
+                <div class="tw-overflow-x-auto custom-scrollbar">
+                    <table class="tw-w-full tw-text-left tw-whitespace-nowrap">
+                        <thead class="tw-bg-slate-100/50">
+                            <tr>
+                                <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest tw-w-10 tw-text-center">Del</th>
+                                <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest">Macro Area Name</th>
+                                <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest">Loc Type</th>
+                                <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest">Detail Block Reference</th>
+                                <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest">Post Code</th>
+                                <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest">Field Ref</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailGridBody" class="tw-divide-y tw-divide-slate-50 tw-bg-white">
+                            @for (int i = 0; i < Model.Details.Count; i++)
+                            {
+                                <tr class="hover:tw-bg-amber-50/20 tw-transition-colors group" data-index="@i">
+                                    <td class="tw-py-3 tw-px-4 tw-text-center tw-align-top tw-pt-4">
+                                        <button type="button" class="tw-w-7 tw-h-7 tw-rounded-lg tw-bg-red-50 tw-text-red-500 hover:tw-bg-red-500 hover:tw-text-white tw-transition-colors tw-inline-flex tw-items-center tw-justify-center" onclick="removeRow(this)" title="Remove Array Element"><i class="fas fa-times tw-text-xs"></i></button>
+                                    </td>
+                                    <td class="tw-py-3 tw-px-4 tw-align-top">
+                                        <input type="text" name="Details[@i].AreaName" maxlength="45" value="@Model.Details[i].AreaName"
+                                               class="tw-w-40 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" />
+                                    </td>
+                                    <td class="tw-py-3 tw-px-4 tw-align-top">
+                                        <select name="Details[@i].AddressType" 
+                                                class="tw-w-32 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-appearance-none"
+                                                style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.5rem top 50%; background-size: 0.5rem auto;">
+                                            <option value="Block" selected="@(Model.Details[i].AddressType == "Block")">Block Type</option>
+                                            <option value="Street" selected="@(Model.Details[i].AddressType == "Street")">Street Scope</option>
+                                            <option value="Mohalla" selected="@(Model.Details[i].AddressType == "Mohalla")">Mohalla Sector</option>
+                                        </select>
+                                    </td>
+                                    <td class="tw-py-3 tw-px-4 tw-align-top">
+                                        <input type="text" name="Details[@i].Description" maxlength="100" value="@Model.Details[i].Description"
+                                               class="tw-w-72 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" />
+                                    </td>
+                                    <td class="tw-py-3 tw-px-4 tw-align-top">
+                                        <input type="text" name="Details[@i].PostalCode" maxlength="20" value="@Model.Details[i].PostalCode"
+                                               class="tw-w-24 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-mono tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" />
+                                    </td>
+                                    <td class="tw-py-3 tw-px-4 tw-align-top">
+                                        <input type="text" name="Details[@i].Comments" maxlength="45" value="@Model.Details[i].Comments"
+                                               class="tw-w-44 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-medium tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Side: Metadata Form -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-sticky tw-top-24 tw-relative">
+            <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-emerald-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none"></div>
+
+            <div class="tw-p-6 tw-bg-gradient-to-r tw-from-emerald-500 tw-to-emerald-600 tw-relative tw-z-10">
+                <div class="tw-flex tw-items-center tw-justify-between">
+                    <h3 class="tw-text-white tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                        <div class="tw-w-6 tw-h-6 tw-bg-black/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-map-signs"></i>
+                        </div>
+                        Target Definition
+                    </h3>
+                    <div class="tw-flex tw-items-center tw-gap-3 tw-bg-white/10 tw-px-3 tw-py-1 tw-rounded-lg tw-backdrop-blur-md">
+                        <label asp-for="IsPorter" class="tw-text-[9px] tw-font-black tw-text-white tw-uppercase tw-tracking-wide tw-cursor-pointer">Porter Mode</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" asp-for="IsPorter" id="IsPorter" />
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <form asp-controller="Setup" asp-action="RouteDetailEntry" method="post" id="routeForm" class="tw-p-7 tw-space-y-5 tw-relative tw-z-10">
+                <input type="hidden" name="oldCityCode" value="@oldCityCode" />
+                @* Hidden inputs for grid will be managed by JS or kept in form *@
+                <div id="gridInputsContainer">
+                    @for (int i = 0; i < Model.Details.Count; i++)
+                    {
+                        <input type="hidden" name="Details[@i].AreaName" value="@Model.Details[i].AreaName" />
+                        <input type="hidden" name="Details[@i].AddressType" value="@Model.Details[i].AddressType" />
+                        <input type="hidden" name="Details[@i].Description" value="@Model.Details[i].Description" />
+                        <input type="hidden" name="Details[@i].PostalCode" value="@Model.Details[i].PostalCode" />
+                        <input type="hidden" name="Details[@i].Comments" value="@Model.Details[i].Comments" />
+                    }
+                </div>
+
+                <!-- ID Banner -->
+                <div>
+                    <label asp-for="RouteCode" class="tw-block tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mb-1.5">Route Code Token <span class="tw-text-red-500">*</span></label>
+                    @if (!isNewRecord)
+                    {
+                        <div class="tw-flex tw-items-center tw-bg-slate-50 tw-rounded-xl tw-px-3 tw-py-2.5 tw-border tw-border-slate-200 tw-shadow-inner opacity-80">
+                            <i class="fas fa-fingerprint tw-text-slate-400 tw-mr-1.5 tw-text-[10px]"></i>
+                            <input type="text" value="@Model.RouteCode" disabled class="tw-bg-transparent tw-w-full tw-text-sm tw-font-mono tw-font-bold tw-text-slate-600 tw-outline-none" />
+                            <input type="hidden" asp-for="RouteCode" id="RouteCode" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="tw-relative">
+                            <i class="fas fa-fingerprint tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-emerald-500 tw-text-sm"></i>
+                            <input type="text" asp-for="RouteCode" maxlength="5" placeholder="e.g. 52001"
+                                   class="tw-w-full tw-pl-10 tw-pr-3 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-mono tw-font-black tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm" />
+                        </div>
+                        <span asp-validation-for="RouteCode" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    }
+                </div>
+
+                <div class="tw-grid tw-grid-cols-2 tw-gap-4">
+                    <!-- City Segment -->
+                    <div>
+                        <label asp-for="CityCode" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Target City Segment <span class="tw-text-red-500">*</span></label>
+                        <div class="tw-relative">
+                            <i class="fas fa-city tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-sm"></i>
+                            <select asp-for="CityCode" asp-items="citiesList" id="CityCode" 
+                                    class="tw-w-full tw-pl-10 tw-pr-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm tw-appearance-none"
+                                    style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;"></select>
+                        </div>
+                        <span asp-validation-for="CityCode" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+
+                    <!-- From Date -->
+                    <div>
+                        <label asp-for="FromDate" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Apply From <span class="tw-text-red-500">*</span></label>
+                        <div class="tw-relative">
+                             <i class="fas fa-calendar-alt tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-sm"></i>
+                             <input type="date" asp-for="FromDate" id="FromDate" 
+                                   class="tw-w-full tw-pl-10 tw-pr-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" />
+                        </div>
+                        <span asp-validation-for="FromDate" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+                </div>
+
+                <!-- Descriptive Metadata -->
+                <div>
+                    <label asp-for="Description" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-800 tw-uppercase tw-tracking-wide tw-mb-1.5">Route Overview Title <span class="tw-text-red-500">*</span></label>
+                    <div class="tw-relative">
+                        <i class="fas fa-heading tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-emerald-500 tw-text-sm"></i>
+                        <input asp-for="Description" maxlength="45" placeholder="e.g. DEFENCE PHASE 5"
+                               class="tw-w-full tw-pl-10 tw-pr-3 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm" />
+                    </div>
+                    <span asp-validation-for="Description" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Comments" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Administrative Detail Detail</label>
+                    <div class="tw-relative">
+                        <i class="fas fa-sticky-note tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-sm"></i>
+                        <input asp-for="Comments" maxlength="45" placeholder="Internal notes & reference codes..."
+                               class="tw-w-full tw-pl-10 tw-pr-3 tw-py-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-medium tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" />
+                    </div>
+                    <span asp-validation-for="Comments" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                </div>
+
+                <div class="tw-border-t tw-border-slate-100 tw-pt-3 tw-mt-2"></div>
+
+                 <!-- Action Controls (2x2 Grid) -->
+                <div class="tw-space-y-3">
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="submit" name="action" value="Save" id="btnSave" @(!isNewRecord ? "disabled" : null)
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-50 disabled:tw-cursor-not-allowed">
+                            <i class="fas fa-save tw-text-sm"></i> Commit
+                        </button>
+                        <button type="submit" name="action" value="Update" id="btnUpdate" @(isNewRecord ? "disabled" : null)
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-slate-900 tw-text-white tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-800 hover:tw-shadow-[0_8px_20px_rgba(15,23,42,0.2)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-40 disabled:hover:tw-transform-none disabled:hover:tw-shadow-none">
+                            <i class="fas fa-sync-alt tw-text-sm"></i> Patch
+                        </button>
+                    </div>
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="submit" name="action" value="Delete" id="btnDelete" @(isNewRecord ? "disabled" : null) onclick="return confirm('Are you sure you want to delete this route and its entire hierarchical breakdown?');"
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-red-500 tw-border tw-border-red-100 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-red-50 hover:tw-border-red-200 tw-transition-all disabled:tw-opacity-40 disabled:tw-cursor-not-allowed">
+                            <i class="fas fa-trash-alt"></i> Obliterate
+                        </button>
+                        <button type="submit" name="action" value="Reset" id="btnReset" formnovalidate
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                            <i class="fas fa-undo-alt tw-opacity-60"></i> Deselect
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script type="text/javascript">
+        $(document).ready(function () {
+            
+            // Sync breakdown grid to hidden inputs in the main form before submission
+            $('#routeForm').submit(function() {
+                var container = $('#gridInputsContainer');
+                container.empty();
+                
+                $('#detailGridBody tr').each(function(index) {
+                    var area = $(this).find('input[name^="Details"]').eq(0).val();
+                    var type = $(this).find('select[name^="Details"]').val();
+                    var desc = $(this).find('input[name^="Details"]').eq(1).val();
+                    var post = $(this).find('input[name^="Details"]').eq(2).val();
+                    var comm = $(this).find('input[name^="Details"]').eq(3).val();
+                    
+                    container.append(`<input type="hidden" name="Details[${index}].AreaName" value="${area}" />`);
+                    container.append(`<input type="hidden" name="Details[${index}].AddressType" value="${type}" />`);
+                    container.append(`<input type="hidden" name="Details[${index}].Description" value="${desc}" />`);
+                    container.append(`<input type="hidden" name="Details[${index}].PostalCode" value="${post}" />`);
+                    container.append(`<input type="hidden" name="Details[${index}].Comments" value="${comm}" />`);
+                });
+            });
+
+            $('#btnAddRow').click(function() {
+                var index = $('#detailGridBody tr').length;
+                var row = `
+                    <tr class="hover:tw-bg-amber-50/20 tw-transition-colors group" data-index="${index}">
+                        <td class="tw-py-3 tw-px-4 tw-text-center tw-align-top tw-pt-4">
+                            <button type="button" class="tw-w-7 tw-h-7 tw-rounded-lg tw-bg-red-50 tw-text-red-500 hover:tw-bg-red-500 hover:tw-text-white tw-transition-colors tw-inline-flex tw-items-center tw-justify-center" onclick="removeRow(this)"><i class="fas fa-times tw-text-xs"></i></button>
+                        </td>
+                        <td class="tw-py-3 tw-px-4 tw-align-top">
+                            <input type="text" name="Details[${index}].AreaName" class="tw-w-40 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" maxlength="45" placeholder="Area" />
+                        </td>
+                        <td class="tw-py-3 tw-px-4 tw-align-top">
+                            <select name="Details[${index}].AddressType" class="tw-w-32 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-appearance-none" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.5rem top 50%; background-size: 0.5rem auto;">
+                                <option value="Block">Block</option>
+                                <option value="Street">Street</option>
+                                <option value="Mohalla">Mohalla</option>
+                            </select>
+                        </td>
+                        <td class="tw-py-3 tw-px-4 tw-align-top">
+                            <input type="text" name="Details[${index}].Description" class="tw-w-72 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" maxlength="100" placeholder="Desc" />
+                        </td>
+                        <td class="tw-py-3 tw-px-4 tw-align-top">
+                            <input type="text" name="Details[${index}].PostalCode" value="0" class="tw-w-24 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-mono tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" maxlength="20" />
+                        </td>
+                        <td class="tw-py-3 tw-px-4 tw-align-top">
+                            <input type="text" name="Details[${index}].Comments" class="tw-w-44 tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-medium tw-text-slate-800 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" maxlength="45" placeholder="Ref" />
+                        </td>
+                    </tr>
+                `;
+                $('#detailGridBody').append(row);
+            });
+        });
+
+        function removeRow(btn) {
+            $(btn).closest('tr').remove();
+            // Re-index to maintain model binding array sequence
+            $('#detailGridBody tr').each(function(index) {
+                $(this).attr('data-index', index);
+                $(this).find('input, select').each(function() {
+                    var name = $(this).attr('name');
+                    if(name) {
+                        $(this).attr('name', name.replace(/\[\d+\]/, '[' + index + ']'));
+                    }
+                });
+            });
+            
+            // if all removed, add one blank row
+            if($('#detailGridBody tr').length === 0) {
+                $('#btnAddRow').click();
+            }
+        }
+    </script>
+}

@@ -1,0 +1,258 @@
+@model LCS_HR_MVC.Models.EmployeeMedicalSurveyModel
+@{
+    ViewData["PageTitle"] = "Employee Medical Survey";
+    bool hasEmployee = !string.IsNullOrEmpty(Model.EmpNo);
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp { from { opacity:0; transform:translateY(15px); } to { opacity:1; transform:translateY(0); } }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+        .custom-scrollbar::-webkit-scrollbar { width:8px; height:8px; } .custom-scrollbar::-webkit-scrollbar-track { background:#f1f5f9; border-radius:4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; } .custom-scrollbar::-webkit-scrollbar-thumb:hover { background:#94a3b8; }
+        .field-select { background-image:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat:no-repeat; background-position:right 0.75rem top 50%; background-size:0.65rem auto; }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0"><i class="fas fa-exclamation-triangle tw-text-[10px]"></i></div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0"><i class="fas fa-check tw-text-[10px]"></i></div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-users tw-text-[10px] tw-text-slate-300"></i><span>Employees</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Medical Survey</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Medical Survey</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Capture employee medical insurance policy and family member details.</p>
+        </div>
+    </div>
+
+    <!-- Search Card -->
+    <div class="tw-max-w-3xl tw-mb-6">
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+            <div class="tw-p-6 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-relative tw-z-10">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-search"></i></div>
+                    Employee Lookup
+                </h3>
+            </div>
+            <form asp-controller="Employee" asp-action="MedicalSurvey" method="post" class="tw-p-6 tw-relative tw-z-10">
+                @Html.AntiForgeryToken()
+                <div class="tw-flex tw-flex-wrap tw-items-end tw-gap-4">
+                    <div class="tw-flex-1 tw-min-w-[200px]">
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Employee No</label>
+                        <div class="tw-relative">
+                            <i class="fas fa-id-card tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-sm tw-pointer-events-none" style="z-index:1"></i>
+                            <input type="text" name="EmpNo" value="@Model.EmpNo" placeholder="Enter employee number"
+                                   class="tw-w-full tw-pl-10 tw-pr-3 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm" />
+                        </div>
+                    </div>
+                    <div class="tw-flex tw-gap-3">
+                        <button type="submit" name="action" value="Search"
+                                class="tw-flex tw-items-center tw-gap-2 tw-py-3 tw-px-5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw--translate-y-0.5 tw-transition-all">
+                            <i class="fas fa-search tw-text-sm"></i> Search
+                        </button>
+                        <button type="submit" name="action" value="Reset" formnovalidate
+                                class="tw-flex tw-items-center tw-gap-2 tw-py-3 tw-px-5 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 tw-transition-all">
+                            <i class="fas fa-undo-alt tw-opacity-60"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (hasEmployee)
+    {
+        <form asp-controller="Employee" asp-action="MedicalSurvey" method="post" class="tw-space-y-6">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="EmpNo" value="@Model.EmpNo" />
+
+            <!-- Employee Details Card -->
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+                <div class="tw-px-6 tw-py-4 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-3 tw-bg-slate-50/80">
+                    <div class="tw-w-8 tw-h-8 tw-rounded-lg tw-bg-gradient-to-br tw-from-slate-700 tw-to-slate-900 tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-user tw-text-amber-400 tw-text-sm"></i>
+                    </div>
+                    <h3 class="tw-font-black tw-text-sm tw-text-slate-800">Employee Details</h3>
+                </div>
+                <div class="tw-p-6">
+                    <div class="tw-grid sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4">
+                        @foreach (var info in new[] {
+                            new { Label="Employee No", Value=Model.EmpNo },
+                            new { Label="Name", Value=Model.EmpName },
+                            new { Label="Department", Value=Model.DeptName },
+                            new { Label="CNIC", Value=Model.NicNo },
+                            new { Label="Designation", Value=Model.Designation },
+                            new { Label="City", Value=Model.City },
+                            new { Label="Appointment Date", Value=Model.AppointDate },
+                            new { Label="Cell #", Value=Model.Cell },
+                        })
+                        {
+                            <div class="tw-bg-slate-50 tw-rounded-xl tw-p-3 tw-border tw-border-slate-100">
+                                <p class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mb-1">@info.Label</p>
+                                <p class="tw-text-sm tw-font-bold tw-text-slate-700">@info.Value</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Marital / Policy -->
+                    <div class="tw-grid sm:tw-grid-cols-2 tw-gap-4 tw-mt-4">
+                        <div>
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Marital Status</label>
+                            <div class="tw-relative">
+                                <i class="fas fa-heart tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-sm tw-pointer-events-none" style="z-index:1"></i>
+                                <select asp-for="MaritalStatus" id="ddlMaritalStatus"
+                                        class="field-select tw-w-full tw-pl-10 tw-pr-8 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-appearance-none">
+                                    <option value="S">Single</option>
+                                    <option value="M">Married</option>
+                                    <option value="D">Divorced</option>
+                                    <option value="W">Widow/Widower</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Policy Required For</label>
+                            <div class="tw-relative">
+                                <i class="fas fa-shield-alt tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-sm tw-pointer-events-none" style="z-index:1"></i>
+                                <select asp-for="RequiredPolicyFor" id="ddlPolicy"
+                                        class="field-select tw-w-full tw-pl-10 tw-pr-8 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-appearance-none">
+                                    <option value="S">Self</option>
+                                    <option value="F">Family</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Family Members Card -->
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden" id="divFamilyInfo">
+                <div class="tw-px-6 tw-py-4 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-3 tw-bg-slate-50/80">
+                    <div class="tw-w-8 tw-h-8 tw-rounded-lg tw-bg-gradient-to-br tw-from-slate-700 tw-to-slate-900 tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-users tw-text-amber-400 tw-text-sm"></i>
+                    </div>
+                    <h3 class="tw-font-black tw-text-sm tw-text-slate-800">Family Members</h3>
+                </div>
+                <div class="tw-p-6 tw-overflow-x-auto custom-scrollbar">
+                    <table class="tw-w-full tw-text-xs tw-border-collapse" id="tblFamily">
+                        <thead>
+                            <tr>
+                                <th class="tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-widest tw-py-3 tw-px-4 tw-border-b-2 tw-border-slate-100 tw-text-left tw-w-[28%]"># Name</th>
+                                <th class="tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-widest tw-py-3 tw-px-4 tw-border-b-2 tw-border-slate-100 tw-text-left tw-w-[16%]">Relation</th>
+                                <th class="tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-widest tw-py-3 tw-px-4 tw-border-b-2 tw-border-slate-100 tw-text-left tw-w-[20%]">NIC</th>
+                                <th class="tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-widest tw-py-3 tw-px-4 tw-border-b-2 tw-border-slate-100 tw-text-left tw-w-[14%]">Gender</th>
+                                <th class="tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-widest tw-py-3 tw-px-4 tw-border-b-2 tw-border-slate-100 tw-text-left tw-w-[18%]">Date of Birth</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.FamilyMembers.Count; i++)
+                            {
+                                <tr class="tw-border-b tw-border-slate-50 hover:tw-bg-slate-50/50 tw-transition-colors">
+                                    <td class="tw-py-2 tw-px-4">
+                                        <div class="tw-flex tw-items-center tw-gap-2">
+                                            <span class="tw-w-5 tw-h-5 tw-bg-slate-100 tw-rounded-md tw-flex tw-items-center tw-justify-center tw-text-[10px] tw-font-black tw-text-slate-500 tw-shrink-0">@(i + 1)</span>
+                                            <input type="text" name="FamilyMembers[@i].Name" value="@Model.FamilyMembers[i].Name"
+                                                   class="tw-w-full tw-px-2.5 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" />
+                                        </div>
+                                    </td>
+                                    <td class="tw-py-2 tw-px-4">
+                                        @{ var rel = Model.FamilyMembers[i].Relation; }
+                                        <select name="FamilyMembers[@i].Relation" class="relation field-select tw-w-full tw-px-2.5 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 tw-outline-none tw-appearance-none" onchange="syncGenderFromRelation(this, @i)">
+                                            <option value="">-- Select --</option>
+                                            <option value="Wife" selected="@(rel == "Wife" ? "selected" : null)">Wife</option>
+                                            <option value="Husband" selected="@(rel == "Husband" ? "selected" : null)">Husband</option>
+                                            <option value="Son" selected="@(rel == "Son" ? "selected" : null)">Son</option>
+                                            <option value="Daughter" selected="@(rel == "Daughter" ? "selected" : null)">Daughter</option>
+                                            <option value="Father" selected="@(rel == "Father" ? "selected" : null)">Father</option>
+                                            <option value="Mother" selected="@(rel == "Mother" ? "selected" : null)">Mother</option>
+                                        </select>
+                                    </td>
+                                    <td class="tw-py-2 tw-px-4">
+                                        <input type="text" name="FamilyMembers[@i].Nic" value="@Model.FamilyMembers[i].Nic" maxlength="13"
+                                               class="tw-w-full tw-px-2.5 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-font-mono tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" />
+                                    </td>
+                                    <td class="tw-py-2 tw-px-4">
+                                        <select name="FamilyMembers[@i].Gender" id="ddlGender_@i" class="field-select tw-w-full tw-px-2.5 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 tw-outline-none tw-appearance-none">
+                                            <option value="">--</option>
+                                            <option value="M" selected="@(Model.FamilyMembers[i].Gender == "M" ? "selected" : null)">Male</option>
+                                            <option value="F" selected="@(Model.FamilyMembers[i].Gender == "F" ? "selected" : null)">Female</option>
+                                        </select>
+                                    </td>
+                                    <td class="tw-py-2 tw-px-4">
+                                        <input type="date" name="FamilyMembers[@i].Dob" value="@(Model.FamilyMembers[i].Dob?.ToString("yyyy-MM-dd"))"
+                                               class="tw-w-full tw-px-2.5 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="tw-flex tw-flex-wrap tw-gap-3">
+                <button type="submit" name="action" value="Save"
+                        class="tw-flex tw-items-center tw-gap-2 tw-py-3 tw-px-6 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all">
+                    <i class="fas fa-check-circle tw-text-sm"></i> Save Survey
+                </button>
+                <button type="submit" name="action" value="Reset" formnovalidate
+                        class="tw-flex tw-items-center tw-gap-2 tw-py-3 tw-px-6 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                    <i class="fas fa-undo-alt tw-opacity-60"></i> Reset
+                </button>
+            </div>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function syncGenderFromRelation(selectEl, rowIndex) {
+            var val = selectEl.value;
+            var genderDdl = document.getElementById('ddlGender_' + rowIndex);
+            if (!genderDdl) return;
+            if (val === 'Wife' || val === 'Daughter' || val === 'Mother') { genderDdl.value = 'F'; }
+            else if (val === 'Husband' || val === 'Son' || val === 'Father') { genderDdl.value = 'M'; }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var ddlMarital = document.getElementById('ddlMaritalStatus');
+            var ddlPolicy = document.getElementById('ddlPolicy');
+            var divFamily = document.getElementById('divFamilyInfo');
+
+            function updatePolicyState() {
+                if (!ddlMarital || !ddlPolicy) return;
+                if (ddlMarital.value === 'S') { ddlPolicy.value = 'S'; ddlPolicy.disabled = true; if (divFamily) divFamily.style.display = 'none'; }
+                else { ddlPolicy.disabled = false; updateFamilyVisibility(); }
+            }
+
+            function updateFamilyVisibility() {
+                if (!ddlPolicy || !divFamily) return;
+                divFamily.style.display = ddlPolicy.value === 'F' ? '' : 'none';
+            }
+
+            if (ddlMarital) ddlMarital.addEventListener('change', updatePolicyState);
+            if (ddlPolicy) ddlPolicy.addEventListener('change', updateFamilyVisibility);
+            updatePolicyState();
+        });
+    </script>
+}

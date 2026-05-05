@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .app-shell {
+    @apply tw-min-h-screen tw-bg-slate-100 tw-font-sans tw-text-slate-800;
+  }
+
+  .app-page {
+    @apply tw-mx-auto tw-w-full tw-max-w-7xl tw-px-4 tw-py-6 sm:tw-px-6 lg:tw-px-8;
+  }
+
+  .app-panel {
+    @apply tw-overflow-hidden tw-rounded-3xl tw-border tw-border-slate-200 tw-bg-white tw-shadow-panel;
+  }
+
+  .app-section-card {
+    @apply tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-6 tw-shadow-soft;
+  }
+
+  .app-heading {
+    @apply tw-text-2xl tw-font-semibold tw-tracking-tight tw-text-slate-900 sm:tw-text-3xl;
+  }
+
+  .app-subheading {
+    @apply tw-text-sm tw-text-slate-500;
+  }
+
+  .app-label {
+    @apply tw-mb-2 tw-block tw-text-sm tw-font-semibold tw-text-slate-700;
+  }
+
+  .app-input {
+    @apply tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-4 tw-py-3 tw-text-sm tw-text-slate-900 placeholder:tw-text-slate-400 focus:tw-border-brand-500 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-brand-200;
+  }
+
+  .app-select {
+    @apply tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-4 tw-py-3 tw-text-sm tw-text-slate-900 focus:tw-border-brand-500 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-brand-200;
+  }
+
+  .app-button-primary {
+    @apply tw-inline-flex tw-items-center tw-justify-center tw-rounded-xl tw-bg-brand-600 tw-px-5 tw-py-3 tw-text-sm tw-font-semibold tw-text-white tw-transition hover:tw-bg-brand-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-brand-300;
+  }
+
+  .app-button-secondary {
+    @apply tw-inline-flex tw-items-center tw-justify-center tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-5 tw-py-3 tw-text-sm tw-font-semibold tw-text-slate-700 tw-transition hover:tw-bg-slate-50 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-slate-200;
+  }
+
+  .app-top-link {
+    @apply tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-border tw-border-white/20 tw-bg-white/10 tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-transition hover:tw-bg-white/20;
+  }
+
+  .app-chip {
+    @apply tw-inline-flex tw-items-center tw-rounded-full tw-bg-brand-100 tw-px-3 tw-py-1 tw-text-xs tw-font-semibold tw-uppercase tw-tracking-[0.2em] tw-text-brand-800;
+  }
+
+  .app-error {
+    @apply tw-rounded-2xl tw-border tw-border-red-200 tw-bg-red-50 tw-p-4 tw-text-sm tw-font-medium tw-text-red-700;
+  }
+
+  .app-success {
+    @apply tw-rounded-2xl tw-border tw-border-emerald-200 tw-bg-emerald-50 tw-p-4 tw-text-sm tw-font-medium tw-text-emerald-700;
+  }
+
+  .app-info {
+    @apply tw-rounded-2xl tw-border tw-border-sky-200 tw-bg-sky-50 tw-p-4 tw-text-sm tw-font-medium tw-text-sky-700;
+  }
+
+  .app-kpi-card {
+    @apply tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-5 tw-shadow-soft;
+  }
+
+  .app-textarea {
+    @apply tw-min-h-[160px] tw-w-full tw-rounded-2xl tw-border tw-border-slate-300 tw-bg-white tw-px-4 tw-py-3 tw-text-sm tw-leading-7 tw-text-slate-900 placeholder:tw-text-slate-400 focus:tw-border-brand-500 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-brand-200;
+  }
+
+  .app-table-wrap {
+    @apply tw-overflow-x-auto tw-rounded-2xl tw-border tw-border-slate-200;
+  }
+
+  .app-table {
+    @apply tw-min-w-full tw-border-collapse tw-bg-white tw-text-sm tw-text-slate-700;
+  }
+
+  .app-table thead th {
+    @apply tw-bg-slate-100 tw-px-4 tw-py-3 tw-text-left tw-text-xs tw-font-semibold tw-uppercase tw-tracking-[0.2em] tw-text-slate-600;
+  }
+
+  .app-table tbody td,
+  .app-table tfoot td {
+    @apply tw-border-t tw-border-slate-200 tw-px-4 tw-py-3 tw-align-top;
+  }
+
+  .app-table-compact tbody td,
+  .app-table-compact tfoot td {
+    @apply tw-px-3 tw-py-2.5;
+  }
+
+  .app-table tbody tr:hover {
+    @apply tw-bg-slate-50;
+  }
+
+  .app-link {
+    @apply tw-font-semibold tw-text-brand-700 tw-transition hover:tw-text-brand-900 hover:tw-underline;
+  }
+
+  .app-checkbox-grid {
+    @apply tw-grid tw-gap-3 sm:tw-grid-cols-2 xl:tw-grid-cols-3;
+  }
+
+  .app-checkbox-item {
+    @apply tw-flex tw-items-center tw-gap-3 tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-slate-50 tw-px-4 tw-py-3 tw-text-sm tw-text-slate-700;
+  }
+}
+
+@layer utilities {
+  .ui-autocomplete {
+    @apply tw-max-h-64 tw-overflow-y-auto tw-overflow-x-hidden tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-2 tw-shadow-panel;
+    z-index: 1000 !important;
+  }
+
+  .ui-menu-item-wrapper {
+    @apply tw-block tw-rounded-xl tw-px-3 tw-py-2 tw-text-sm tw-text-slate-700;
+  }
+
+  .ui-state-active,
+  .ui-menu-item-wrapper.ui-state-active {
+    @apply tw-bg-brand-50 tw-text-brand-800;
+    border: none !important;
+    margin: 0 !important;
+  }
+
+  #dynamicmenu {
+    @apply tw-flex tw-flex-col tw-gap-1 lg:tw-flex-row lg:tw-flex-wrap lg:tw-items-center lg:tw-gap-2;
+  }
+
+  #dynamicmenu > li {
+    @apply tw-relative;
+  }
+
+  #dynamicmenu > li > a {
+    @apply tw-flex tw-items-center tw-justify-between tw-gap-2 tw-rounded-xl tw-px-4 tw-py-3 tw-text-sm tw-font-semibold tw-text-slate-700 tw-transition hover:tw-bg-brand-50 hover:tw-text-brand-800;
+  }
+
+  #dynamicmenu li ul {
+    @apply tw-hidden tw-min-w-64 tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-2 tw-shadow-panel lg:tw-absolute lg:tw-left-0 lg:tw-top-full lg:tw-z-20;
+  }
+
+  #dynamicmenu li:hover > ul,
+  #dynamicmenu li:focus-within > ul {
+    @apply tw-block;
+  }
+
+  #dynamicmenu li ul li a {
+    @apply tw-block tw-rounded-xl tw-px-4 tw-py-3 tw-text-sm tw-text-slate-700 tw-transition hover:tw-bg-slate-100 hover:tw-text-slate-900;
+  }
+
+  #dynamicmenu .dropdown-submenu > ul {
+    @apply lg:tw-left-full lg:tw-top-0;
+  }
+}

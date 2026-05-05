@@ -1,0 +1,957 @@
+@model LCS_HR_MVC.Models.MigrationStatusViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    ViewData["PageTitle"] = "Test Data Migration";
+
+    var monthNames = new[]
+    {
+        "January","February","March","April","May","June",
+        "July","August","September","October","November","December"
+    };
+
+    // ── Parse live connection strings → extract server IP, default DB, user ──
+    var connMeta = new Dictionary<string, (string Ip, string Db, string User)>(StringComparer.OrdinalIgnoreCase);
+    {
+        string GetPart(string cs, string key) {
+            foreach (var seg in cs.Split(';')) {
+                var kv = seg.Trim().Split('=', 2);
+                if (kv.Length == 2 && kv[0].Trim().Equals(key, StringComparison.OrdinalIgnoreCase))
+                    return kv[1].Trim();
+            }
+            return "";
+        }
+        var liveSection = Configuration.GetSection("LiveConnections");
+        foreach (var child in liveSection.GetChildren())
+        {
+            var cs = child.Value ?? "";
+            connMeta[child.Key] = (GetPart(cs, "server"), GetPart(cs, "database"), GetPart(cs, "uid"));
+        }
+    }
+
+    // ── Group tables by CommissionGroup ──────────────────────────────────────
+    var cashTables     = Model.TableResults.Where(t => t.CommissionGroup == "Cash").ToList();
+    var codTables      = Model.TableResults.Where(t => t.CommissionGroup == "COD").ToList();
+    var overlandTables = Model.TableResults.Where(t => t.CommissionGroup == "OverLand").ToList();
+    var masterTables   = Model.TableResults.Where(t => t.CommissionGroup == "Master").ToList();
+    var sharedTables   = Model.TableResults.Where(t => t.CommissionGroup == "Shared").ToList();
+
+    string StatusIcon(string s) => s switch
+    {
+        "Done" => "✅", "Failed" => "❌", "Running" => "🔄", "Skipped" => "⏭️", _ => "⏳"
+    };
+    string StatusClass(string s) => s switch
+    {
+        "Done"    => "text-green-700 bg-green-50",
+        "Failed"  => "text-red-700 bg-red-50",
+        "Running" => "text-blue-700 bg-blue-50 animate-pulse",
+        _         => "text-gray-500 bg-gray-50"
+    };
+    string CatBadge(string c) => c switch
+    {
+        "Source"     => "bg-sky-100 text-sky-700 border border-sky-200",
+        "Lookup"     => "bg-violet-100 text-violet-700 border border-violet-200",
+        "CnFiltered" => "bg-amber-100 text-amber-700 border border-amber-200",
+        "YearMonth"  => "bg-teal-100 text-teal-700 border border-teal-200",
+        _            => "bg-gray-100 text-gray-500"
+    };
+    string CatLabel(string c) => c switch
+    {
+        "Source"     => "Date-Filtered",
+        "Lookup"     => "Lookup",
+        "CnFiltered" => "CN-Filtered",
+        "YearMonth"  => "Month-Filtered",
+        _            => c
+    };
+    string ServerFriendly(string conn) => conn switch
+    {
+        "LHR_Billing"       => "LHR Billing Server",
+        "Central_OPS"       => "Central OPS Server",
+        "Central_OPSNew"    => "Central OPS Server (New)",
+        "MIS"               => "MIS Server",
+        "DefaultConnection" => "HR Server",
+        _                   => conn
+    };
+    string ServerDot(string conn) => conn switch
+    {
+        "LHR_Billing"       => "bg-emerald-500",
+        "Central_OPS"       => "bg-blue-500",
+        "Central_OPSNew"    => "bg-cyan-500",
+        "MIS"               => "bg-orange-500",
+        "DefaultConnection" => "bg-purple-500",
+        _                   => "bg-gray-400"
+    };
+    string ExtractSchema(string full) => full.Replace("`","").Split('.').FirstOrDefault() ?? "";
+    string ExtractTable(string full)  => full.Replace("`","").Split('.').LastOrDefault()  ?? "";
+
+    bool isRunning = Model.OverallStatus == "Running";
+}
+
+<div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    @* ── Header card ─────────────────────────────────────────────────────────── *@
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Test Data Migration</h1>
+                <p class="text-sm text-gray-500 mt-0.5">
+                    Copy live server data to localhost for commission testing.
+                    <span class="font-medium text-indigo-600">READ-ONLY on live — no writes to production.</span>
+                </p>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+                <form method="get" action="" class="flex items-center gap-2">
+                    <select name="month" onchange="this.form.submit()"
+                            class="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        @for (int m = 1; m <= 12; m++)
+                        { <option value="@m" selected="@(m == Model.Month)">@monthNames[m-1]</option> }
+                    </select>
+                    <select name="year" onchange="this.form.submit()"
+                            class="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        @for (int y = DateTime.Now.Year - 2; y <= DateTime.Now.Year + 1; y++)
+                        { <option value="@y" selected="@(y == Model.Year)">@y</option> }
+                    </select>
+                </form>
+                <form method="post" action="/TestDataMigration/StartMigration" id="startForm" class="flex flex-wrap items-end gap-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="year"  value="@Model.Year" />
+                    <input type="hidden" name="month" value="@Model.Month" />
+
+                    @* Rows / Table *@
+                    <div class="flex flex-col items-start">
+                        <label class="text-[10px] text-gray-400 mb-0.5 font-medium uppercase tracking-wide">Rows / Table</label>
+                        <select name="rowLimit" @(isRunning ? "disabled" : "")
+                                class="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                            @foreach (var o in new (int V,string L)[] {
+                                (5_000,"5,000"),(10_000,"10,000"),(50_000,"50,000"),
+                                (100_000,"100,000"),(200_000,"200,000"),(300_000,"300,000"),
+                                (500_000,"500,000"),(1_000_000,"1,000,000") })
+                            { <option value="@o.V" selected="@(o.V == Model.RowLimit || (Model.RowLimit==0 && o.V==500_000))">@o.L</option> }
+                        </select>
+                    </div>
+
+                    @* City Filter *@
+                    <div class="flex flex-col items-start" id="cityFilterWrapper">
+                        <label class="text-[10px] text-gray-400 mb-0.5 font-medium uppercase tracking-wide">City Filter</label>
+                        <div class="flex items-center gap-1.5">
+                            @* All Cities toggle *@
+                            <label class="flex items-center gap-1 cursor-pointer text-xs text-gray-600 bg-gray-100 border border-gray-300 rounded-lg px-2 py-1.5 hover:bg-gray-200 select-none">
+                                <input type="checkbox" id="allCitiesChk" checked class="accent-indigo-600" @(isRunning ? "disabled" : "") />
+                                All Cities
+                            </label>
+                            @* Multi-select trigger *@
+                            <div class="relative" id="cityDropdownWrapper">
+                                <button type="button" id="cityDropdownBtn" disabled
+                                        class="flex items-center gap-1.5 text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed min-w-[130px] justify-between">
+                                    <span id="cityBtnLabel" class="text-gray-500 text-xs">Select cities…</span>
+                                    <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                </button>
+
+                                @* Dropdown panel *@
+                                <div id="cityDropdownPanel"
+                                     class="hidden absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-xl w-72 overflow-hidden">
+                                    @* Search *@
+                                    <div class="p-2 border-b border-gray-100">
+                                        <input type="text" id="citySearch" placeholder="Search city…"
+                                               class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                                    </div>
+                                    @* Select All / Clear row *@
+                                    <div class="px-3 py-1.5 border-b border-gray-100 flex gap-3 text-xs">
+                                        <button type="button" onclick="selectAllCities()" class="text-indigo-600 hover:underline font-medium">Select All</button>
+                                        <button type="button" onclick="clearAllCities()" class="text-red-500 hover:underline font-medium">Clear</button>
+                                        <span class="ml-auto text-gray-400" id="citySelectedCount">0 selected</span>
+                                    </div>
+                                    @* City list *@
+                                    <div id="cityList" class="max-h-52 overflow-y-auto py-1">
+                                        @if (!Model.AvailableCities.Any())
+                                        {
+                                            <div class="px-3 py-2 text-xs text-gray-400 italic">
+                                                No cities available — run migration first to populate lcs_db.city
+                                            </div>
+                                        }
+                                        @foreach (var city in Model.AvailableCities)
+                                        {
+                                            <label class="city-item flex items-center gap-2.5 px-3 py-1.5 hover:bg-indigo-50 cursor-pointer text-xs text-gray-700"
+                                                   data-name="@city.Name.ToLower()">
+                                                <input type="checkbox" name="cities" value="@city.Id"
+                                                       class="city-chk accent-indigo-600"
+                                                       @(Model.SelectedCities.Contains(city.Id) ? "checked" : "") />
+                                                <span class="font-mono text-[10px] text-gray-400 w-12 flex-shrink-0">@city.Id</span>
+                                                <span>@city.Name</span>
+                                            </label>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="startBtn" @(isRunning ? "disabled" : "")
+                            class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        @if (isRunning) { <span class="animate-spin text-xs">🔄</span><span>Running…</span> }
+                        else            { <span>▶ Start Migration</span> }
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        @* Progress bar *@
+        <div class="mt-4" id="progressSection" @(Model.OverallStatus == "Idle" ? "style=display:none" : "")>
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span>Overall —
+                    <span class="font-semibold text-gray-700" id="progressLocalRows">@Model.TotalLocalRows.ToString("N0")</span> of
+                    <span class="font-semibold text-gray-700" id="progressLiveRows">@Model.TotalLiveRows.ToString("N0")</span> rows copied
+                </span>
+                <span class="font-bold text-indigo-600 text-sm" id="progressPct">@Model.ProgressPercent%</span>
+            </div>
+            <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div id="progressBar" class="h-3 rounded-full transition-all duration-300 bg-gradient-to-r from-indigo-500 to-cyan-400"
+                     style="width:@Model.ProgressPercent%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                <span id="progressDone">@Model.DoneTables done</span>
+                <span id="progressFailed" class="text-red-400">@(Model.FailedTables > 0 ? $"{Model.FailedTables} failed" : "")</span>
+                <span>@Model.TotalTables total tables</span>
+            </div>
+        </div>
+
+        <div class="mt-3 flex flex-wrap items-center gap-4 text-sm">
+            <div class="text-gray-600">Period:
+                <span class="font-medium text-gray-800">@Model.RequiredFrom.ToString("MMM dd, yyyy")</span> →
+                <span class="font-medium text-gray-800">@Model.RequiredTo.ToString("MMM dd, yyyy")</span>
+            </div>
+            @if (Model.RowLimit > 0)
+            { <div class="text-gray-500">Limit: <span class="font-medium text-amber-700">@Model.RowLimit.ToString("N0") rows/table</span></div> }
+            @{
+                var obg = Model.OverallStatus switch {
+                    "Running" => "bg-blue-100 text-blue-800 border border-blue-300",
+                    "Done"    => "bg-green-100 text-green-800 border border-green-300",
+                    "Failed"  => "bg-red-100 text-red-800 border border-red-300",
+                    _         => "bg-gray-100 text-gray-600 border border-gray-200"
+                };
+            }
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold @obg" id="overallStatus">@Model.OverallStatus</span>
+            @if (Model.TotalTables > 0)
+            {
+                <div class="text-gray-500">Tables:
+                    <span id="doneCount" class="font-medium text-green-700">@Model.DoneTables</span> done /
+                    <span id="failCount" class="font-medium text-red-600">@Model.FailedTables</span> failed /
+                    @Model.TotalTables total
+                </div>
+            }
+        </div>
+        @if (TempData["SuccessMessage"] is string sm) { <div class="mt-3 p-3 bg-green-50 border border-green-300 rounded-lg text-sm text-green-800">@sm</div> }
+        @if (TempData["ErrorMessage"]   is string em) { <div class="mt-3 p-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800">@em</div> }
+    </div>
+
+    @* ══════════════════════════════════════════════════════════════════════════
+       LIVE SERVER CONNECTIONS CARD
+       ══════════════════════════════════════════════════════════════════════ *@
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-5 py-3 bg-gray-800 flex items-center justify-between">
+            <div>
+                <h2 class="text-white font-bold text-sm">Live Server Connections</h2>
+                <p class="text-gray-400 text-xs mt-0.5">Read-only connections used during migration — production servers</p>
+            </div>
+            <span class="text-xs text-gray-400 bg-gray-700 px-2.5 py-1 rounded-full">@connMeta.Count connections</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                    <tr>
+                        <th class="px-5 py-2.5 text-left">Connection Key</th>
+                        <th class="px-4 py-2.5 text-left">Friendly Name</th>
+                        <th class="px-4 py-2.5 text-left">Server IP</th>
+                        <th class="px-4 py-2.5 text-left">Default Database</th>
+                        <th class="px-4 py-2.5 text-left">DB User</th>
+                        <th class="px-4 py-2.5 text-left">Used By Commission</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @{
+                        var connUsage = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["LHR_Billing"]       = "Cash Commission",
+                            ["Central_OPS"]       = "COD · OverLand · Shared",
+                            ["Central_OPSNew"]    = "(reserved)",
+                            ["MIS"]               = "OverLand Commission",
+                            ["DefaultConnection"] = "OverLand · Master · Shared",
+                        };
+                    }
+                    @foreach (var conn in connMeta)
+                    {
+                        var (ip, db, user) = conn.Value;
+                        var usage = connUsage.TryGetValue(conn.Key, out var u) ? u : "—";
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-5 py-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full @ServerDot(conn.Key) inline-block flex-shrink-0"></span>
+                                    <span class="font-mono text-xs font-bold text-gray-800">@conn.Key</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-2.5 text-sm text-gray-700">@ServerFriendly(conn.Key)</td>
+                            <td class="px-4 py-2.5">
+                                <span class="font-mono text-sm font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">@ip</span>
+                            </td>
+                            <td class="px-4 py-2.5 font-mono text-xs text-gray-700">@db</td>
+                            <td class="px-4 py-2.5 font-mono text-xs text-gray-500">@user</td>
+                            <td class="px-4 py-2.5 text-xs text-gray-600">@usage</td>
+                        </tr>
+                    }
+                    @* Local destination *@
+                    <tr class="bg-slate-50 hover:bg-slate-100">
+                        <td class="px-5 py-2.5">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-slate-500 inline-block flex-shrink-0"></span>
+                                <span class="font-mono text-xs font-bold text-slate-700">localhost (destination)</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-2.5 text-sm text-slate-600">Local MySQL Server</td>
+                        <td class="px-4 py-2.5">
+                            <span class="font-mono text-sm font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">127.0.0.1:3309</span>
+                        </td>
+                        <td class="px-4 py-2.5 font-mono text-xs text-slate-600">lcs_hr (local)</td>
+                        <td class="px-4 py-2.5 font-mono text-xs text-slate-500">root</td>
+                        <td class="px-4 py-2.5 text-xs text-slate-600">Migration destination</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ── Quick-nav legend ─────────────────────────────────────────────────────── *@
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Jump to Commission Section</p>
+        <div class="flex flex-wrap gap-2">
+            <a href="#sec-cash"     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium hover:bg-emerald-100">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> 1 · Cash Commission
+                <span class="text-xs bg-emerald-200 text-emerald-800 px-1.5 rounded-full">@cashTables.Count</span>
+            </a>
+            <a href="#sec-cod"      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-800 text-sm font-medium hover:bg-orange-100">
+                <span class="w-2 h-2 rounded-full bg-orange-500 inline-block"></span> 2 · COD Commission
+                <span class="text-xs bg-orange-200 text-orange-800 px-1.5 rounded-full">@codTables.Count</span>
+            </a>
+            <a href="#sec-overland" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-sm font-medium hover:bg-blue-100">
+                <span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> 3 · OverLand Commission
+                <span class="text-xs bg-blue-200 text-blue-800 px-1.5 rounded-full">@overlandTables.Count</span>
+            </a>
+            <a href="#sec-cod"      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-800 text-sm font-medium hover:bg-purple-100">
+                <span class="w-2 h-2 rounded-full bg-purple-500 inline-block"></span> 4 · Return COD <span class="text-[10px] text-purple-500">(= COD tables)</span>
+            </a>
+            <a href="#sec-master"   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-sm font-medium hover:bg-indigo-100">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 inline-block"></span> 5 · Commission Process
+                <span class="text-xs bg-indigo-200 text-indigo-800 px-1.5 rounded-full">@masterTables.Count</span>
+            </a>
+            <a href="#sec-shared"   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-100">
+                <span class="w-2 h-2 rounded-full bg-gray-400 inline-block"></span> Shared Infrastructure
+                <span class="text-xs bg-gray-200 text-gray-600 px-1.5 rounded-full">@sharedTables.Count</span>
+            </a>
+            <a href="#sec-dest"     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-100">
+                <span class="w-2 h-2 rounded-full bg-slate-500 inline-block"></span> Destination Tables
+                <span class="text-xs bg-slate-200 text-slate-600 px-1.5 rounded-full">@Model.DestinationChecks.Count</span>
+            </a>
+        </div>
+        <div class="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">
+            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wide self-center">Filter Type:</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-100 text-sky-700 border border-sky-200">Date-Filtered — by commission period</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-violet-100 text-violet-700 border border-violet-200">Lookup — full copy</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">CN-Filtered — by CN list</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-teal-100 text-teal-700 border border-teal-200">Month-Filtered — by Year/Month</span>
+        </div>
+    </div>
+
+    @* ══════════════════════════════════════════════════════════════════════════
+       COMMISSION SECTIONS — Server → Database → Tables tree
+       ══════════════════════════════════════════════════════════════════════ *@
+
+    @* ── Reusable server-header partial (inline, avoids local-func Razor issues) *@
+
+    @* ── 1. CASH COMMISSION ──────────────────────────────────────────────────── *@
+    <div id="sec-cash" class="rounded-xl shadow-sm border border-emerald-300 overflow-hidden scroll-mt-4">
+        <div class="bg-emerald-600 px-5 py-3 flex items-center justify-between">
+            <div>
+                <h2 class="text-white font-bold text-base">1. Cash Commission</h2>
+                <p class="text-emerald-100 text-xs mt-0.5">Billing details, bookings, VAS data — Cash courier commission</p>
+            </div>
+            <span class="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">@cashTables.Count tables</span>
+        </div>
+        @foreach (var cg in cashTables.GroupBy(t => t.LiveConnection).OrderBy(g => g.Key))
+        {
+            var meta = connMeta.TryGetValue(cg.Key, out var m) ? m : (Ip:"?", Db:"?", User:"?");
+            <div class="border-b border-emerald-100 last:border-0">
+                <div class="px-5 py-2 bg-emerald-50 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span class="w-3 h-3 rounded-full @ServerDot(cg.Key) inline-block flex-shrink-0"></span>
+                    <span class="text-xs font-bold text-emerald-800 uppercase tracking-wide">Server:</span>
+                    <span class="text-sm font-semibold text-emerald-900">@ServerFriendly(cg.Key)</span>
+                    <span class="font-mono text-xs text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">@cg.Key</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-500">IP:</span>
+                    <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">@meta.Ip</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-400">user: <span class="font-mono text-gray-600">@meta.User</span></span>
+                </div>
+                @foreach (var dg in cg.GroupBy(t => ExtractSchema(t.FullTableName)).OrderBy(g => g.Key))
+                {
+                    <div class="ml-6 border-l-2 border-emerald-200 mb-1">
+                        <div class="px-4 py-1.5 bg-white flex items-center gap-2">
+                            <span class="text-sm">🗄️</span>
+                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Database:</span>
+                            <span class="font-mono text-sm font-bold text-gray-800">@dg.Key</span>
+                            <span class="text-xs text-gray-400">(@dg.Count() table@(dg.Count()==1?"":"s"))</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
+                                    <tr>
+                                        <th class="pl-8 pr-3 py-1.5 text-left">Table</th>
+                                        <th class="px-3 py-1.5 text-left">Filter Type</th>
+                                        <th class="px-3 py-1.5 text-right">Live Rows</th>
+                                        <th class="px-3 py-1.5 text-right">Local Rows</th>
+                                        <th class="px-3 py-1.5 text-center">Status</th>
+                                        <th class="px-3 py-1.5 text-left">Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach (var t in dg)
+                                    {
+                                        <tr data-table="@t.FullTableName" data-label="@t.Label" class="hover:bg-emerald-50/40">
+                                            <td class="pl-8 pr-3 py-2 font-mono text-xs text-gray-800 font-semibold">@ExtractTable(t.FullTableName)</td>
+                                            <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold @CatBadge(t.Category)">@CatLabel(t.Category)</span></td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 liveCount">@(t.LiveRowCount>0?t.LiveRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 localCount">@(t.LocalRowCount>0?t.LocalRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-medium @StatusClass(t.Status) rowStatus">@StatusIcon(t.Status) @t.Status</span></td>
+                                            <td class="px-3 py-2 text-xs text-red-600 rowError">@t.Error</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── 2+4. COD + RETURN COD ────────────────────────────────────────────────── *@
+    <div id="sec-cod" class="rounded-xl shadow-sm border border-orange-300 overflow-hidden scroll-mt-4">
+        <div class="bg-orange-500 px-5 py-3 flex items-center justify-between">
+            <div>
+                <h2 class="text-white font-bold text-base">2. COD Commission &nbsp;<span class="text-orange-100 font-normal text-sm">+</span>&nbsp; 4. Return COD Commission</h2>
+                <p class="text-orange-100 text-xs mt-0.5">Arrival records, COD ranges &amp; downloads — shared by both COD and Return COD types</p>
+            </div>
+            <span class="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">@codTables.Count tables</span>
+        </div>
+        <div class="px-5 py-2 bg-amber-50 border-b border-amber-200 flex items-start gap-2 text-xs text-amber-800">
+            <span class="mt-0.5">ℹ️</span>
+            <span><strong>Return COD Commission</strong> uses exactly the same source tables as COD Commission — no separate tables needed.</span>
+        </div>
+        @foreach (var cg in codTables.GroupBy(t => t.LiveConnection).OrderBy(g => g.Key))
+        {
+            var meta = connMeta.TryGetValue(cg.Key, out var m) ? m : (Ip:"?", Db:"?", User:"?");
+            <div class="border-b border-orange-100 last:border-0">
+                <div class="px-5 py-2 bg-orange-50 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span class="w-3 h-3 rounded-full @ServerDot(cg.Key) inline-block flex-shrink-0"></span>
+                    <span class="text-xs font-bold text-orange-800 uppercase tracking-wide">Server:</span>
+                    <span class="text-sm font-semibold text-orange-900">@ServerFriendly(cg.Key)</span>
+                    <span class="font-mono text-xs text-orange-700 bg-orange-100 px-2 py-0.5 rounded border border-orange-200">@cg.Key</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-500">IP:</span>
+                    <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">@meta.Ip</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-400">user: <span class="font-mono text-gray-600">@meta.User</span></span>
+                </div>
+                @foreach (var dg in cg.GroupBy(t => ExtractSchema(t.FullTableName)).OrderBy(g => g.Key))
+                {
+                    <div class="ml-6 border-l-2 border-orange-200 mb-1">
+                        <div class="px-4 py-1.5 bg-white flex items-center gap-2">
+                            <span class="text-sm">🗄️</span>
+                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Database:</span>
+                            <span class="font-mono text-sm font-bold text-gray-800">@dg.Key</span>
+                            <span class="text-xs text-gray-400">(@dg.Count() table@(dg.Count()==1?"":"s"))</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
+                                    <tr>
+                                        <th class="pl-8 pr-3 py-1.5 text-left">Table</th>
+                                        <th class="px-3 py-1.5 text-left">Filter Type</th>
+                                        <th class="px-3 py-1.5 text-right">Live Rows</th>
+                                        <th class="px-3 py-1.5 text-right">Local Rows</th>
+                                        <th class="px-3 py-1.5 text-center">Status</th>
+                                        <th class="px-3 py-1.5 text-left">Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach (var t in dg)
+                                    {
+                                        <tr data-table="@t.FullTableName" data-label="@t.Label" class="hover:bg-orange-50/40">
+                                            <td class="pl-8 pr-3 py-2 font-mono text-xs text-gray-800 font-semibold">@ExtractTable(t.FullTableName)</td>
+                                            <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold @CatBadge(t.Category)">@CatLabel(t.Category)</span></td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 liveCount">@(t.LiveRowCount>0?t.LiveRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 localCount">@(t.LocalRowCount>0?t.LocalRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-medium @StatusClass(t.Status) rowStatus">@StatusIcon(t.Status) @t.Status</span></td>
+                                            <td class="px-3 py-2 text-xs text-red-600 rowError">@t.Error</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── 3. OVERLAND COMMISSION ───────────────────────────────────────────────── *@
+    <div id="sec-overland" class="rounded-xl shadow-sm border border-blue-300 overflow-hidden scroll-mt-4">
+        <div class="bg-blue-600 px-5 py-3 flex items-center justify-between">
+            <div>
+                <h2 class="text-white font-bold text-base">3. OverLand Commission</h2>
+                <p class="text-blue-100 text-xs mt-0.5">MIS billing download, book dispatch, RBI client data</p>
+            </div>
+            <span class="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">@overlandTables.Count tables</span>
+        </div>
+        @foreach (var cg in overlandTables.GroupBy(t => t.LiveConnection).OrderBy(g => g.Key))
+        {
+            var meta = connMeta.TryGetValue(cg.Key, out var m) ? m : (Ip:"?", Db:"?", User:"?");
+            <div class="border-b border-blue-100 last:border-0">
+                <div class="px-5 py-2 bg-blue-50 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span class="w-3 h-3 rounded-full @ServerDot(cg.Key) inline-block flex-shrink-0"></span>
+                    <span class="text-xs font-bold text-blue-800 uppercase tracking-wide">Server:</span>
+                    <span class="text-sm font-semibold text-blue-900">@ServerFriendly(cg.Key)</span>
+                    <span class="font-mono text-xs text-blue-700 bg-blue-100 px-2 py-0.5 rounded border border-blue-200">@cg.Key</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-500">IP:</span>
+                    <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">@meta.Ip</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-400">user: <span class="font-mono text-gray-600">@meta.User</span></span>
+                </div>
+                @foreach (var dg in cg.GroupBy(t => ExtractSchema(t.FullTableName)).OrderBy(g => g.Key))
+                {
+                    <div class="ml-6 border-l-2 border-blue-200 mb-1">
+                        <div class="px-4 py-1.5 bg-white flex items-center gap-2">
+                            <span class="text-sm">🗄️</span>
+                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Database:</span>
+                            <span class="font-mono text-sm font-bold text-gray-800">@dg.Key</span>
+                            <span class="text-xs text-gray-400">(@dg.Count() table@(dg.Count()==1?"":"s"))</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
+                                    <tr>
+                                        <th class="pl-8 pr-3 py-1.5 text-left">Table</th>
+                                        <th class="px-3 py-1.5 text-left">Filter Type</th>
+                                        <th class="px-3 py-1.5 text-right">Live Rows</th>
+                                        <th class="px-3 py-1.5 text-right">Local Rows</th>
+                                        <th class="px-3 py-1.5 text-center">Status</th>
+                                        <th class="px-3 py-1.5 text-left">Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach (var t in dg)
+                                    {
+                                        <tr data-table="@t.FullTableName" data-label="@t.Label" class="hover:bg-blue-50/40">
+                                            <td class="pl-8 pr-3 py-2 font-mono text-xs text-gray-800 font-semibold">@ExtractTable(t.FullTableName)</td>
+                                            <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold @CatBadge(t.Category)">@CatLabel(t.Category)</span></td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 liveCount">@(t.LiveRowCount>0?t.LiveRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 localCount">@(t.LocalRowCount>0?t.LocalRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-medium @StatusClass(t.Status) rowStatus">@StatusIcon(t.Status) @t.Status</span></td>
+                                            <td class="px-3 py-2 text-xs text-red-600 rowError">@t.Error</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── 5. COMMISSION PROCESS / MASTER ──────────────────────────────────────── *@
+    <div id="sec-master" class="rounded-xl shadow-sm border border-indigo-300 overflow-hidden scroll-mt-4">
+        <div class="bg-indigo-600 px-5 py-3 flex items-center justify-between">
+            <div>
+                <h2 class="text-white font-bold text-base">5. Commission Process <span class="text-indigo-200 font-normal text-sm">(Master)</span></h2>
+                <p class="text-indigo-100 text-xs mt-0.5">Employee eligibility, department, attendance, salary — final commission processing step</p>
+            </div>
+            <span class="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">@masterTables.Count tables</span>
+        </div>
+        @foreach (var cg in masterTables.GroupBy(t => t.LiveConnection).OrderBy(g => g.Key))
+        {
+            var meta = connMeta.TryGetValue(cg.Key, out var m) ? m : (Ip:"?", Db:"?", User:"?");
+            <div class="border-b border-indigo-100 last:border-0">
+                <div class="px-5 py-2 bg-indigo-50 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span class="w-3 h-3 rounded-full @ServerDot(cg.Key) inline-block flex-shrink-0"></span>
+                    <span class="text-xs font-bold text-indigo-800 uppercase tracking-wide">Server:</span>
+                    <span class="text-sm font-semibold text-indigo-900">@ServerFriendly(cg.Key)</span>
+                    <span class="font-mono text-xs text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200">@cg.Key</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-500">IP:</span>
+                    <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">@meta.Ip</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-400">user: <span class="font-mono text-gray-600">@meta.User</span></span>
+                </div>
+                @foreach (var dg in cg.GroupBy(t => ExtractSchema(t.FullTableName)).OrderBy(g => g.Key))
+                {
+                    <div class="ml-6 border-l-2 border-indigo-200 mb-1">
+                        <div class="px-4 py-1.5 bg-white flex items-center gap-2">
+                            <span class="text-sm">🗄️</span>
+                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Database:</span>
+                            <span class="font-mono text-sm font-bold text-gray-800">@dg.Key</span>
+                            <span class="text-xs text-gray-400">(@dg.Count() table@(dg.Count()==1?"":"s"))</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
+                                    <tr>
+                                        <th class="pl-8 pr-3 py-1.5 text-left">Table</th>
+                                        <th class="px-3 py-1.5 text-left">Filter Type</th>
+                                        <th class="px-3 py-1.5 text-right">Live Rows</th>
+                                        <th class="px-3 py-1.5 text-right">Local Rows</th>
+                                        <th class="px-3 py-1.5 text-center">Status</th>
+                                        <th class="px-3 py-1.5 text-left">Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach (var t in dg)
+                                    {
+                                        <tr data-table="@t.FullTableName" data-label="@t.Label" class="hover:bg-indigo-50/40">
+                                            <td class="pl-8 pr-3 py-2 font-mono text-xs text-gray-800 font-semibold">@ExtractTable(t.FullTableName)</td>
+                                            <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold @CatBadge(t.Category)">@CatLabel(t.Category)</span></td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 liveCount">@(t.LiveRowCount>0?t.LiveRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 localCount">@(t.LocalRowCount>0?t.LocalRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-medium @StatusClass(t.Status) rowStatus">@StatusIcon(t.Status) @t.Status</span></td>
+                                            <td class="px-3 py-2 text-xs text-red-600 rowError">@t.Error</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── SHARED INFRASTRUCTURE ────────────────────────────────────────────────── *@
+    <div id="sec-shared" class="rounded-xl shadow-sm border border-gray-300 overflow-hidden scroll-mt-4">
+        <div class="bg-gray-600 px-5 py-3 flex items-center justify-between">
+            <div>
+                <h2 class="text-white font-bold text-base">Shared Infrastructure</h2>
+                <p class="text-gray-300 text-xs mt-0.5">City mapping, locations, employee details, policies — required by ALL commission types</p>
+            </div>
+            <span class="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">@sharedTables.Count tables</span>
+        </div>
+        @foreach (var cg in sharedTables.GroupBy(t => t.LiveConnection).OrderBy(g => g.Key))
+        {
+            var meta = connMeta.TryGetValue(cg.Key, out var m) ? m : (Ip:"?", Db:"?", User:"?");
+            <div class="border-b border-gray-100 last:border-0">
+                <div class="px-5 py-2 bg-gray-50 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span class="w-3 h-3 rounded-full @ServerDot(cg.Key) inline-block flex-shrink-0"></span>
+                    <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">Server:</span>
+                    <span class="text-sm font-semibold text-gray-800">@ServerFriendly(cg.Key)</span>
+                    <span class="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">@cg.Key</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-500">IP:</span>
+                    <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">@meta.Ip</span>
+                    <span class="text-gray-300">·</span>
+                    <span class="text-xs text-gray-400">user: <span class="font-mono text-gray-600">@meta.User</span></span>
+                </div>
+                @foreach (var dg in cg.GroupBy(t => ExtractSchema(t.FullTableName)).OrderBy(g => g.Key))
+                {
+                    <div class="ml-6 border-l-2 border-gray-200 mb-1">
+                        <div class="px-4 py-1.5 bg-white flex items-center gap-2">
+                            <span class="text-sm">🗄️</span>
+                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Database:</span>
+                            <span class="font-mono text-sm font-bold text-gray-800">@dg.Key</span>
+                            <span class="text-xs text-gray-400">(@dg.Count() table@(dg.Count()==1?"":"s"))</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
+                                    <tr>
+                                        <th class="pl-8 pr-3 py-1.5 text-left">Table</th>
+                                        <th class="px-3 py-1.5 text-left">Filter Type</th>
+                                        <th class="px-3 py-1.5 text-right">Live Rows</th>
+                                        <th class="px-3 py-1.5 text-right">Local Rows</th>
+                                        <th class="px-3 py-1.5 text-center">Status</th>
+                                        <th class="px-3 py-1.5 text-left">Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach (var t in dg)
+                                    {
+                                        <tr data-table="@t.FullTableName" data-label="@t.Label" class="hover:bg-gray-50">
+                                            <td class="pl-8 pr-3 py-2 font-mono text-xs text-gray-800 font-semibold">@ExtractTable(t.FullTableName)</td>
+                                            <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-semibold @CatBadge(t.Category)">@CatLabel(t.Category)</span></td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 liveCount">@(t.LiveRowCount>0?t.LiveRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-right font-mono text-xs text-gray-600 localCount">@(t.LocalRowCount>0?t.LocalRowCount.ToString("N0"):"—")</td>
+                                            <td class="px-3 py-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-medium @StatusClass(t.Status) rowStatus">@StatusIcon(t.Status) @t.Status</span></td>
+                                            <td class="px-3 py-2 text-xs text-red-600 rowError">@t.Error</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── DESTINATION TABLES ───────────────────────────────────────────────────── *@
+    <div id="sec-dest" class="rounded-xl shadow-sm border border-slate-300 overflow-hidden scroll-mt-4">
+        <div class="bg-slate-700 px-5 py-3 flex items-center justify-between">
+            <div>
+                <h2 class="text-white font-bold text-base">Destination Tables — Must Be Empty</h2>
+                <p class="text-slate-300 text-xs mt-0.5">
+                    Server: <span class="font-mono text-white">127.0.0.1:3309</span> &nbsp;·&nbsp;
+                    Database: <span class="font-mono text-white">lcs_hr</span> &nbsp;·&nbsp;
+                    Automation Commission writes results here — must be empty before each run
+                </p>
+            </div>
+            <span class="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">@Model.DestinationChecks.Count tables</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm" id="destTable">
+                <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                    <tr>
+                        <th class="px-5 py-2.5 text-left">Table Name</th>
+                        <th class="px-4 py-2.5 text-center">Exists?</th>
+                        <th class="px-4 py-2.5 text-right">Row Count</th>
+                        <th class="px-4 py-2.5 text-center">Ready?</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100" id="destBody">
+                    @foreach (var d in Model.DestinationChecks)
+                    {
+                        <tr data-dest="@d.FullTableName">
+                            <td class="px-5 py-2 font-mono text-xs text-gray-800 font-semibold">@d.FullTableName.Split('.').Last()</td>
+                            <td class="px-4 py-2 text-center destExists text-sm">@(d.Exists ? "✅ Yes" : "❌ No")</td>
+                            <td class="px-4 py-2 text-right font-mono text-xs text-gray-600 destCount">@(d.Exists ? d.RowCount.ToString("N0") : "—")</td>
+                            <td class="px-4 py-2 text-center destReady">
+                                @if (!d.Exists)        { <span class="text-red-600 text-xs font-semibold">❌ Missing</span> }
+                                else if (d.RowCount==0){ <span class="text-green-600 text-xs font-semibold">✅ Ready</span> }
+                                else                   { <span class="text-amber-600 text-xs font-semibold">⚠️ @d.RowCount.ToString("N0") rows</span> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ── Migration Log ────────────────────────────────────────────────────────── *@
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="font-semibold text-gray-700">Migration Log</h2>
+            <button onclick="document.getElementById('logBox').scrollTop=document.getElementById('logBox').scrollHeight"
+                    class="text-xs text-indigo-500 hover:underline">↓ Scroll to bottom</button>
+        </div>
+        <div id="logBox" class="font-mono text-xs bg-gray-900 text-green-400 p-4 h-56 overflow-y-auto rounded-b-xl">
+            @if (Model.Logs.Count == 0) { <div class="text-gray-500 italic">No log entries yet. Start migration to begin.</div> }
+            @foreach (var line in Model.Logs) { <div>@line</div> }
+        </div>
+    </div>
+
+</div>
+
+@* ── SignalR ───────────────────────────────────────────────────────────────────── *@
+<script src="~/lib/signalr/dist/browser/signalr.min.js"></script>
+<script>
+(function () {
+    const YEAR  = @Model.Year;
+    const MONTH = @Model.Month;
+    const GROUP = `migration-${YEAR}-${String(MONTH).padStart(2,'0')}`;
+
+    function statusClass(s) {
+        if (s==='Done')    return 'text-green-700 bg-green-50';
+        if (s==='Failed')  return 'text-red-700 bg-red-50';
+        if (s==='Running') return 'text-blue-700 bg-blue-50 animate-pulse';
+        return 'text-gray-500 bg-gray-50';
+    }
+    function statusIcon(s) {
+        if (s==='Done')    return '✅';
+        if (s==='Failed')  return '❌';
+        if (s==='Running') return '🔄';
+        if (s==='Skipped') return '⏭️';
+        return '⏳';
+    }
+    function fmt(n)     { return (n!=null && n>0) ? Number(n).toLocaleString() : '—'; }
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function applyProgress(d) {
+        if (d.label) {
+            document.querySelectorAll(`tr[data-label="${CSS.escape(d.label)}"]`).forEach(row => {
+                const liveEl   = row.querySelector('.liveCount');
+                const localEl  = row.querySelector('.localCount');
+                const statusEl = row.querySelector('.rowStatus');
+                const errorEl  = row.querySelector('.rowError');
+                if (liveEl)  liveEl.textContent = fmt(d.liveRowCount);
+                if (localEl) {
+                    localEl.textContent = fmt(d.localRowCount);
+                    localEl.classList.add('text-indigo-600','font-bold');
+                    setTimeout(() => localEl.classList.remove('text-indigo-600','font-bold'), 400);
+                }
+                if (statusEl) {
+                    statusEl.className   = `px-2 py-0.5 rounded text-xs font-medium ${statusClass(d.status)} rowStatus`;
+                    statusEl.textContent = `${statusIcon(d.status)} ${d.status}`;
+                }
+                if (errorEl) errorEl.textContent = d.error || '';
+            });
+        }
+        const osel = document.getElementById('overallStatus');
+        if (osel) osel.textContent = d.overallStatus;
+        const dc = document.getElementById('doneCount'); if (dc) dc.textContent = d.doneTables;
+        const fc = document.getElementById('failCount'); if (fc) fc.textContent = d.failedTables;
+
+        const pct = d.progressPercent ?? 0;
+        const sec = document.getElementById('progressSection');
+        if (sec && pct > 0) sec.style.display = '';
+        const bar = document.getElementById('progressBar');
+        if (bar) bar.style.width = pct + '%';
+        const pctEl = document.getElementById('progressPct');
+        if (pctEl) pctEl.textContent = pct + '%';
+        const lrEl = document.getElementById('progressLocalRows');
+        if (lrEl) lrEl.textContent = Number(d.totalLocalRows).toLocaleString();
+        const lvEl = document.getElementById('progressLiveRows');
+        if (lvEl) lvEl.textContent = Number(d.totalLiveRows).toLocaleString();
+        const doneEl = document.getElementById('progressDone');
+        if (doneEl) doneEl.textContent = `${d.doneTables} done`;
+        const failEl = document.getElementById('progressFailed');
+        if (failEl) failEl.textContent = d.failedTables > 0 ? `${d.failedTables} failed` : '';
+
+        if (d.overallStatus === 'Done' || d.overallStatus === 'Failed') {
+            const btn = document.getElementById('startBtn');
+            if (btn) { btn.disabled = false; btn.innerHTML = '▶ Start Migration'; }
+            if (d.overallStatus === 'Done' && bar) bar.style.width = '100%';
+        }
+    }
+
+    function appendLog(entry) {
+        const logBox = document.getElementById('logBox');
+        if (!logBox) return;
+        const atBottom = logBox.scrollHeight - logBox.scrollTop <= logBox.clientHeight + 30;
+        const ph = logBox.querySelector('.italic');
+        if (ph) ph.remove();
+        const div = document.createElement('div');
+        div.innerHTML = escHtml(entry);
+        logBox.appendChild(div);
+        if (atBottom) logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/data-migration')
+        .withAutomaticReconnect()
+        .build();
+    connection.on('progress', applyProgress);
+    connection.on('logEntry', appendLog);
+
+    async function startConnection() {
+        try {
+            await connection.start();
+            await connection.invoke('JoinMigration', GROUP);
+        } catch(e) {
+            console.warn('[DataMigration] SignalR connect failed:', e);
+            setTimeout(startConnection, 3000);
+        }
+    }
+    startConnection();
+})();
+</script>
+
+@* ── City filter multi-select JS ──────────────────────────────────────────────── *@
+<script>
+(function () {
+    const allChk   = document.getElementById('allCitiesChk');
+    const dropBtn  = document.getElementById('cityDropdownBtn');
+    const panel    = document.getElementById('cityDropdownPanel');
+    const searchEl = document.getElementById('citySearch');
+    const countEl  = document.getElementById('citySelectedCount');
+    const labelEl  = document.getElementById('cityBtnLabel');
+
+    if (!allChk) return; // city filter not rendered
+
+    // ── Toggle All Cities checkbox ──────────────────────────────────────────
+    allChk.addEventListener('change', function () {
+        dropBtn.disabled = this.checked;
+        if (this.checked) {
+            // uncheck all city checkboxes so none are submitted
+            document.querySelectorAll('.city-chk').forEach(c => c.checked = false);
+            updateLabel();
+            panel.classList.add('hidden');
+        }
+    });
+
+    // ── Open / close panel ──────────────────────────────────────────────────
+    dropBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        panel.classList.toggle('hidden');
+        if (!panel.classList.contains('hidden')) searchEl.focus();
+    });
+    document.addEventListener('click', function (e) {
+        if (!panel.contains(e.target) && e.target !== dropBtn)
+            panel.classList.add('hidden');
+    });
+
+    // ── Search filter ───────────────────────────────────────────────────────
+    searchEl.addEventListener('input', function () {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('.city-item').forEach(item => {
+            item.style.display = item.dataset.name.includes(q) ? '' : 'none';
+        });
+    });
+
+    // ── City checkbox change ────────────────────────────────────────────────
+    document.querySelectorAll('.city-chk').forEach(chk => {
+        chk.addEventListener('change', updateLabel);
+    });
+
+    function updateLabel() {
+        const checked = document.querySelectorAll('.city-chk:checked');
+        const n = checked.length;
+        countEl.textContent = n + ' selected';
+        if (n === 0) {
+            labelEl.textContent = 'Select cities…';
+            labelEl.className = 'text-gray-500 text-xs';
+        } else if (n <= 3) {
+            const names = Array.from(checked).map(c =>
+                c.closest('.city-item').querySelector('span:last-child').textContent.trim()
+            );
+            labelEl.textContent = names.join(', ');
+            labelEl.className = 'text-indigo-700 text-xs font-medium truncate max-w-[160px]';
+        } else {
+            labelEl.textContent = n + ' cities selected';
+            labelEl.className = 'text-indigo-700 text-xs font-medium';
+        }
+        // If any city selected, auto-uncheck "All Cities"
+        if (n > 0) allChk.checked = false;
+        dropBtn.disabled = false;
+    }
+
+    window.selectAllCities = function () {
+        document.querySelectorAll('.city-item:not([style*="none"]) .city-chk').forEach(c => c.checked = true);
+        updateLabel();
+    };
+    window.clearAllCities = function () {
+        document.querySelectorAll('.city-chk').forEach(c => c.checked = false);
+        updateLabel();
+        allChk.checked = true;
+        dropBtn.disabled = true;
+    };
+
+    // ── On form submit: if All Cities, disable city checkboxes so they don't POST ──
+    document.getElementById('startForm').addEventListener('submit', function () {
+        if (allChk.checked) {
+            document.querySelectorAll('.city-chk').forEach(c => c.disabled = true);
+        }
+    });
+
+    // Init label on page load (in case previous selection is restored)
+    updateLabel();
+    if (document.querySelectorAll('.city-chk:checked').length > 0) {
+        allChk.checked = false;
+        dropBtn.disabled = false;
+    }
+})();
+</script>

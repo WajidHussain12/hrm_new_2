@@ -1,0 +1,93 @@
+@model LCS_HR_MVC.Models.Navigation.LegacyPageViewModel
+@{
+    ViewData["PageTitle"] = Model.Title;
+    ViewData["Title"] = Model.Title;
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+        .animate-main{animation:slideUp .4s ease-out}
+        @@keyframes pulse-ring{0%{transform:scale(.95);box-shadow:0 0 0 0 rgba(245,197,24,.4)}70%{transform:scale(1);box-shadow:0 0 0 10px rgba(245,197,24,0)}100%{transform:scale(.95);box-shadow:0 0 0 0 rgba(245,197,24,0)}}
+        .pulse{animation:pulse-ring 2s infinite}
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main tw-flex tw-items-center tw-justify-center">
+    <div class="tw-w-full tw-max-w-3xl">
+
+        <!-- Main Card -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+
+            <!-- Dark Header Banner -->
+            <div class="tw-relative tw-overflow-hidden tw-p-8 sm:tw-p-10 tw-bg-gradient-to-br tw-from-slate-900 tw-via-slate-800 tw-to-slate-900">
+                <div class="tw-absolute tw-top-[-40%] tw-right-[-5%] tw-w-72 tw-h-72 tw-bg-amber-500 tw-opacity-10 tw-blur-[80px] tw-rounded-full tw-pointer-events-none"></div>
+                <div class="tw-relative tw-z-10 tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-center tw-gap-5">
+                    <div class="pulse tw-w-14 tw-h-14 tw-bg-gradient-to-br tw-from-amber-400 tw-to-orange-500 tw-rounded-2xl tw-flex tw-items-center tw-justify-center tw-shadow-[0_0_20px_rgba(245,197,24,0.4)] tw-shrink-0">
+                        <i class="fas fa-tools tw-text-slate-900 tw-text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="tw-inline-flex tw-items-center tw-gap-2 tw-px-3 tw-py-1 tw-rounded-full tw-bg-amber-500/20 tw-border tw-border-amber-500/30 tw-mb-3">
+                            <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-amber-400 tw-animate-pulse"></span>
+                            <span class="tw-text-[10px] tw-font-black tw-text-amber-400 tw-uppercase tw-tracking-[0.2em]">Module In Progress</span>
+                        </div>
+                        <h1 class="tw-text-2xl sm:tw-text-3xl tw-font-black tw-text-white tw-leading-tight tw-tracking-tight">@Model.Title</h1>
+                        <p class="tw-text-slate-400 tw-text-sm tw-font-medium tw-mt-2 tw-leading-relaxed tw-max-w-xl">
+                            This menu item is connected correctly, but the migrated MVC page is still under development.
+                            The page is intentionally routed here instead of leaving a broken legacy link behind.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="tw-p-6 sm:tw-p-8">
+                <div class="tw-grid sm:tw-grid-cols-2 tw-gap-5">
+
+                    <!-- Legacy Route -->
+                    <div class="tw-bg-slate-50 tw-rounded-2xl tw-border tw-border-slate-200 tw-p-5">
+                        <p class="tw-text-[11px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mb-3 tw-flex tw-items-center tw-gap-2">
+                            <i class="fas fa-link tw-text-amber-500"></i> Legacy Route
+                        </p>
+                        <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-200 tw-p-3 tw-font-mono tw-text-sm tw-text-slate-700 tw-break-all">
+                            @(string.IsNullOrWhiteSpace(Model.LegacyUrl) ? "Legacy route not available" : Model.LegacyUrl)
+                        </div>
+                    </div>
+
+                    <!-- Status Info -->
+                    <div class="tw-bg-amber-50 tw-rounded-2xl tw-border tw-border-amber-100 tw-p-5">
+                        <p class="tw-text-[11px] tw-font-black tw-text-amber-600 tw-uppercase tw-tracking-widest tw-mb-3 tw-flex tw-items-center tw-gap-2">
+                            <i class="fas fa-info-circle tw-text-amber-500"></i> Status
+                        </p>
+                        <p class="tw-text-sm tw-text-amber-800 tw-font-semibold tw-leading-relaxed">
+                            Use this screen as the controlled landing page until the exact MVC module is migrated and mapped with strict legacy parity.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div class="tw-mt-5 tw-bg-slate-50 tw-rounded-2xl tw-border tw-border-slate-200 tw-p-5">
+                    <p class="tw-text-[11px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest tw-mb-4 tw-flex tw-items-center tw-gap-2">
+                        <i class="fas fa-tasks tw-text-amber-500"></i> Migration Checklist
+                    </p>
+                    <div class="tw-grid sm:tw-grid-cols-3 tw-gap-3">
+                        @{
+                            var steps = new[] {
+                                new { icon = "fa-check-circle", color = "tw-text-emerald-500", label = "Route Connected", done = true },
+                                new { icon = "fa-cog", color = "tw-text-amber-500", label = "UI Under Development", done = false },
+                                new { icon = "fa-database", color = "tw-text-slate-400", label = "Logic Pending", done = false }
+                            };
+                        }
+                        @foreach (var step in steps)
+                        {
+                            <div class="tw-flex tw-items-center tw-gap-3 tw-bg-white tw-rounded-xl tw-border tw-border-slate-200 tw-p-3">
+                                <i class="fas @step.icon @step.color"></i>
+                                <span class="tw-text-xs tw-font-bold tw-text-slate-600">@step.label</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

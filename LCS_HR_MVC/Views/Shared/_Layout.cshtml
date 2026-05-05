@@ -1,0 +1,193 @@
+@using System.Security.Claims
+
+@{
+    var username = User.Identity?.Name ?? "User";
+    var userRole = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? "";
+    var roleDesc = User.Claims.FirstOrDefault(c => c.Type == "RoleDescription")?.Value ?? "";
+    var pageTitle = ViewData["PageTitle"]?.ToString();
+    if (string.IsNullOrWhiteSpace(pageTitle))
+    {
+        pageTitle = ViewData["Title"]?.ToString() ?? "Dashboard";
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en" class="tw-scroll-smooth tw-h-full">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Leopards HR Portal</title>
+    
+    <link rel="shortcut icon" href="~/images/favicon.ico">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/lib/datatables/dataTables.dataTables.min.css" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+
+    <style>
+        :root {
+            --lcs-yellow: #f5c518;
+            --lcs-dark: #0f172a;
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc;
+        }
+
+        /* Smooth Page Fade */
+        @@keyframes pageFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .page-transition {
+            animation: pageFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f5c518; }
+
+        /* Beautiful Gradient Animation */
+        @@keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-gradient-flow {
+            animation: gradientFlow 6s ease infinite;
+        }
+    </style>
+
+    @RenderSection("Styles", required: false)
+</head>
+
+<body class="tw-text-slate-800 tw-antialiased tw-flex tw-flex-col tw-min-h-screen tw-bg-[#f8fafc]">
+
+    <div id="page-loader" class="tw-fixed tw-top-0 tw-left-0 tw-h-[3px] tw-bg-gradient-to-r tw-from-[#f5c518] tw-via-[#ffd700] tw-to-[#f5c518] tw-z-[9999] tw-transition-all tw-duration-500 tw-ease-out" style="width: 0%;"></div>
+
+    <partial name="_Navbar" />
+
+    <main class="tw-flex-grow tw-flex tw-flex-col tw-w-full tw-max-w-[96rem] tw-mx-auto tw-px-4 sm:tw-px-6 lg:tw-px-8 tw-py-8">
+
+        <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+            <div class="tw-animate-[pageFadeIn_0.4s_ease-out]">
+                <nav class="tw-mb-2">
+                    <ol class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">
+                        <li class="tw-flex tw-items-center tw-gap-1.5">
+                            <i class="fa-solid fa-house tw-text-[10px] tw-text-slate-300"></i>
+                            <a href="@Url.Action("Index", "Home")" class="hover:tw-text-[#eab308] hover:tw-underline tw-underline-offset-4 tw-transition-all">Dashboard</a>
+                        </li>
+                        <li><i class="fa-solid fa-chevron-right tw-text-[8px] tw-text-slate-300"></i></li>
+                        <li class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">@pageTitle</li>
+                    </ol>
+                </nav>
+                <div class="tw-flex tw-flex-col">
+                    <h2 class="tw-text-3xl sm:tw-text-4xl tw-font-black tw-text-slate-900 tw-tracking-tight">@pageTitle</h2>
+                    <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-2"></div>
+                </div>
+            </div>
+            <div id="page-actions" class="tw-flex tw-items-center tw-gap-3"></div>
+        </div>
+
+        <div class="tw-flex-grow tw-bg-white tw-rounded-3xl tw-border tw-border-slate-200/80 tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-p-6 sm:tw-p-10 page-transition tw-overflow-hidden tw-relative">
+            <!-- Subtle background decoration -->
+            <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-[#f5c518]/[0.03] tw-to-transparent tw-rounded-bl-full tw-pointer-events-none"></div>
+
+            <div class="tw-relative tw-z-10">
+                @RenderBody()
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="tw-mt-auto tw-relative tw-bg-white">
+        <!-- Subtle Top Gradient Border -->
+        <div class="tw-absolute tw-top-0 tw-left-0 tw-w-full tw-h-[1px] tw-bg-gradient-to-r tw-from-transparent tw-via-slate-200 tw-to-transparent"></div>
+        <div class="tw-max-w-[96rem] tw-mx-auto tw-px-4 sm:tw-px-6 lg:tw-px-8 tw-py-5">
+            <div class="tw-flex tw-flex-col md:tw-flex-row tw-items-center tw-justify-between tw-gap-5">
+
+                <!-- Left side: Logo and Copyright -->
+                <div class="tw-flex tw-items-center tw-gap-3.5">
+                    <div class="tw-flex tw-items-center tw-justify-center tw-w-10 tw-h-10 tw-bg-gradient-to-br tw-from-slate-50 tw-to-slate-100 tw-rounded-xl tw-border tw-border-slate-200 tw-shadow-[0_2px_10px_rgb(0,0,0,0.03)] tw-group tw-cursor-pointer">
+                        <!-- Object-contain and tw-w-auto prevent the layout from stretching the image -->
+                        <img src="~/images/lcs_trans.png" alt="LCS" class="tw-h-5 tw-w-auto tw-object-contain tw-transition-transform tw-duration-300 group-hover:tw-scale-110" onerror="this.src='/images/favicon.ico';" />
+                    </div>
+                    <div class="tw-flex tw-flex-col">
+                        <span class="tw-text-[13px] tw-font-bold tw-text-slate-800">Leopards <span class="tw-text-[#eab308]">Courier</span> Service</span>
+                        <span class="tw-text-[10px] tw-font-medium tw-text-slate-400 tw-tracking-wide">&copy; @DateTime.Now.Year All rights reserved.</span>
+                    </div>
+                </div>
+
+                <!-- Center: Developer Credit -->
+                <div class="tw-flex tw-flex-col tw-items-center">
+                    <div class="tw-flex tw-items-center tw-gap-2 tw-bg-slate-50 tw-px-4 tw-py-1.5 tw-rounded-full tw-border tw-border-slate-100 tw-shadow-sm group hover:tw-border-amber-200 tw-transition-all">
+                        <span class="tw-text-[9px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-[0.15em]">Developed & Designed By</span>
+                        <div class="tw-h-3 tw-w-[1px] tw-bg-slate-200"></div>
+                        <span class="tw-text-[11px] tw-font-black tw-text-transparent tw-bg-clip-text tw-bg-gradient-to-r tw-from-indigo-600 tw-via-blue-500 tw-to-indigo-600 tw-bg-[length:200%_auto] animate-gradient-flow hover:tw-from-amber-500 hover:tw-to-orange-600 tw-transition-all tw-cursor-default">SYED WAJID HUSSAIN</span>
+                    </div>
+                </div>
+
+                <!-- Right side: Version and Powered By -->
+                <div class="tw-flex tw-items-center tw-gap-4">
+                    <div class="tw-flex tw-items-center tw-gap-2 tw-bg-slate-50 tw-px-3 tw-py-1.5 tw-rounded-lg tw-border tw-border-slate-200 text-slate-600 hover:tw-border-slate-300 tw-transition-colors">
+                        <div class="tw-relative tw-flex tw-items-center tw-justify-center">
+                            <div class="tw-w-2 tw-h-2 tw-bg-green-500 tw-rounded-full tw-absolute tw-animate-ping tw-opacity-75"></div>
+                            <div class="tw-w-1.5 tw-h-1.5 tw-bg-green-500 tw-rounded-full tw-relative"></div>
+                        </div>
+                        <span class="tw-text-[10px] tw-font-black tw-uppercase tw-tracking-wider">Enterprise v2.1</span>
+                    </div>
+                    <div class="tw-hidden sm:tw-block tw-h-6 tw-w-[1px] tw-bg-slate-200"></div>
+                    <div class="tw-flex tw-items-center tw-gap-2">
+                        <span class="tw-text-[10px] tw-font-semibold tw-text-slate-400 tw-uppercase tw-tracking-widest">Powered By</span>
+                        <span class="tw-text-xs tw-font-black tw-text-transparent tw-bg-clip-text tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-orange-500 hover:tw-from-orange-500 hover:tw-to-[#f5c518] tw-transition-all tw-cursor-default tw-drop-shadow-sm">LSDT</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/jquery.min.js"></script>
+    <script src="~/lib/datatables/dataTables.min.js"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            // Loader completion
+            $('#page-loader').css('width', '100%');
+            setTimeout(() => { $('#page-loader').css('opacity', '0'); }, 500);
+            
+            // Read-only logic for role 021
+            if ('@userRole' === "021") {
+                $('input, select, textarea, button[type=submit]').attr("disabled", true).addClass('tw-cursor-not-allowed tw-opacity-60');
+            }
+        });
+
+        // Ajax Loader Logic
+        $(document).ajaxStart(function() {
+            $('#page-loader').css({'width': '35%', 'opacity': '1', 'transition': 'width 0.4s'});
+        }).ajaxComplete(function() {
+            $('#page-loader').css({'width': '100%', 'opacity': '1'});
+            setTimeout(() => {
+                $('#page-loader').css('opacity', '0');
+                setTimeout(() => { $('#page-loader').css({'width': '0%', 'transition': 'none'}); }, 300);
+            }, 500);
+        });
+
+        // Prevent unwanted form submissions on Enter
+        $(document).keypress(function (e) {
+            if (e.which == 13 && e.target.tagName != 'TEXTAREA') return false;
+        });
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

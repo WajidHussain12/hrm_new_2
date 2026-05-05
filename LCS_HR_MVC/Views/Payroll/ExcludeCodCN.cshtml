@@ -1,0 +1,115 @@
+@model LCS_HR_MVC.Models.Payroll.ExcludeCodCnViewModel
+@{
+    ViewData["PageTitle"] = "Exclude COD CN Number";
+    ViewData["Title"] = "Exclude COD CN Number";
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+        .animate-main{animation:slideUp .4s ease-out}
+        .f-label{display:block;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+        .btn-p{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#fbbf24,#f97316);color:#1e293b;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(245,197,24,.3);transition:all .15s}
+        .btn-p:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,197,24,.4)}
+        .btn-s{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;color:#475569;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #e2e8f0;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
+        .btn-s:hover{background:#f8fafc;transform:translateY(-1px)}
+        #dupTable thead th{background:linear-gradient(135deg,#475569,#334155)!important;color:#f1f5f9!important;font-size:.65rem!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.08em!important;padding:.625rem .75rem!important;border:none!important}
+        #dupTable tbody td{padding:.5rem .75rem!important;font-size:.8rem;color:#334155;border-bottom:1px solid #f1f5f9!important;border-top:none!important;border-left:none!important;border-right:none!important}
+        #dupTable tbody tr:hover td{background:#fffbeb!important}
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5"></i><span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-check tw-mt-0.5"></i><span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <div class="tw-mb-8">
+        <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+            <span class="tw-flex tw-items-center tw-gap-1"><i class="fas fa-calendar-check tw-text-[10px] tw-text-slate-300"></i> Payroll</span>
+            <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+            <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Exclude COD CN</span>
+        </nav>
+        <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Exclude COD CN Number</h1>
+        <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+        <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-2">Upload a CSV file to exclude COD CN numbers from commission processing.</p>
+    </div>
+
+    <form asp-action="ExcludeCodCN" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-mb-5">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-file-upload"></i></div>
+                    Upload CSV
+                </h3>
+            </div>
+            <div class="tw-p-6">
+                <div class="tw-max-w-lg">
+                    <label class="f-label">CSV File</label>
+                    <input asp-for="UploadFile" type="file" accept=".csv"
+                           class="tw-w-full tw-px-3 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-medium tw-text-slate-700 tw-file:mr-3 tw-file:py-1 tw-file:px-3 tw-file:rounded-lg tw-file:border-0 tw-file:text-xs tw-file:font-bold tw-file:bg-amber-500 tw-file:text-slate-900 hover:tw-file:bg-amber-400 tw-cursor-pointer" />
+                    <div class="tw-mt-3 tw-bg-slate-50 tw-rounded-xl tw-border tw-border-slate-200 tw-p-3 tw-text-xs tw-text-slate-500 tw-font-medium tw-space-y-1">
+                        <div><i class="fas fa-info-circle tw-text-amber-500 tw-mr-1"></i> Expected columns: <code class="tw-bg-white tw-px-1 tw-rounded">CN Number</code>, <code class="tw-bg-white tw-px-1 tw-rounded">Courier ID</code>, <code class="tw-bg-white tw-px-1 tw-rounded">Arrival Destination</code></div>
+                        <div><i class="fas fa-info-circle tw-text-amber-500 tw-mr-1"></i> Only <code class="tw-bg-white tw-px-1 tw-rounded">.csv</code> files up to 10 MB are allowed.</div>
+                    </div>
+                </div>
+                <div class="tw-mt-5 tw-flex tw-gap-3">
+                    <button type="submit" name="action" value="Upload" class="btn-p"><i class="fas fa-upload tw-text-xs"></i> Upload</button>
+                    <button type="submit" name="action" value="Reset" class="btn-s" formnovalidate><i class="fas fa-times tw-text-xs"></i> Reset</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.InsertedCount > 0 || Model.SkippedCount > 0)
+    {
+        <div class="tw-grid sm:tw-grid-cols-2 tw-gap-4 tw-mb-5">
+            <div class="tw-bg-emerald-50 tw-rounded-2xl tw-border tw-border-emerald-100 tw-p-5 tw-flex tw-items-center tw-gap-4">
+                <div class="tw-w-10 tw-h-10 tw-bg-emerald-500 tw-rounded-xl tw-flex tw-items-center tw-justify-center"><i class="fas fa-check tw-text-white"></i></div>
+                <div><p class="tw-text-xs tw-font-black tw-text-emerald-600 tw-uppercase tw-tracking-widest">Inserted CNs</p><p class="tw-text-2xl tw-font-black tw-text-emerald-700">@Model.InsertedCount</p></div>
+            </div>
+            <div class="tw-bg-amber-50 tw-rounded-2xl tw-border tw-border-amber-100 tw-p-5 tw-flex tw-items-center tw-gap-4">
+                <div class="tw-w-10 tw-h-10 tw-bg-amber-500 tw-rounded-xl tw-flex tw-items-center tw-justify-center"><i class="fas fa-forward tw-text-white"></i></div>
+                <div><p class="tw-text-xs tw-font-black tw-text-amber-600 tw-uppercase tw-tracking-widest">Skipped (Existing)</p><p class="tw-text-2xl tw-font-black tw-text-amber-700">@Model.SkippedCount</p></div>
+            </div>
+        </div>
+    }
+
+    @if (Model.DuplicateRows.Count > 0)
+    {
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-copy"></i></div>
+                    Duplicate Rows Skipped
+                </h3>
+            </div>
+            <div class="tw-p-5 tw-overflow-x-auto">
+                <table id="dupTable" class="tw-w-full">
+                    <thead><tr><th>Row No</th><th>CN Number</th><th>Courier ID</th><th>Arrival Destination</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Model.DuplicateRows)
+                        {
+                            <tr>
+                                <td>@row.RowNumber</td>
+                                <td class="tw-font-bold tw-text-amber-600">@row.CnNumber</td>
+                                <td>@row.CourierId</td>
+                                <td>@row.ArrivalDestination</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

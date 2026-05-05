@@ -1,0 +1,154 @@
+@model LCS_HR_MVC.Models.BulkPresentMarkModel
+@{
+    ViewData["PageTitle"] = "Bulk Attendance Adjustment";
+    var years = Enumerable.Range(2019, DateTime.Now.Year - 2019 + 1).Reverse().Select(y => new { Value = y.ToString(), Text = y.ToString() }).ToList();
+    var months = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.MonthNames
+        .Take(12).Select((name, i) => new { Value = (i + 1).ToString(), Text = name }).ToList();
+}
+
+<div class="w-full p-6 bg-white">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="text-red-700 bg-red-100 border border-red-400 p-3 rounded mb-4 shadow-sm"><strong>Error! </strong>@TempData["ErrorMessage"]</div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="text-green-700 bg-green-100 border border-green-400 p-3 rounded mb-4 shadow-sm"><strong>Success! </strong>@TempData["SuccessMessage"]</div>
+    }
+
+    <div class="w-full max-w-5xl mx-auto space-y-6">
+
+        <!-- Mark Present Section -->
+        <form asp-controller="Transaction" asp-action="CompleteAttendenceAdjustment" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <fieldset class="border border-green-300 p-4 rounded-md bg-green-50 shadow-sm">
+                <legend class="text-sm font-semibold text-green-800 px-3 py-1 bg-white border border-green-300 rounded-md shadow-sm">Mark Present (Excel Upload)</legend>
+                <p class="text-xs text-gray-600 mb-3">Upload an Excel file with employee numbers in column A. The system will insert absent adjustments for days with no attendance, excluding Sundays and holidays.</p>
+
+                <table class="text-sm border-spacing-y-1 border-separate">
+                    <tr>
+                        <td class="font-semibold text-gray-700 pr-3 py-1">Mode</td>
+                        <td class="py-1">
+                            <label class="mr-4">
+                                <input type="radio" name="IsDateWise" value="false" id="rdMonthWise"
+                                       @(Model.IsDateWise ? "" : "checked") onchange="toggleDateRange(false)" />
+                                Month Wise
+                            </label>
+                            <label>
+                                <input type="radio" name="IsDateWise" value="true" id="rdDateWise"
+                                       @(Model.IsDateWise ? "checked" : "") onchange="toggleDateRange(true)" />
+                                Date Wise
+                            </label>
+                        </td>
+                    </tr>
+                    <tr id="rowMonthWise" @(Model.IsDateWise ? "style='display:none'" : "")>
+                        <td class="font-semibold text-gray-700 pr-3 py-1">Year / Month</td>
+                        <td class="py-1">
+                            <select name="Year" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[28px] px-2 mr-2">
+                                @foreach (var y in years)
+                                {
+                                    <!option value="@y.Value" @(Model.Year.ToString() == y.Value ? "selected" : "")>@y.Text</!option>
+                                }
+                            </select>
+                            <select name="Month" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[28px] px-2">
+                                @foreach (var m in months)
+                                {
+                                    <!option value="@m.Value" @(Model.Month.ToString() == m.Value ? "selected" : "")>@m.Text</!option>
+                                }
+                            </select>
+                        </td>
+                    </tr>
+                    <tr id="rowDateWise" @(Model.IsDateWise ? "" : "style='display:none'")>
+                        <td class="font-semibold text-gray-700 pr-3 py-1">Date Range</td>
+                        <td class="py-1">
+                            <input type="date" name="FromDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))"
+                                   class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[28px] px-2 mr-2" style="width:160px;" />
+                            <span class="text-gray-500 mr-2">to</span>
+                            <input type="date" name="ToDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))"
+                                   class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[28px] px-2" style="width:160px;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="font-semibold text-gray-700 pr-3 py-1">Excel File</td>
+                        <td class="py-1">
+                            <input type="file" name="File" accept=".xls,.xlsx"
+                                   class="border border-gray-300 rounded text-sm text-gray-700 px-2 py-1 bg-white" />
+                            <span class="text-xs text-gray-500 ml-2">Column A: Employee Number</span>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="mt-3">
+                    <button type="submit" name="action" value="MarkPresent"
+                            class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm"
+                            onclick="return confirm('This will insert absent adjustments for all listed employees. Continue?');">
+                        Mark Present (Process)
+                    </button>
+                </div>
+            </fieldset>
+        </form>
+
+        <!-- Mark Absent Section -->
+        <form asp-controller="Transaction" asp-action="CompleteAttendenceAdjustment" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <fieldset class="border border-red-300 p-4 rounded-md bg-red-50 shadow-sm">
+                <legend class="text-sm font-semibold text-red-800 px-3 py-1 bg-white border border-red-300 rounded-md shadow-sm">Mark Absent / Clear Attendance (Excel Upload)</legend>
+                <p class="text-xs text-gray-600 mb-3">Upload an Excel file with employee number in column A and date in column B. Deletes attendance records from <code>hr_employeeattandenceadjust</code>, <code>hr_employeeattendance</code>, and <code>hr_mobileappattendence</code> for those entries.</p>
+
+                <table class="text-sm border-spacing-y-1 border-separate">
+                    <tr>
+                        <td class="font-semibold text-gray-700 pr-3 py-1">Year / Month</td>
+                        <td class="py-1">
+                            <select name="AbsentYear" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[28px] px-2 mr-2">
+                                @foreach (var y in years)
+                                {
+                                    <!option value="@y.Value" @(Model.Year.ToString() == y.Value ? "selected" : "")>@y.Text</!option>
+                                }
+                            </select>
+                            <select name="AbsentMonth" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[28px] px-2">
+                                @foreach (var m in months)
+                                {
+                                    <!option value="@m.Value" @(Model.Month.ToString() == m.Value ? "selected" : "")>@m.Text</!option>
+                                }
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="font-semibold text-gray-700 pr-3 py-1">Excel File</td>
+                        <td class="py-1">
+                            <input type="file" name="AbsentFile" accept=".xls,.xlsx"
+                                   class="border border-gray-300 rounded text-sm text-gray-700 px-2 py-1 bg-white" />
+                            <span class="text-xs text-gray-500 ml-2">Col A: Emp No, Col B: Date</span>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="mt-3">
+                    <button type="submit" name="action" value="MarkAbsent"
+                            class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm"
+                            onclick="return confirm('This will delete attendance records for all listed employees on the specified dates. Continue?');">
+                        Mark Absent (Clear Attendance)
+                    </button>
+                </div>
+            </fieldset>
+        </form>
+
+        <div class="text-sm text-gray-500">
+            <a href="@Url.Action("EmployeeAttendanceAdjust", "Transaction")" class="text-blue-600 hover:underline">&#8592; Back to Employee Attendance Adjustment</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleDateRange(isDateWise) {
+            if (isDateWise) {
+                document.getElementById('rowMonthWise').style.display = 'none';
+                document.getElementById('rowDateWise').style.display = '';
+            } else {
+                document.getElementById('rowMonthWise').style.display = '';
+                document.getElementById('rowDateWise').style.display = 'none';
+            }
+        }
+    </script>
+}

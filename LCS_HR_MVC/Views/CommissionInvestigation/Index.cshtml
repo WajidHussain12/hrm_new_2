@@ -1,0 +1,319 @@
+@model LCS_HR_MVC.Models.CommissionInvestigationIndexVm
+@{
+    ViewData["Title"] = "Employee Commission Process";
+    var monthNames = new[] { "January","February","March","April","May","June",
+                             "July","August","September","October","November","December" };
+    var now      = DateTime.Now;
+    var selYear  = Model.Filter.Year  > 0 ? Model.Filter.Year  : now.Year;
+    var selMonth = Model.Filter.Month > 0 ? Model.Filter.Month : now.Month;
+
+    string ML(int m) => m >= 1 && m <= 12 ? monthNames[m - 1] : m.ToString();
+
+    string StatusBadge(string? s) => s switch {
+        "Processed"   => "tw-bg-emerald-100 tw-text-emerald-700 tw-border tw-border-emerald-200",
+        "Missing"     => "tw-bg-red-100 tw-text-red-700 tw-border tw-border-red-200",
+        "Partial"     => "tw-bg-amber-100 tw-text-amber-700 tw-border tw-border-amber-200",
+        "NotEligible" => "tw-bg-slate-100 tw-text-slate-500 tw-border tw-border-slate-200",
+        _             => "tw-bg-blue-100 tw-text-blue-700 tw-border tw-border-blue-200"
+    };
+    string StatusIcon(string? s) => s switch {
+        "Processed"   => "fa-check-circle",
+        "Missing"     => "fa-times-circle",
+        "Partial"     => "fa-exclamation-circle",
+        "NotEligible" => "fa-minus-circle",
+        _             => "fa-question-circle"
+    };
+
+    var errorMsg = Model.ErrorMessage ?? TempData["ErrorMessage"]?.ToString();
+}
+
+<div class="tw-min-h-screen tw-bg-slate-50 tw-p-4 lg:tw-p-6">
+
+    <!-- ── Page Header ──────────────────────────────────────────────────── -->
+    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-5">
+        <div class="tw-w-10 tw-h-10 tw-flex tw-items-center tw-justify-center tw-bg-violet-600 tw-rounded-xl tw-shadow-sm">
+            <i class="fas fa-user-magnifying-glass tw-text-white"></i>
+        </div>
+        <div>
+            <h1 class="tw-text-xl tw-font-bold tw-text-slate-800 tw-mb-0">Employee Commission Process</h1>
+            <p class="tw-text-xs tw-text-slate-500 tw-mb-0">
+                Commission investigation center — 3 servers (6 → 7 → 10) par full drill-down analysis
+                &nbsp;|&nbsp; <span class="tw-font-semibold tw-text-violet-600">@ML(selMonth) @selYear</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- ── Alert Messages ───────────────────────────────────────────────── -->
+    @if (TempData["SuccessMessage"] is string sMsg)
+    {
+        <div class="tw-mb-4 tw-p-3 tw-bg-emerald-50 tw-border tw-border-emerald-200 tw-rounded-xl tw-text-sm tw-text-emerald-700 tw-flex tw-items-start tw-gap-2">
+            <i class="fas fa-check-circle tw-mt-0.5 tw-text-emerald-500"></i><span>@sMsg</span>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(errorMsg))
+    {
+        <div class="tw-mb-4 tw-p-3 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-xl tw-text-sm tw-text-red-700 tw-flex tw-items-start tw-gap-2">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5 tw-text-red-500"></i>
+            <span>@errorMsg</span>
+        </div>
+    }
+
+    <!-- ── Search Panel (3 inputs only) ─────────────────────────────────── -->
+    <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-mb-5">
+        <div class="tw-p-4 tw-border-b tw-border-slate-100">
+            <div class="tw-flex tw-items-center tw-gap-2">
+                <i class="fas fa-search tw-text-violet-500"></i>
+                <span class="tw-text-sm tw-font-bold tw-text-slate-700">Employee Search</span>
+                <span class="tw-text-xs tw-text-slate-400 tw-ml-1">
+                    — Year, Month aur Employee Number enter karein. City, Name, Route Codes khud find honge.
+                </span>
+            </div>
+        </div>
+        <div class="tw-p-4">
+            <form method="get" action="@Url.Action("Index", "CommissionInvestigation")" id="searchForm">
+                <div class="tw-flex tw-flex-wrap tw-gap-3 tw-items-end tw-mb-3">
+
+                    <!-- Year -->
+                    <div class="tw-min-w-28">
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">Year</label>
+                        <select name="filter.Year"
+                                class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-2 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-violet-400">
+                            @foreach (var y in Model.AvailableYears)
+                            {
+                                <option value="@y" selected="@(y == selYear ? "selected" : null)">@y</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Month -->
+                    <div class="tw-min-w-36">
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">Month</label>
+                        <select name="filter.Month"
+                                class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-2 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-violet-400">
+                            @for (int mi = 1; mi <= 12; mi++)
+                            {
+                                <option value="@mi" selected="@(mi == selMonth ? "selected" : null)">@monthNames[mi - 1]</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Employee Number -->
+                    <div class="tw-flex-1 tw-min-w-64">
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">
+                            Employee Number
+                            <span class="tw-font-normal tw-text-slate-400">(partial ya full — e.g. 12385 ya 00000000012385)</span>
+                        </label>
+                        <input type="text" name="filter.EmpNo" id="empNoInput"
+                               value="@Model.Filter.EmpNo"
+                               placeholder="e.g. 00000000012385"
+                               autocomplete="off"
+                               class="tw-w-full tw-font-mono tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-2 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-violet-400" />
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="tw-flex tw-gap-2">
+                        <button type="submit"
+                                class="tw-bg-violet-600 hover:tw-bg-violet-700 tw-text-white tw-text-sm tw-font-semibold tw-px-5 tw-py-2 tw-rounded-lg tw-transition tw-flex tw-items-center tw-gap-2 tw-whitespace-nowrap">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <a href="@Url.Action("Index", "CommissionInvestigation")"
+                           class="tw-bg-slate-100 hover:tw-bg-slate-200 tw-text-slate-700 tw-text-sm tw-font-semibold tw-px-4 tw-py-2 tw-rounded-lg tw-transition tw-flex tw-items-center tw-gap-2">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                </div>
+
+                @if (Model.SearchPerformed)
+                {
+                    <div class="tw-text-xs tw-text-slate-500 tw-mt-1">
+                        <i class="fas fa-info-circle tw-text-violet-400 tw-mr-1"></i>
+                        <strong class="tw-text-violet-600">@Model.TotalFound</strong> employee(s) mili(n) —
+                        City, Name aur Route Codes database se automatically load hue.
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Results ───────────────────────────────────────────────────────── -->
+    @if (Model.SearchPerformed)
+    {
+        @if (Model.SearchResults.Count == 0)
+        {
+            <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-p-10 tw-text-center">
+                <i class="fas fa-user-slash tw-text-4xl tw-text-slate-300 tw-mb-3 tw-block"></i>
+                <p class="tw-text-slate-600 tw-font-semibold tw-mb-1">Koi employee nahi mila</p>
+                <p class="tw-text-sm tw-text-slate-400">
+                    Employee Number <strong class="tw-font-mono">"@Model.Filter.EmpNo"</strong> se koi match nahi hua.<br/>
+                    Partial number bhi try kar sakte hain — e.g. sirf <strong>12385</strong> enter karein.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-overflow-hidden">
+                <div class="tw-p-4 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between">
+                    <div class="tw-flex tw-items-center tw-gap-2">
+                        <i class="fas fa-users tw-text-violet-500"></i>
+                        <span class="tw-text-sm tw-font-bold tw-text-slate-700">
+                            Results — <span class="tw-text-violet-600">@ML(selMonth) @selYear</span>
+                        </span>
+                    </div>
+                    <span class="tw-text-xs tw-bg-violet-100 tw-text-violet-700 tw-px-2 tw-py-0.5 tw-rounded-full tw-font-semibold">
+                        @Model.TotalFound found
+                    </span>
+                </div>
+                <div class="tw-overflow-x-auto">
+                    <table class="tw-w-full tw-text-sm">
+                        <thead>
+                            <tr class="tw-bg-slate-50 tw-border-b tw-border-slate-200">
+                                <th class="tw-px-4 tw-py-3 tw-text-left tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Emp No</th>
+                                <th class="tw-px-4 tw-py-3 tw-text-left tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Name</th>
+                                <th class="tw-px-4 tw-py-3 tw-text-left tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">City (Auto-found)</th>
+                                <th class="tw-px-4 tw-py-3 tw-text-left tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Route Codes (Auto-found)</th>
+                                <th class="tw-px-4 tw-py-3 tw-text-right tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Commission</th>
+                                <th class="tw-px-4 tw-py-3 tw-text-center tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Status</th>
+                                <th class="tw-px-4 tw-py-3 tw-text-center tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-100">
+                            @foreach (var row in Model.SearchResults)
+                            {
+                                var rowBg = row.CommissionStatus == "Missing" ? "tw-bg-red-50/40"
+                                          : row.CommissionStatus == "Partial"  ? "tw-bg-amber-50/40"
+                                          : "";
+                                <tr class="@rowBg hover:tw-bg-slate-50 tw-transition">
+                                    <td class="tw-px-4 tw-py-3">
+                                        <span class="tw-font-mono tw-text-xs tw-font-bold tw-text-violet-700 tw-bg-violet-50 tw-px-2 tw-py-0.5 tw-rounded tw-border tw-border-violet-200">
+                                            @row.EmpNo
+                                        </span>
+                                    </td>
+                                    <td class="tw-px-4 tw-py-3">
+                                        <div class="tw-font-semibold tw-text-slate-800">@row.Name</div>
+                                        @if (!string.IsNullOrEmpty(row.Designation))
+                                        {
+                                            <div class="tw-text-xs tw-text-slate-400">@row.Designation</div>
+                                        }
+                                    </td>
+                                    <td class="tw-px-4 tw-py-3">
+                                        <!-- Auto-found from hr_employeeroutecode → hr_city -->
+                                        <div class="tw-text-slate-700 tw-font-medium tw-text-xs tw-flex tw-items-center tw-gap-1">
+                                            <i class="fas fa-map-marker-alt tw-text-violet-400 tw-text-xs"></i>
+                                            @(row.CityName ?? row.CityCode)
+                                        </div>
+                                        <div class="tw-text-xs tw-text-slate-400 tw-font-mono tw-mt-0.5">
+                                            Code: @row.CityCode &nbsp;|&nbsp; Station: @row.StationId
+                                        </div>
+                                    </td>
+                                    <td class="tw-px-4 tw-py-3">
+                                        @if (row.RouteCodes.Count > 0)
+                                        {
+                                            <!-- Auto-found from hr_employeeroutecode -->
+                                            <div class="tw-flex tw-flex-wrap tw-gap-1">
+                                                @foreach (var rc in row.RouteCodes.Take(4))
+                                                {
+                                                    <span class="tw-font-mono tw-text-xs tw-bg-slate-100 tw-text-slate-600 tw-px-1.5 tw-py-0.5 tw-rounded tw-border tw-border-slate-200">@rc</span>
+                                                }
+                                                @if (row.RouteCodes.Count > 4)
+                                                {
+                                                    <span class="tw-text-xs tw-text-slate-400 tw-italic">+@(row.RouteCodes.Count - 4) more</span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="tw-text-xs tw-text-red-400 tw-italic">
+                                                <i class="fas fa-exclamation-circle tw-mr-1"></i>No routes found
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="tw-px-4 tw-py-3 tw-text-right">
+                                        @if (row.FinalCommission.HasValue)
+                                        {
+                                            <span class="tw-font-bold tw-text-slate-800">Rs @row.FinalCommission.Value.ToString("N0")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tw-text-xs tw-text-slate-400 tw-italic">—</span>
+                                        }
+                                    </td>
+                                    <td class="tw-px-4 tw-py-3 tw-text-center">
+                                        <span class="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-font-semibold tw-px-2 tw-py-0.5 tw-rounded-full @StatusBadge(row.CommissionStatus)">
+                                            <i class="fas @StatusIcon(row.CommissionStatus)"></i>
+                                            @row.CommissionStatus
+                                        </span>
+                                    </td>
+                                    <td class="tw-px-4 tw-py-3 tw-text-center">
+                                        <a href="@Url.Action("Detail","CommissionInvestigation", new { empNo = row.EmpNo, year = selYear, month = selMonth, cityCode = row.CityCode })"
+                                           class="tw-inline-flex tw-items-center tw-gap-1 tw-bg-violet-600 hover:tw-bg-violet-700 tw-text-white tw-text-xs tw-font-semibold tw-px-3 tw-py-1.5 tw-rounded-lg tw-transition">
+                                            <i class="fas fa-microscope"></i> Investigate
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <!-- Welcome / How-to card -->
+        <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-p-8 tw-text-center tw-max-w-2xl tw-mx-auto">
+            <div class="tw-w-16 tw-h-16 tw-bg-violet-50 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-mx-auto tw-mb-4">
+                <i class="fas fa-search-dollar tw-text-3xl tw-text-violet-400"></i>
+            </div>
+            <h3 class="tw-text-lg tw-font-bold tw-text-slate-700 tw-mb-1">Employee Commission Investigation</h3>
+            <p class="tw-text-sm tw-text-slate-500 tw-mb-5">
+                Sirf <strong>Year</strong>, <strong>Month</strong> aur <strong>Employee Number</strong> enter karein.<br/>
+                City, Name aur Route Codes automatically database se find ho jayenge.
+            </p>
+
+            <!-- Step indicator -->
+            <div class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-text-xs tw-mb-6">
+                <div class="tw-flex tw-items-center tw-gap-1 tw-bg-violet-100 tw-text-violet-700 tw-px-3 tw-py-1.5 tw-rounded-full tw-font-semibold">
+                    <span class="tw-w-4 tw-h-4 tw-bg-violet-600 tw-text-white tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-xs">1</span>
+                    Year + Month
+                </div>
+                <i class="fas fa-arrow-right tw-text-slate-300"></i>
+                <div class="tw-flex tw-items-center tw-gap-1 tw-bg-violet-100 tw-text-violet-700 tw-px-3 tw-py-1.5 tw-rounded-full tw-font-semibold">
+                    <span class="tw-w-4 tw-h-4 tw-bg-violet-600 tw-text-white tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-xs">2</span>
+                    Emp No
+                </div>
+                <i class="fas fa-arrow-right tw-text-slate-300"></i>
+                <div class="tw-flex tw-items-center tw-gap-1 tw-bg-emerald-100 tw-text-emerald-700 tw-px-3 tw-py-1.5 tw-rounded-full tw-font-semibold">
+                    <span class="tw-w-4 tw-h-4 tw-bg-emerald-600 tw-text-white tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-xs">3</span>
+                    Investigate!
+                </div>
+            </div>
+
+            <div class="tw-grid tw-grid-cols-3 tw-gap-3 tw-text-xs">
+                <div class="tw-bg-blue-50 tw-rounded-xl tw-p-3 tw-border tw-border-blue-100">
+                    <i class="fas fa-server tw-text-blue-500 tw-text-lg tw-mb-2 tw-block"></i>
+                    <div class="tw-font-bold tw-text-blue-700">Server 6</div>
+                    <div class="tw-text-blue-500">Billing CNs (Raw)</div>
+                </div>
+                <div class="tw-bg-purple-50 tw-rounded-xl tw-p-3 tw-border tw-border-purple-100">
+                    <i class="fas fa-map-marker-alt tw-text-purple-500 tw-text-lg tw-mb-2 tw-block"></i>
+                    <div class="tw-font-bold tw-text-purple-700">Server 7</div>
+                    <div class="tw-text-purple-500">Location + OLE</div>
+                </div>
+                <div class="tw-bg-emerald-50 tw-rounded-xl tw-p-3 tw-border tw-border-emerald-100">
+                    <i class="fas fa-database tw-text-emerald-500 tw-text-lg tw-mb-2 tw-block"></i>
+                    <div class="tw-font-bold tw-text-emerald-700">Server 10</div>
+                    <div class="tw-text-emerald-500">HR Master + Final</div>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+<script>
+    // Auto-focus the EmpNo input on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const inp = document.getElementById('empNoInput');
+        if (inp && !inp.value) inp.focus();
+    });
+</script>

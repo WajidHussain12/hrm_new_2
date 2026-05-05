@@ -1,0 +1,523 @@
+@model LCS_HR_MVC.Models.AcTestComparisonViewModel
+@using LCS_HR_MVC.Data
+@{
+    ViewData["Title"] = "AC Test — Commission Table Comparison";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var groupOrder = new[] { "Cash", "COD", "OverLand", "ReturnCOD", "Master", "Log" };
+    var groupLabels = new Dictionary<string, string>
+    {
+        ["Cash"]      = "Cash Commission",
+        ["COD"]       = "COD Commission",
+        ["OverLand"]  = "OverLand Commission",
+        ["ReturnCOD"] = "Return COD Commission",
+        ["Master"]    = "Commission Master",
+        ["Log"]       = "Acknowledgment Log"
+    };
+    var groupColors = new Dictionary<string, string>
+    {
+        ["Cash"]      = "tw-bg-emerald-50 tw-text-emerald-800 tw-border-emerald-200",
+        ["COD"]       = "tw-bg-blue-50 tw-text-blue-800 tw-border-blue-200",
+        ["OverLand"]  = "tw-bg-purple-50 tw-text-purple-800 tw-border-purple-200",
+        ["ReturnCOD"] = "tw-bg-orange-50 tw-text-orange-800 tw-border-orange-200",
+        ["Master"]    = "tw-bg-indigo-50 tw-text-indigo-800 tw-border-indigo-200",
+        ["Log"]       = "tw-bg-slate-50 tw-text-slate-600 tw-border-slate-200"
+    };
+
+    var monthNames = new[] {
+        "", "January","February","March","April","May","June",
+        "July","August","September","October","November","December"
+    };
+}
+
+<div class="tw-px-1 tw-py-2">
+
+    @* ── TempData flash ──────────────────────────────────────────────────── *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-center tw-gap-3 tw-bg-green-50 tw-border tw-border-green-200 tw-text-green-800 tw-rounded-xl tw-px-4 tw-py-3">
+            <i class="fas fa-circle-check tw-text-green-500"></i>
+            <span class="tw-text-sm tw-font-medium">@TempData["Success"]</span>
+        </div>
+    }
+
+    @* ── Mode banner ─────────────────────────────────────────────────────── *@
+    @if (Model.IsTestMode)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-center tw-gap-3 tw-bg-yellow-50 tw-border tw-border-yellow-300 tw-rounded-xl tw-px-4 tw-py-3">
+            <i class="fas fa-flask tw-text-yellow-500 tw-text-lg"></i>
+            <div>
+                <span class="tw-text-sm tw-font-black tw-text-yellow-800">TEST MODE ACTIVE</span>
+                <span class="tw-text-xs tw-text-yellow-600 tw-ml-2">Commission inserts go to _AC_Test tables. Set <code>CommissionSettings:UseTestTables=false</code> for production.</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="tw-mb-4 tw-flex tw-items-center tw-gap-3 tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-xl tw-px-4 tw-py-3">
+            <i class="fas fa-check-circle tw-text-green-500 tw-text-lg"></i>
+            <div>
+                <span class="tw-text-sm tw-font-black tw-text-green-800">PRODUCTION MODE</span>
+                <span class="tw-text-xs tw-text-green-600 tw-ml-2">All commission inserts go to real tables.</span>
+            </div>
+        </div>
+    }
+
+    @* ── Page title ───────────────────────────────────────────────────────── *@
+    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-4">
+        <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-purple-100 tw-flex tw-items-center tw-justify-center tw-border tw-border-purple-200">
+            <i class="fas fa-flask tw-text-purple-500"></i>
+        </div>
+        <div>
+            <h1 class="tw-text-lg tw-font-black tw-text-slate-800 tw-m-0 tw-leading-tight">AC Test — Commission Table Comparison</h1>
+            <p class="tw-text-xs tw-text-slate-400 tw-m-0 tw-mt-0.5">Select City + Month + Year to compare real vs test table row counts.</p>
+        </div>
+    </div>
+
+    @* ── Filter panel ─────────────────────────────────────────────────────── *@
+    <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-p-4 tw-mb-4">
+        <p class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-3">
+            <i class="fas fa-filter tw-mr-1"></i> Filters
+        </p>
+        <form method="get" asp-action="Index" asp-controller="AcTest" id="filterForm">
+            @* Row 1: Required filters *@
+            <div class="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-3 tw-mb-3">
+                @* City *@
+                <div>
+                    <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-mb-1">
+                        City <span class="tw-text-red-500">*</span>
+                    </label>
+                    <select name="cityCode" id="cityCodeSelect"
+                            class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-1.5 tw-bg-white focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400">
+                        <option value="">— Select City —</option>
+                        @foreach (var city in Model.Cities)
+                        {
+                            if (Model.Filter.CityCode == city.Code)
+                            {
+                                <option value="@city.Code" selected="selected">@city.Code@(city.Name != city.Code ? $" — {city.Name}" : "")</option>
+                            }
+                            else
+                            {
+                                <option value="@city.Code">@city.Code@(city.Name != city.Code ? $" — {city.Name}" : "")</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                @* Year *@
+                <div>
+                    <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-mb-1">
+                        Year <span class="tw-text-red-500">*</span>
+                    </label>
+                    <input type="number" name="year" id="yearInput"
+                           min="2020" max="2035"
+                           value="@Model.Filter.Year"
+                           class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-1.5 tw-bg-white focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400" />
+                </div>
+
+                @* Month *@
+                <div>
+                    <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-mb-1">
+                        Month <span class="tw-text-red-500">*</span>
+                    </label>
+                    <select name="month" id="monthInput"
+                            class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-1.5 tw-bg-white focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            if (Model.Filter.Month == m)
+                            {
+                                <option value="@m" selected="selected">@monthNames[m]</option>
+                            }
+                            else
+                            {
+                                <option value="@m">@monthNames[m]</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                @* Commission Type *@
+                <div>
+                    <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-mb-1">Commission Type</label>
+                    <select name="commType"
+                            class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-1.5 tw-bg-white focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400">
+                        @foreach (var ct in new[] { "All","Cash","COD","OverLand","ReturnCOD","Master" })
+                        {
+                            if (Model.Filter.CommissionType == ct)
+                            {
+                                <option value="@ct" selected="selected">@ct</option>
+                            }
+                            else
+                            {
+                                <option value="@ct">@ct</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @* Row 2: Optional filters *@
+            <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-3 tw-mb-3">
+                @* Station *@
+                <div>
+                    <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">
+                        Station <span class="tw-text-slate-400 tw-font-normal">(optional)</span>
+                    </label>
+                    <select name="stationId" id="stationFilter" disabled
+                            class="tw-w-full tw-text-sm tw-border tw-border-slate-200 tw-rounded-lg tw-px-3 tw-py-1.5 tw-bg-white disabled:tw-bg-slate-100 disabled:tw-text-slate-400 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400">
+                        <option value="">— All Stations —</option>
+                        @if (!string.IsNullOrEmpty(Model.Filter.StationId))
+                        {
+                            <option value="@Model.Filter.StationId" selected>@Model.Filter.StationId</option>
+                        }
+                    </select>
+                </div>
+
+                @* Route Code *@
+                <div>
+                    <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">
+                        Route Code <span class="tw-text-slate-400 tw-font-normal">(optional)</span>
+                    </label>
+                    <input type="text" name="routeCode"
+                           value="@Model.Filter.RouteCode"
+                           placeholder="e.g. 00123"
+                           class="tw-w-full tw-text-sm tw-border tw-border-slate-200 tw-rounded-lg tw-px-3 tw-py-1.5 tw-bg-white focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400" />
+                </div>
+
+                @* Employee No *@
+                <div>
+                    <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">
+                        Employee <span class="tw-text-slate-400 tw-font-normal">(optional)</span>
+                    </label>
+                    <select name="empNo" id="empNoSelect" disabled
+                            class="tw-w-full tw-text-sm tw-border tw-border-slate-200 tw-rounded-lg tw-px-3 tw-py-1.5 tw-bg-white disabled:tw-bg-slate-100 disabled:tw-text-slate-400 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400">
+                        <option value="">— All Employees —</option>
+                        @if (!string.IsNullOrEmpty(Model.Filter.EmpNo))
+                        {
+                            <option value="@Model.Filter.EmpNo" selected>@Model.Filter.EmpNo</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @* Buttons *@
+            <div class="tw-flex tw-items-center tw-gap-2">
+                <button type="submit"
+                        class="tw-text-sm tw-font-bold tw-bg-indigo-600 hover:tw-bg-indigo-700 tw-text-white tw-px-5 tw-py-2 tw-rounded-lg tw-transition-all tw-flex tw-items-center tw-gap-2">
+                    <i class="fas fa-magnifying-glass"></i> Compare
+                </button>
+                <a href="/ac-test"
+                   class="tw-text-sm tw-font-semibold tw-text-slate-500 hover:tw-text-slate-700 tw-px-4 tw-py-2 tw-rounded-lg tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-transition-all tw-flex tw-items-center tw-gap-1.5">
+                    <i class="fas fa-xmark"></i> Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+
+    @* ── Period info ──────────────────────────────────────────────────────── *@
+    @if (Model.FiltersApplied)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-center tw-gap-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-xl tw-px-4 tw-py-2.5">
+            <i class="fas fa-calendar-days tw-text-blue-400"></i>
+            <span class="tw-text-sm tw-text-blue-700">
+                <span class="tw-font-bold">Commission Period:</span>
+                @Model.Filter.PeriodFrom.ToString("dd MMMM yyyy")
+                <i class="fas fa-arrow-right tw-mx-1 tw-text-xs"></i>
+                @Model.Filter.PeriodTo.ToString("dd MMMM yyyy")
+            </span>
+            <span class="tw-ml-auto tw-text-xs tw-text-blue-500 tw-font-semibold">
+                @Model.Filter.DisplayLabel
+            </span>
+        </div>
+
+        @* ── Summary cards ────────────────────────────────────────────────── *@
+        <div class="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-3 tw-mb-4">
+            <div class="tw-bg-white tw-border tw-border-green-200 tw-rounded-xl tw-px-4 tw-py-3 tw-flex tw-items-center tw-gap-3">
+                <i class="fas fa-circle-check tw-text-green-500 tw-text-xl"></i>
+                <div>
+                    <p class="tw-text-xs tw-text-slate-500 tw-m-0">Matched</p>
+                    <p class="tw-text-2xl tw-font-black tw-text-green-700 tw-m-0 tw-leading-tight">@Model.TotalMatch</p>
+                </div>
+            </div>
+            <div class="tw-bg-white tw-border tw-border-red-200 tw-rounded-xl tw-px-4 tw-py-3 tw-flex tw-items-center tw-gap-3">
+                <i class="fas fa-circle-xmark tw-text-red-500 tw-text-xl"></i>
+                <div>
+                    <p class="tw-text-xs tw-text-slate-500 tw-m-0">Mismatch / Empty</p>
+                    <p class="tw-text-2xl tw-font-black tw-text-red-700 tw-m-0 tw-leading-tight">@(Model.TotalMissing + Model.TotalMismatch)</p>
+                </div>
+            </div>
+            <div class="tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-px-4 tw-py-3 tw-flex tw-items-center tw-gap-3">
+                <i class="fas fa-circle-minus tw-text-slate-400 tw-text-xl"></i>
+                <div>
+                    <p class="tw-text-xs tw-text-slate-500 tw-m-0">Both Empty</p>
+                    <p class="tw-text-2xl tw-font-black tw-text-slate-600 tw-m-0 tw-leading-tight">@Model.TotalEmpty</p>
+                </div>
+            </div>
+            <div class="tw-bg-white tw-border tw-border-indigo-200 tw-rounded-xl tw-px-4 tw-py-3 tw-flex tw-items-center tw-gap-3">
+                <i class="fas fa-table tw-text-indigo-400 tw-text-xl"></i>
+                <div>
+                    <p class="tw-text-xs tw-text-slate-500 tw-m-0">Total Tables</p>
+                    <p class="tw-text-2xl tw-font-black tw-text-indigo-700 tw-m-0 tw-leading-tight">@Model.Rows.Count</p>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ── Comparison table ─────────────────────────────────────────────────── *@
+    <div class="tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-shadow-sm tw-overflow-hidden tw-mb-4">
+
+        @if (!Model.FiltersApplied)
+        {
+            @* No filter state *@
+            <div class="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-16 tw-text-center">
+                <div class="tw-w-14 tw-h-14 tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-mb-4">
+                    <i class="fas fa-filter tw-text-slate-400 tw-text-2xl"></i>
+                </div>
+                <p class="tw-text-base tw-font-bold tw-text-slate-600 tw-mb-1">Select City, Year, and Month to compare</p>
+                <p class="tw-text-sm tw-text-slate-400">Choose filters above and click <strong>Compare</strong> to see row counts.</p>
+            </div>
+        }
+        else
+        {
+            <table class="tw-w-full tw-text-sm">
+                <thead>
+                    <tr class="tw-bg-slate-50 tw-border-b tw-border-slate-200">
+                        <th class="tw-text-left tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-px-4 tw-py-3 tw-w-32">Group</th>
+                        <th class="tw-text-left tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-px-4 tw-py-3">Real Table</th>
+                        <th class="tw-text-left tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-px-4 tw-py-3">Test Table</th>
+                        <th class="tw-text-right tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-px-4 tw-py-3 tw-w-28">Real Rows</th>
+                        <th class="tw-text-right tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-px-4 tw-py-3 tw-w-28">Test Rows</th>
+                        <th class="tw-text-center tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-px-4 tw-py-3 tw-w-16">Filtered</th>
+                        <th class="tw-text-center tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-px-4 tw-py-3 tw-w-36">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var grouped = Model.Rows
+                            .GroupBy(r => r.CommissionGroup)
+                            .OrderBy(g => Array.IndexOf(groupOrder, g.Key));
+
+                        foreach (var group in grouped)
+                        {
+                            var colorClass = groupColors.GetValueOrDefault(group.Key,
+                                "tw-bg-slate-50 tw-text-slate-600 tw-border-slate-200");
+                            var label = groupLabels.GetValueOrDefault(group.Key, group.Key);
+
+                            @* Group header row *@
+                            <tr class="tw-border-b tw-border-t tw-border-slate-200">
+                                <td colspan="7" class="tw-px-4 tw-py-2">
+                                    <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-text-xs tw-font-bold tw-uppercase tw-tracking-wide @colorClass tw-border tw-rounded-md tw-px-2.5 tw-py-0.5">
+                                        <i class="fas fa-layer-group"></i>
+                                        @label
+                                    </span>
+                                </td>
+                            </tr>
+
+                            @* Table rows in this group *@
+                            foreach (var row in group)
+                            {
+                                <tr class="tw-border-b tw-border-slate-100 hover:tw-bg-slate-50">
+                                    <td class="tw-px-4 tw-py-2.5 tw-pl-8">
+                                        <span class="tw-text-xs tw-font-semibold tw-text-slate-400">@row.CommissionGroup</span>
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-font-mono tw-text-xs tw-text-slate-700">
+                                        @row.RealTable
+                                        @if (!row.RealExists)
+                                        {
+                                            <span class="tw-ml-1 tw-text-orange-500 tw-text-xs">(missing)</span>
+                                        }
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-font-mono tw-text-xs tw-text-purple-600">
+                                        @row.TestTable
+                                        @if (!row.TestExists)
+                                        {
+                                            <span class="tw-ml-1 tw-text-red-400 tw-text-xs">(missing)</span>
+                                        }
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-right tw-font-medium tw-text-slate-600">
+                                        @(row.RealExists ? (row.RealRows >= 0 ? row.RealRows.ToString("N0") : "err") : "—")
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-right tw-font-medium @(row.TestRows > 0 ? "tw-text-green-700" : "tw-text-slate-400")">
+                                        @(row.TestExists ? (row.TestRows >= 0 ? row.TestRows.ToString("N0") : "err") : "—")
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-center">
+                                        @if (row.IsFiltered)
+                                        {
+                                            <span class="tw-text-green-500 tw-font-bold" title="WHERE clause applied">✅</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tw-text-slate-300" title="Total count — column not filterable">〰</span>
+                                        }
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-center">
+                                        @switch (row.Status)
+                                        {
+                                            case "Match":
+                                                <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-bold tw-bg-green-100 tw-text-green-700">
+                                                    <i class="fas fa-circle-check"></i> Match
+                                                </span>
+                                                break;
+                                            case "TestEmpty":
+                                                <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-bold tw-bg-red-100 tw-text-red-700">
+                                                    <i class="fas fa-circle-xmark"></i> Test Empty
+                                                </span>
+                                                break;
+                                            case "Missing":
+                                                <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-bold tw-bg-red-100 tw-text-red-700">
+                                                    <i class="fas fa-circle-xmark"></i> Table Missing
+                                                </span>
+                                                break;
+                                            case "TestMore":
+                                                <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-bold tw-bg-yellow-100 tw-text-yellow-700">
+                                                    <i class="fas fa-triangle-exclamation"></i> Test &gt; Real
+                                                </span>
+                                                break;
+                                            case "TestLess":
+                                                <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-bold tw-bg-yellow-100 tw-text-yellow-700">
+                                                    <i class="fas fa-triangle-exclamation"></i> Test &lt; Real
+                                                </span>
+                                                break;
+                                            case "BothEmpty":
+                                                <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-bold tw-bg-slate-100 tw-text-slate-500">
+                                                    <i class="fas fa-circle-minus"></i> Both Empty
+                                                </span>
+                                                break;
+                                            case "RealMissing":
+                                                <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-bold tw-bg-orange-100 tw-text-orange-700">
+                                                    <i class="fas fa-triangle-exclamation"></i> Real Missing
+                                                </span>
+                                                break;
+                                            default:
+                                                <span class="tw-text-slate-400 tw-text-xs">—</span>
+                                                break;
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    @* ── Info note ────────────────────────────────────────────────────────── *@
+    @if (Model.FiltersApplied)
+    {
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-px-4 tw-py-3 tw-text-xs tw-text-slate-500 tw-mb-4">
+            <p class="tw-font-bold tw-text-slate-600 tw-mb-1">How to read this table:</p>
+            <p><span class="tw-font-semibold">Real rows</span> = data currently in production tables (for the selected city/period)</p>
+            <p class="tw-mt-0.5"><span class="tw-font-semibold">Test rows</span> = data inserted during AC_Test run (in _AC_Test tables)</p>
+            <p class="tw-mt-0.5"><span class="tw-font-semibold">Match</span> = test run produced identical row count as real data — both commission runs are in sync</p>
+            <p class="tw-mt-0.5"><span class="tw-font-semibold">✅ Filtered</span> = count scoped to selected city/year/month &nbsp;|&nbsp; <span class="tw-font-semibold">〰</span> = total table count (column not filterable for this table)</p>
+        </div>
+    }
+
+    @* ── Action buttons ───────────────────────────────────────────────────── *@
+    <div class="tw-flex tw-gap-2 tw-justify-end">
+        <form method="post" asp-action="Truncate" asp-controller="AcTest"
+              onsubmit="return confirm('Truncate ALL _AC_Test tables? This will delete all test run data.')">
+            @Html.AntiForgeryToken()
+            <button type="submit"
+                    class="tw-text-xs tw-font-bold tw-bg-orange-500 hover:tw-bg-orange-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-transition-all tw-flex tw-items-center tw-gap-1.5">
+                <i class="fas fa-trash"></i> Truncate All Test Tables
+            </button>
+        </form>
+        <form method="post" asp-action="Recreate" asp-controller="AcTest"
+              onsubmit="return confirm('DROP and RECREATE all _AC_Test tables from real table DDL? Any existing test data will be lost.')">
+            @Html.AntiForgeryToken()
+            <button type="submit"
+                    class="tw-text-xs tw-font-bold tw-bg-indigo-500 hover:tw-bg-indigo-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-transition-all tw-flex tw-items-center tw-gap-1.5">
+                <i class="fas fa-rotate"></i> Recreate Test Tables
+            </button>
+        </form>
+    </div>
+
+</div>
+
+@* ── JavaScript: dynamic station + employee dropdowns ─────────────────────── *@
+<script>
+(function () {
+    const citySelect    = document.getElementById('cityCodeSelect');
+    const yearInput     = document.getElementById('yearInput');
+    const monthInput    = document.getElementById('monthInput');
+    const stationSelect = document.getElementById('stationFilter');
+    const empSelect     = document.getElementById('empNoSelect');
+
+    // Restore current filter selections into disabled dropdowns
+    const currentStation = '@Html.Raw(Model.Filter.StationId ?? "")';
+    const currentEmp     = '@Html.Raw(Model.Filter.EmpNo ?? "")';
+
+    // ── City change: load stations ──────────────────────────────────────────
+    citySelect.addEventListener('change', function () {
+        const city = this.value;
+
+        // Reset station
+        stationSelect.innerHTML = '<option value="">— All Stations —</option>';
+        stationSelect.disabled  = !city;
+
+        if (!city) {
+            empSelect.innerHTML = '<option value="">— All Employees —</option>';
+            empSelect.disabled  = true;
+            return;
+        }
+
+        fetch('/ac-test/city-stations?cityCode=' + encodeURIComponent(city))
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value       = s.value;
+                    opt.textContent = s.text;
+                    if (s.value === currentStation) opt.selected = true;
+                    stationSelect.appendChild(opt);
+                });
+                stationSelect.disabled = false;
+            })
+            .catch(() => { stationSelect.disabled = false; });
+
+        tryLoadEmployees();
+    });
+
+    // ── Year/month change: reload employees ────────────────────────────────
+    yearInput.addEventListener('change',  tryLoadEmployees);
+    monthInput.addEventListener('change', tryLoadEmployees);
+
+    function tryLoadEmployees() {
+        const city  = citySelect.value;
+        const year  = yearInput.value;
+        const month = monthInput.value
+            || (monthInput.options && monthInput.options[monthInput.selectedIndex]
+                ? monthInput.options[monthInput.selectedIndex].value : '');
+
+        if (!city || !year || !month) return;
+
+        const url = '/ac-test/city-employees?cityCode='
+            + encodeURIComponent(city)
+            + '&year=' + encodeURIComponent(year)
+            + '&month=' + encodeURIComponent(month);
+
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                empSelect.innerHTML = '<option value="">— All Employees —</option>';
+                data.forEach(e => {
+                    const opt = document.createElement('option');
+                    opt.value       = e.value;
+                    opt.textContent = e.text;
+                    if (e.value === currentEmp) opt.selected = true;
+                    empSelect.appendChild(opt);
+                });
+                empSelect.disabled = (data.length === 0);
+            })
+            .catch(() => { empSelect.disabled = false; });
+    }
+
+    // ── On page load: re-enable dropdowns if city is already selected ──────
+    if (citySelect.value) {
+        // Trigger station load
+        citySelect.dispatchEvent(new Event('change'));
+    }
+})();
+</script>

@@ -1,0 +1,348 @@
+@model LCS_HR_MVC.Models.IncrementModel
+@{
+    ViewData["PageTitle"] = "Increment / Decrement";
+    var dataList = ViewBag.IncrementList as IEnumerable<LCS_HR_MVC.Models.IncrementModel> ?? new List<LCS_HR_MVC.Models.IncrementModel>();
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    
+}
+
+<div class="w-full p-6 bg-white">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="text-red-700 bg-red-100 border border-red-400 p-3 rounded mb-4 shadow-sm"><div class="font-medium"><strong>Error! </strong>@TempData["ErrorMessage"]</div></div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="text-green-700 bg-green-100 border border-green-400 p-3 rounded mb-4 shadow-sm"><div class="font-medium"><strong>Success! </strong>@TempData["SuccessMessage"]</div></div>
+    }
+
+    <div style="margin-bottom: 20px;"></div>
+    
+    <div class="w-full max-w-7xl mx-auto">
+        <table class="w-full shadow-lg bg-white rounded-lg border border-gray-200" style="width:100%;">
+            <tr>
+                <td colspan="2">
+                    <div class="p-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+                        <table width="750px" border="0" cellpadding="0" cellspacing="0">
+                            <tbody>
+                                <tr>
+                                    <td><span class="text-sm font-semibold text-gray-700">Search</span></td>
+                                    <td><input type="text" id="txtsearch" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Enter keyword to search" style="width:200px;" /></td>
+                                    <td>
+                                        <button type="button" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onclick="filterTable()">Search</button>
+                                        <button type="button" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onclick="resetSearch()">Clear Search</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td valign="top" width="55%" style="padding-right: 10px;">
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table id="dg1" class="tablesorter w-full border-collapse border border-gray-300 text-sm bg-white shadow-sm rounded-lg overflow-hidden" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Code</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Emp / Dept</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Mode</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Type</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Date</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in dataList)
+                                {
+                                    <tr class="gridRow hover:bg-gray-100 border-b border-gray-200 transition-colors">
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">
+                                            <a href="@Url.Action("Increment", "Transaction", new { code = item.Code })">@item.Code</a>
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@item.EmployeeName</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@(item.Mode == "E" ? "Employee Wise" : "Department Wise")</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@(item.Type == "I" ? "Increment" : "Decrement")</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@(item.FromDate?.ToString("dd/MM/yyyy"))</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@item.Amount</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+
+                <td style="vertical-align: baseline;">
+                    <form asp-controller="Transaction" asp-action="Increment" method="post" id="incForm" enctype="multipart/form-data">
+                        <fieldset class="border border-gray-300 p-5 rounded-md mb-4 bg-gray-50 shadow-sm">
+                            <legend class="text-sm font-semibold text-gray-800 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm">Entry</legend>
+                            <table class="w-full border-spacing-y-2 border-separate" width="98%" border="0" cellpadding="0" cellspacing="5">
+                                <tbody>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2" width="130">
+                                            <span class="text-sm font-semibold text-gray-700">Code</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" value="@Model.Code" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" disabled="disabled" style="width:190px;" />
+                                            <input type="hidden" asp-for="Code" id="Code" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Mode</span>
+                                        </td>
+                                        <td>
+                                            <label><input type="radio" asp-for="Mode" value="E" id="rbEmployeeWise" onclick="toggleMode();" /> Employee Wise</label>
+                                            <label><input type="radio" asp-for="Mode" value="D" id="rbDepartmetWise" onclick="toggleMode();" /> Department Wise</label>
+                                        </td>
+                                    </tr>
+
+                                    <tbody id="divDeptDDLS" style="display:@(Model.Mode == "D" ? "table-row-group" : "none");">
+                                        <tr>
+                                            <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                                <span class="text-sm font-semibold text-gray-700">Parent Dept</span>
+                                            </td>
+                                            <td>
+                                                <select asp-for="DepartmentId" asp-items="ViewBag.PDepts" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:190px;" id="PdeptDll">
+                                                    <option value="00">Please Select</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                                <span class="text-sm font-semibold text-gray-700">Sub Dept</span>
+                                            </td>
+                                            <td>
+                                                <select asp-for="SubDepartmentId" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:190px;" id="ddldept">
+                                                    <option value="00">Please Select</option>
+                                                </select>
+                                                <input type="hidden" id="hdnSubDeptId" value="@Model.SubDepartmentId" />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+
+                                    <tbody id="divEmployee" style="display:@(Model.Mode == "E" ? "table-row-group" : "none");">
+                                        <tr>
+                                            <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                                <span class="text-sm font-semibold text-gray-700">Employee</span>
+                                            </td>
+                                            <td>
+                                                <input type="text" asp-for="EmployeeDescription" id="txtEmployeeDescription" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:200px;" placeholder="Use wildcard '%'" />
+                                                <input type="text" asp-for="EmpNo" id="txtEmployeeCode" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:80px;" readonly="readonly" />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Type</span>
+                                        </td>
+                                        <td>
+                                            <select asp-for="Type" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:190px;">
+                                                <option value="I">Increment</option>
+                                                <option value="D">Decrement</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr id="trBasicSalary" style="display:@(Model.Mode == "E" ? "table-row" : "none");">
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Basic Salary</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" id="txtBasicSalary" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:140px;" disabled="disabled" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Date</span>
+                                        </td>
+                                        <td>
+                                            <input type="date" asp-for="FromDate" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:140px;" />
+                                            <span asp-validation-for="FromDate" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Amount</span>
+                                        </td>
+                                        <td>
+                                            <input type="number" step="0.01" asp-for="Amount" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:140px;" />
+                                            <span asp-validation-for="Amount" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Comments</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" asp-for="Comments" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:270px;" maxlength="45" />
+                                        </td>
+                                    </tr>
+                                    @if(Model.Code == "Auto Generated" && Model.Mode == "E")
+                                    {
+                                        <tr id="trUploader">
+                                            <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                                <span class="text-sm font-semibold text-gray-700">CSV Upload</span>
+                                            </td>
+                                            <td>
+                                                <input type="file" asp-for="BulkUploadFile" accept=".csv" />
+                                                <button type="submit" name="action" value="BulkUpload" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" formnovalidate>Upload</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </fieldset>
+
+                        <div class="buttonWrapper" style="margin-top:10px;">
+                            <button type="submit" name="action" value="Save" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnSave" @(Model.Code != "Auto Generated" ? "disabled" : "")>Save</button>
+                            <button type="submit" name="action" value="Update" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnUpdate" @(Model.Code == "Auto Generated" ? "disabled" : "")>Update</button>
+                            <button type="submit" name="action" value="Delete" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnDelete" @(Model.Code == "Auto Generated" ? "disabled" : "") onclick="return confirm('Do you want to delete?');">Delete</button>
+                            <button type="submit" name="action" value="Reset" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnReset" formnovalidate>Reset</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+        function toggleMode() {
+            if ($('#rbDepartmetWise').is(':checked')) {
+                $('#divDeptDDLS').css("display", "table-row-group");
+                $('#divEmployee').css("display", "none");
+                $('#trBasicSalary').css("display", "none");
+                $('#trUploader').css("display", "none");
+            } else {
+                $('#divDeptDDLS').css("display", "none");
+                $('#divEmployee').css("display", "table-row-group");
+                $('#trBasicSalary').css("display", "table-row");
+                if ($('#Code').val() === "Auto Generated") {
+                    $('#trUploader').css("display", "table-row");
+                }
+            }
+        }
+
+        $(document).ready(function () {
+            if ($.fn.DataTable) {
+                $('#dg1').DataTable({
+                    "pageLength": 12,
+                    "lengthChange": false,
+                    "searching": true,
+                    "info": true
+                });
+            }
+
+            // Employee Autocomplete
+            $("#txtEmployeeDescription").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("SearchActiveEmployees", "Setup")',
+                        type: "GET",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.label, value: item.desc, id: item.value };
+                            }))
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    $("#txtEmployeeDescription").val(ui.item.value);
+                    $("#txtEmployeeCode").val(ui.item.id);
+                    fetchBasicSalary(ui.item.id);
+                    return false;
+                },
+                minLength: 1
+            });
+            
+            $("#txtEmployeeDescription").keyup(function() {
+                if (!$(this).val()) {
+                    $("#txtEmployeeCode").val('');
+                    $("#txtBasicSalary").val('');
+                }
+            });
+
+            function fetchBasicSalary(empNo) {
+                if(empNo) {
+                    $.ajax({
+                        url: '@Url.Action("GetEmployeeSalaryInfo", "AdvanceSalary")', // Reusing AdvanceSalary endpoint for basic salary
+                        type: "GET",
+                        data: { empNo: empNo },
+                        success: function(res) {
+                            if(res && res.success) {
+                                $("#txtBasicSalary").val(res.basicSalary);
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Cascading Dept
+            $("#PdeptDll").change(function() {
+                var pId = $(this).val();
+                var ddlSub = $("#ddldept");
+                ddlSub.empty().append('<option value="00">Please Select</option>');
+
+                if (pId && pId !== "00") {
+                    $.ajax({
+                        url: '@Url.Action("GetSubDepartmentsByParent", "Transaction")',
+                        type: "GET",
+                        data: { parentId: pId },
+                        success: function (res) {
+                            if(res && res.subs && res.subs.length > 0) {
+                                $.each(res.subs, function (i, item) {
+                                    if(item.value !== "00") {
+                                        ddlSub.append('<option value="' + item.value + '">' + item.text + '</option>');
+                                    }
+                                });
+                            }
+                            var hdn = $("#hdnSubDeptId").val();
+                            if(hdn) {
+                                ddlSub.val(hdn);
+                                $("#hdnSubDeptId").val('');
+                            }
+                        }
+                    });
+                }
+            });
+
+            toggleMode();
+            
+            if ($("#PdeptDll").val() !== "00") {
+                $("#PdeptDll").trigger("change");
+            }
+        });
+
+        function filterTable() {
+            var input = document.getElementById("txtsearch");
+            var filter = input.value.toUpperCase();
+            var table = document.getElementById("dg1");
+            var tr = table.getElementsByTagName("tr");
+
+            for (var i = 1; i < tr.length; i++) {
+                var td = tr[i].getElementsByTagName("td")[1]; // Emp/Dept Name
+                if (td) {
+                    var txt = td.textContent || td.innerText;
+                    if (txt.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }       
+            }
+        }
+
+        function resetSearch() {
+            document.getElementById("txtsearch").value = "";
+            filterTable();
+        }
+    </script>
+}

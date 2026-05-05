@@ -1,0 +1,1128 @@
+@{
+    ViewData["PageTitle"] = "Commission Working Flow";
+    ViewData["Title"]     = "Commission Working Flow";
+}
+
+@section Styles {
+<style>
+/* ── Layout ── */
+.wf-wrap { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+/* ── Pipeline Banner ── */
+.pipeline-flow { display:flex; align-items:center; flex-wrap:wrap; gap:.25rem; }
+.pipe-step { display:flex; align-items:center; gap:.25rem; }
+.pipe-badge {
+    display:inline-flex; align-items:center; gap:.35rem;
+    padding:.35rem .75rem; border-radius:9999px;
+    font-size:.72rem; font-weight:800; letter-spacing:.04em; white-space:nowrap;
+}
+.pipe-arrow { color:#94a3b8; font-size:1rem; }
+
+/* ── Commission Card ── */
+.comm-card { background:#fff; border-radius:1rem; box-shadow:0 1px 6px rgba(0,0,0,.07); border:1px solid #e2e8f0; margin-bottom:1.25rem; overflow:hidden; }
+.comm-header { display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; cursor:pointer; user-select:none; }
+.comm-header:hover { background:#f8fafc; }
+.comm-icon { width:2.25rem; height:2.25rem; border-radius:.6rem; display:flex; align-items:center; justify-content:center; font-size:.95rem; flex-shrink:0; }
+.comm-title { font-size:1rem; font-weight:800; color:#1e293b; }
+.comm-subtitle { font-size:.75rem; color:#64748b; font-weight:500; margin-top:.1rem; }
+.comm-badges { display:flex; gap:.4rem; flex-wrap:wrap; }
+.badge-auto { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+.badge-manual { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+.badge-step { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
+.badge-sm { padding:.15rem .5rem; border-radius:9999px; font-size:.65rem; font-weight:800; }
+.comm-toggle { margin-left:auto; color:#94a3b8; transition:transform .2s; }
+.comm-toggle.open { transform:rotate(180deg); }
+
+/* ── Commission Body ── */
+.comm-body { display:none; padding:0 1.25rem 1.25rem; border-top:1px solid #f1f5f9; }
+.comm-body.open { display:block; }
+
+/* ── Sub-sections ── */
+.section-grid { display:grid; grid-template-columns:1fr; gap:1rem; margin-top:1rem; }
+@@media(min-width:768px){ .section-grid { grid-template-columns:1fr 1fr; } }
+@@media(min-width:1024px){ .section-grid-3 { grid-template-columns:1fr 1fr 1fr; } }
+
+.sub-card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:.6rem; padding:.9rem 1rem; }
+.sub-title { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#475569; margin-bottom:.5rem; display:flex; align-items:center; gap:.4rem; }
+.sub-title i { opacity:.7; }
+
+/* ── Info Tables ── */
+.info-table { width:100%; border-collapse:collapse; font-size:.78rem; }
+.info-table th { background:#f1f5f9; color:#475569; font-weight:700; padding:.4rem .65rem; text-align:left; font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; }
+.info-table td { padding:.4rem .65rem; color:#334155; border-top:1px solid #f1f5f9; vertical-align:top; }
+.info-table tr:first-child td { border-top:none; }
+.info-table td.label { font-weight:700; color:#475569; white-space:nowrap; }
+.info-table td code { background:#e2e8f0; color:#1e293b; font-size:.72rem; padding:.05rem .3rem; border-radius:.25rem; font-family:monospace; }
+
+/* ── Step list ── */
+.step-list { counter-reset:step; list-style:none; padding:0; margin:0; }
+.step-list li { counter-increment:step; display:flex; gap:.6rem; font-size:.78rem; color:#334155; padding:.35rem 0; border-bottom:1px solid #f1f5f9; }
+.step-list li:last-child { border-bottom:none; }
+.step-list li::before {
+    content:counter(step); min-width:1.35rem; height:1.35rem; border-radius:50%;
+    background:#e2e8f0; color:#475569; font-size:.65rem; font-weight:800;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:.05rem;
+}
+
+/* ── Pill tags ── */
+.tag { display:inline-block; padding:.1rem .45rem; border-radius:.3rem; font-size:.68rem; font-weight:700; margin:.1rem .1rem 0 0; }
+.tag-blue { background:#dbeafe; color:#1e40af; }
+.tag-green { background:#dcfce7; color:#166534; }
+.tag-orange { background:#ffedd5; color:#9a3412; }
+.tag-red { background:#fee2e2; color:#991b1b; }
+.tag-purple { background:#ede9fe; color:#5b21b6; }
+.tag-gray { background:#f1f5f9; color:#475569; }
+.tag-yellow { background:#fef9c3; color:#854d0e; }
+
+/* ── Hardcoded value block ── */
+.hc-row { display:flex; align-items:flex-start; gap:.6rem; padding:.35rem 0; border-bottom:1px dashed #e2e8f0; font-size:.76rem; }
+.hc-row:last-child { border-bottom:none; }
+.hc-val { font-weight:800; font-family:monospace; background:#fef3c7; color:#92400e; padding:.1rem .4rem; border-radius:.25rem; white-space:nowrap; flex-shrink:0; }
+.hc-desc { color:#475569; }
+
+/* ── Dependency chain ── */
+.dep-chain { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; font-size:.75rem; font-weight:700; }
+.dep-node { padding:.3rem .7rem; border-radius:.5rem; border:1px solid #e2e8f0; background:#f8fafc; color:#334155; }
+.dep-node.active { border-color:#6366f1; background:#eef2ff; color:#3730a3; }
+.dep-arrow { color:#94a3b8; }
+
+/* ── Color themes per commission ── */
+.theme-blue   .comm-icon { background:#dbeafe; color:#1d4ed8; }
+.theme-purple .comm-icon { background:#ede9fe; color:#6d28d9; }
+.theme-orange .comm-icon { background:#ffedd5; color:#c2410c; }
+.theme-rose   .comm-icon { background:#ffe4e6; color:#be123c; }
+.theme-green  .comm-icon { background:#dcfce7; color:#15803d; }
+.theme-amber  .comm-icon { background:#fef3c7; color:#b45309; }
+.theme-indigo .comm-icon { background:#e0e7ff; color:#4338ca; }
+
+.theme-blue   .comm-header { border-left:4px solid #3b82f6; }
+.theme-purple .comm-header { border-left:4px solid #8b5cf6; }
+.theme-orange .comm-header { border-left:4px solid #f97316; }
+.theme-rose   .comm-header { border-left:4px solid #f43f5e; }
+.theme-green  .comm-header { border-left:4px solid #22c55e; }
+.theme-amber  .comm-header { border-left:4px solid #f59e0b; }
+.theme-indigo .comm-header { border-left:4px solid #6366f1; }
+
+/* ── Server info box ── */
+.server-box { display:flex; align-items:flex-start; gap:.5rem; padding:.55rem .75rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:.5rem; font-size:.75rem; margin-bottom:.4rem; }
+.server-box.mis { background:#f0f9ff; border-color:#bae6fd; }
+.server-box.billing { background:#fff7ed; border-color:#fed7aa; }
+.server-box.ops { background:#fdf4ff; border-color:#e9d5ff; }
+.server-box.main { background:#f0fdf4; border-color:#bbf7d0; }
+.server-ip { font-family:monospace; font-weight:800; color:#1e293b; }
+
+/* ── Section header chip ── */
+.chip { display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .65rem; border-radius:9999px; font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.07em; }
+</style>
+}
+
+<div class="wf-wrap">
+
+<!-- ═══════════════════════════════════════ PAGE HEADER ═══════════════════════════════════════ -->
+<div style="background:linear-gradient(135deg,#1e293b,#334155); border-radius:1rem; padding:1.5rem 1.75rem; margin-bottom:1.5rem; color:#fff;">
+    <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+        <div style="width:3rem;height:3rem;background:rgba(245,197,24,.15);border:1px solid rgba(245,197,24,.3);border-radius:.75rem;display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-project-diagram" style="color:#f5c518;font-size:1.2rem;"></i>
+        </div>
+        <div>
+            <h1 style="font-size:1.35rem;font-weight:900;letter-spacing:-.02em;margin:0;">Commission Working Flow</h1>
+            <p style="font-size:.8rem;color:#94a3b8;margin:.3rem 0 0;">Complete reference for all 7 commission processes — data sources, logic, formulas, dependencies, and automation coverage.</p>
+        </div>
+        <div style="margin-left:auto; display:flex; gap:.5rem; flex-wrap:wrap;">
+            <span class="chip" style="background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.25);">
+                <i class="fas fa-robot"></i> 6 Automated
+            </span>
+            <span class="chip" style="background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.25);">
+                <i class="fas fa-hand-pointer"></i> 1 Manual Tool
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════ PIPELINE OVERVIEW ═══════════════════════════════════════ -->
+<div class="comm-card" style="margin-bottom:1.25rem;">
+    <div style="padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9;">
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#64748b;margin-bottom:.75rem;">
+            <i class="fas fa-stream" style="margin-right:.4rem;"></i>Execution Order &amp; Pipeline Overview
+        </div>
+        <div class="pipeline-flow">
+            <div class="pipe-step">
+                <span class="pipe-badge" style="background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;">
+                    <i class="fas fa-money-bill-wave"></i> 1. Cash Commission
+                </span>
+            </div>
+            <span class="pipe-arrow">→</span>
+            <div class="pipe-step">
+                <span class="pipe-badge" style="background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe;">
+                    <i class="fas fa-hand-holding-usd"></i> 2. COD Commission
+                </span>
+            </div>
+            <span class="pipe-arrow">→</span>
+            <div class="pipe-step">
+                <span class="pipe-badge" style="background:#ffedd5;color:#c2410c;border:1px solid #fed7aa;">
+                    <i class="fas fa-truck"></i> 3. OverLand Commission
+                </span>
+            </div>
+            <span class="pipe-arrow">→</span>
+            <div class="pipe-step">
+                <span class="pipe-badge" style="background:#ffe4e6;color:#be123c;border:1px solid #fecdd3;">
+                    <i class="fas fa-undo-alt"></i> 4. Return COD Commission
+                </span>
+            </div>
+            <span class="pipe-arrow">→</span>
+            <div class="pipe-step">
+                <span class="pipe-badge" style="background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;">
+                    <i class="fas fa-layer-group"></i> 5. Commission Process (Master)
+                </span>
+            </div>
+            <span class="pipe-arrow">→</span>
+            <div class="pipe-step">
+                <span class="pipe-badge" style="background:#e0e7ff;color:#4338ca;border:1px solid #c7d2fe;">
+                    <i class="fas fa-flag-checkered"></i> 6. Final Commission
+                </span>
+            </div>
+            <span class="pipe-arrow" style="color:#f59e0b;">→</span>
+            <div class="pipe-step">
+                <span class="pipe-badge" style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;">
+                    <i class="fas fa-user-cog"></i> 7. Employee Reprocess <span style="font-size:.6rem;opacity:.8;">(Manual Tool)</span>
+                </span>
+            </div>
+        </div>
+    </div>
+    <div style="padding:.75rem 1.25rem; display:flex; flex-wrap:wrap; gap:1.5rem; font-size:.75rem; color:#475569;">
+        <span><i class="fas fa-server" style="color:#6366f1;margin-right:.3rem;"></i><strong>Main HR DB:</strong> lcs_hr &nbsp;&#64;&nbsp; <code style="background:#f1f5f9;padding:.1rem .3rem;border-radius:.25rem;font-family:monospace;">172.16.0.10</code></span>
+        <span><i class="fas fa-server" style="color:#f97316;margin-right:.3rem;"></i><strong>MIS:</strong> lcs_incentive &nbsp;&#64;&nbsp; <code style="background:#f1f5f9;padding:.1rem .3rem;border-radius:.25rem;font-family:monospace;">172.16.0.7</code></span>
+        <span><i class="fas fa-server" style="color:#8b5cf6;margin-right:.3rem;"></i><strong>LHR_Billing:</strong> lcs_billing &nbsp;&#64;&nbsp; <code style="background:#f1f5f9;padding:.1rem .3rem;border-radius:.25rem;font-family:monospace;">172.16.0.6</code></span>
+        <span><i class="fas fa-server" style="color:#ec4899;margin-right:.3rem;"></i><strong>Central_OPS:</strong> lcs_db / lcs &nbsp;&#64;&nbsp; <code style="background:#f1f5f9;padding:.1rem .3rem;border-radius:.25rem;font-family:monospace;">172.16.0.18</code></span>
+        <span><i class="fas fa-calendar-alt" style="color:#64748b;margin-right:.3rem;"></i><strong>Commission Period:</strong> 21st prev month → 20th current month</span>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COMMISSION 1 — CASH COMMISSION                                 -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="comm-card theme-blue">
+    <div class="comm-header" onclick="toggleComm('c1')">
+        <div class="comm-icon"><i class="fas fa-money-bill-wave"></i></div>
+        <div>
+            <div class="comm-title">Cash Commission</div>
+            <div class="comm-subtitle">Step 1 of 6 in automation pipeline &mdash; Prerequisite for Master Commission</div>
+        </div>
+        <div class="comm-badges">
+            <span class="badge-sm badge-step">Step 1</span>
+            <span class="badge-sm badge-auto">Automated</span>
+        </div>
+        <i class="fas fa-chevron-down comm-toggle" id="toggle-c1"></i>
+    </div>
+    <div class="comm-body" id="body-c1">
+
+        <!-- Overview -->
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-info-circle"></i> Overview</div>
+                <p style="font-size:.78rem;color:#334155;margin:0;">
+                    Processes cash delivery commissions for all shipment types handled by a city's couriers during the commission period.
+                    Reads raw billing data from the LHR_Billing server, applies shipment-type filters, calculates base commission and insurance commission per consignment,
+                    then writes the results to <code>hr_cash_consignments</code> on the main HR DB.
+                    Also processes VAS (Value-Added Service) commissions from Central_OPS.
+                </p>
+                <div style="margin-top:.65rem; display:flex; gap:.4rem; flex-wrap:wrap;">
+                    <span class="tag tag-blue">Prerequisite for Step 5</span>
+                    <span class="tag tag-green">Billing Source</span>
+                    <span class="tag tag-purple">VAS Included</span>
+                </div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-server"></i> Server &amp; Connections</div>
+                <div class="server-box billing">
+                    <i class="fas fa-server" style="color:#c2410c;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.6 — LHR_Billing</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Database: <strong>lcs_billing</strong> &amp; <strong>lcs</strong> &nbsp;|&nbsp; Connection key: <code>LHR_Billing</code></div>
+                        <div style="font-size:.7rem;color:#6b7280;">Source tables: <code>lcs_billing.billing_details</code>, <code>lcs.city</code>, <code>lcs.zone_color</code></div>
+                    </div>
+                </div>
+                <div class="server-box ops">
+                    <i class="fas fa-server" style="color:#9333ea;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.18 — Central_OPS</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Database: <strong>lcs</strong> &nbsp;|&nbsp; Connection key: <code>Central_OPS</code></div>
+                        <div style="font-size:.7rem;color:#6b7280;">VAS source: <code>lcs.rms_cod_booking</code></div>
+                    </div>
+                </div>
+                <div class="server-box main">
+                    <i class="fas fa-server" style="color:#15803d;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.10 — Main HR DB</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Database: <strong>lcs_hr</strong> &nbsp;|&nbsp; Output tables written here</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing Logic -->
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-cogs"></i> Processing Logic — Step by Step</div>
+            <ol class="step-list">
+                <li><strong>Validate:</strong> EnsureProcessesOpenAsync — rejects if month is closed in <code>hr_closeprocesses</code>. Validates user city access via <code>hr_cityaccess</code>.</li>
+                <li><strong>Context:</strong> PrepareCashCommissionExecutionContextAsync — resolves city's station IDs via <code>hr_locationmapping</code> and <code>lcs_setup.locations</code>. Builds FromDate (21st prev month) and ToDate (20th current month).</li>
+                <li><strong>Existing check:</strong> If <code>hr_cash_consignments</code> already has rows for this city/month/year, throws "Already Processed on [date]".</li>
+                <li><strong>Load cash rows:</strong> LoadCashCommissionSourceRowsAsync — reads <code>lcs_billing.billing_details</code> filtered by Station_id IN stationIds AND booking_date BETWEEN FromDate and ToDate AND Shipment_ID in the covered list (20+ shipment types).</li>
+                <li><strong>Load VAS rows:</strong> LoadCashVasCommissionSourceRowsAsync — reads <code>lcs.rms_cod_booking</code> (Central_OPS) for the same period and stations.</li>
+                <li><strong>Transaction:</strong> Opens single MySqlTransaction on main HR DB.</li>
+                <li><strong>Save cash rows:</strong> SaveCashCommissionRowsAsync — inserts processed rows into <code>hr_cash_consignments</code>. Applies billing type classification, commission rate lookup, and insurance flag logic.</li>
+                <li><strong>Acknowledgment:</strong> InsertCashCommissionAcknowledgmentAsync — inserts into <code>hr_acknowledgment</code> (called twice: once for cash, once for VAS).</li>
+                <li><strong>Save VAS rows:</strong> SaveCashVasRowsAsync — inserts VAS incentive rows into <code>hr_vas_incentive_detail</code>.</li>
+                <li><strong>Commit:</strong> Single commit covers both cash and VAS rows.</li>
+            </ol>
+        </div>
+
+        <!-- Data Sources & Shipment IDs -->
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-table"></i> Covered Shipment IDs</div>
+                <table class="info-table">
+                    <tr><td class="label">Overnight</td><td><code>17, 9, 40, 41</code></td></tr>
+                    <tr><td class="label">YellowBox 1KG</td><td><code>21, 65, 68, 71</code></td></tr>
+                    <tr><td class="label">YellowBox 2KG</td><td><code>22, 66, 69, 72</code></td></tr>
+                    <tr><td class="label">YellowBox 5KG</td><td><code>23, 52, 67, 70, 73</code></td></tr>
+                    <tr><td class="label">YellowBox 10KG</td><td><code>24</code></td></tr>
+                    <tr><td class="label">YellowBox 15KG</td><td><code>32</code></td></tr>
+                    <tr><td class="label">YellowBox 25KG</td><td><code>25, 53</code></td></tr>
+                    <tr><td class="label">Flyer</td><td><code>10, 20, 61</code></td></tr>
+                    <tr><td class="label">Economy+Detain25</td><td><code>2, 33, 42, 55, 56, 57, 58, 59, 60</code></td></tr>
+                    <tr><td class="label">Overland</td><td><code>3, 8, 38</code></td></tr>
+                    <tr><td class="label">Prepaid</td><td><code>26</code></td></tr>
+                    <tr><td class="label">LoveLine</td><td><code>4</code></td></tr>
+                    <tr><td class="label">International/Student</td><td><code>6, 7, 34, 47</code></td></tr>
+                    <tr><td class="label">Mofa O2O</td><td><code>27</code></td></tr>
+                    <tr><td class="label">Mofa O2D</td><td><code>28</code></td></tr>
+                    <tr><td class="label">RMS COD</td><td><code>99</code></td></tr>
+                    <tr><td class="label">RBI Express</td><td><code>17, 18, 19, 20, 9, 40, 41</code></td></tr>
+                    <tr><td class="label">All-in-One</td><td><code>48</code></td></tr>
+                    <tr><td class="label">Document Care</td><td><code>49</code></td></tr>
+                </table>
+            </div>
+            <div>
+                <div class="sub-card" style="margin-bottom:1rem;">
+                    <div class="sub-title"><i class="fas fa-calculator"></i> Formulas &amp; Calculations</div>
+                    <table class="info-table">
+                        <tr><td class="label">Base Commission</td><td>Rate from <code>hr_commissionpolicy</code> by ShipmentType &amp; BillingType. IsPercent=1 → amount × rate / 100. IsPercent=0 → flat rate per consignment.</td></tr>
+                        <tr><td class="label">Insurance Commission</td><td>Applied when insurance flag is set on consignment. Separate rate from policy table.</td></tr>
+                        <tr><td class="label">VAS Commission</td><td>Rate from <code>hr_vas_incentive_detail</code> policy. Tied to RMS COD booking records.</td></tr>
+                        <tr><td class="label">Period Formula</td><td>FromDate = 21st of (month − 1). ToDate = 20th of current month. Source: <code>CommissionStartDay=21, CommissionEndDay=20, CommissionStartDiff=−1</code></td></tr>
+                    </table>
+                </div>
+                <div class="sub-card">
+                    <div class="sub-title"><i class="fas fa-lock"></i> Hardcoded Values</div>
+                    <div class="hc-row"><span class="hc-val">21</span><span class="hc-desc"><strong>CommissionStartDay</strong> — Period starts on 21st of previous month. Defined in <code>PayrollService.Commission.cs</code></span></div>
+                    <div class="hc-row"><span class="hc-val">20</span><span class="hc-desc"><strong>CommissionEndDay</strong> — Period ends on 20th of current month.</span></div>
+                    <div class="hc-row"><span class="hc-val">−1</span><span class="hc-desc"><strong>CommissionStartDiff</strong> — AddMonths(−1) to get previous month start date.</span></div>
+                    <div class="hc-row"><span class="hc-val">LHR_Billing</span><span class="hc-desc">Connection string key for billing server.</span></div>
+                    <div class="hc-row"><span class="hc-val">Central_OPS</span><span class="hc-desc">Connection string key for VAS/OPS server.</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output & Dependencies -->
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-database"></i> Output Tables</div>
+                <table class="info-table">
+                    <tr><th>Table</th><th>DB</th><th>Content</th></tr>
+                    <tr><td><code>hr_cash_consignments</code></td><td>lcs_hr</td><td>Cash commission rows per consignment</td></tr>
+                    <tr><td><code>hr_vas_incentive_detail</code></td><td>lcs_hr</td><td>VAS incentive rows</td></tr>
+                    <tr><td><code>hr_acknowledgment</code></td><td>lcs_hr</td><td>Audit record (type=1)</td></tr>
+                </table>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-sitemap"></i> Dependencies</div>
+                <div style="font-size:.75rem;color:#475569;margin-bottom:.5rem;"><strong>Prerequisite:</strong> None — runs first</div>
+                <div style="font-size:.75rem;color:#475569;margin-bottom:.5rem;"><strong>Required by:</strong> Step 5 (Commission Process Master) reads <code>hr_cash_consignments</code></div>
+                <div class="dep-chain">
+                    <span class="dep-node active">Step 1 Cash</span>
+                    <span class="dep-arrow">→</span>
+                    <span class="dep-node">Step 2 COD</span>
+                    <span class="dep-arrow">→</span>
+                    <span class="dep-node">Step 3 OLE</span>
+                    <span class="dep-arrow">→</span>
+                    <span class="dep-node">Step 4 RetCOD</span>
+                    <span class="dep-arrow">→</span>
+                    <span class="dep-node">Step 5 Master</span>
+                </div>
+            </div>
+        </div>
+    </div><!-- /body-c1 -->
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COMMISSION 2 — COD COMMISSION                                   -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="comm-card theme-purple">
+    <div class="comm-header" onclick="toggleComm('c2')">
+        <div class="comm-icon"><i class="fas fa-hand-holding-usd"></i></div>
+        <div>
+            <div class="comm-title">COD Commission</div>
+            <div class="comm-subtitle">Step 2 of 6 in automation pipeline &mdash; Cash-on-Delivery courier commissions</div>
+        </div>
+        <div class="comm-badges">
+            <span class="badge-sm badge-step">Step 2</span>
+            <span class="badge-sm badge-auto">Automated</span>
+        </div>
+        <i class="fas fa-chevron-down comm-toggle" id="toggle-c2"></i>
+    </div>
+    <div class="comm-body" id="body-c2">
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-info-circle"></i> Overview</div>
+                <p style="font-size:.78rem;color:#334155;margin:0;">
+                    Processes COD commissions earned by couriers for collecting Cash-on-Delivery payments from recipients.
+                    Data is sourced from the Central_OPS server (<code>lcs_db.arival</code>).
+                    COD amounts are matched against bank transaction records and COD ranges to compute commission brackets.
+                    Includes consignment-level activity rows, return shipments, and consolidated commission records.
+                </p>
+                <div style="margin-top:.65rem; display:flex; gap:.4rem; flex-wrap:wrap;">
+                    <span class="tag tag-purple">COD Brackets</span>
+                    <span class="tag tag-blue">Activity Rows</span>
+                    <span class="tag tag-orange">Return Tracking</span>
+                </div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-server"></i> Server &amp; Connections</div>
+                <div class="server-box ops">
+                    <i class="fas fa-server" style="color:#9333ea;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.18 — Central_OPS</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Database: <strong>lcs_db</strong> &nbsp;|&nbsp; Connection key: <code>Central_OPS</code></div>
+                        <div style="font-size:.7rem;color:#6b7280;">Source tables: <code>lcs_db.arival</code>, <code>lcs_db.cod_ranges</code>, <code>cod_payment_receive</code>, <code>lcs_db.cod_download</code>, <code>tbl_lcs_bank_transaction</code></div>
+                    </div>
+                </div>
+                <div class="server-box main">
+                    <i class="fas fa-server" style="color:#15803d;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.10 — Main HR DB</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Database: <strong>lcs_hr</strong> &nbsp;|&nbsp; Also reads: <code>hr_codreturn_consignments</code></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-cogs"></i> Processing Logic — Step by Step</div>
+            <ol class="step-list">
+                <li><strong>Session isolation:</strong> Sets <code>SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED</code> to prevent dirty reads from concurrent billing activity.</li>
+                <li><strong>Context:</strong> PrepareCodCommissionExecutionContextAsync — resolves station IDs, builds date range, loads source rows from <code>lcs_db.arival</code> filtered by COUR_DATE BETWEEN FromDate and ToDate AND Station_id IN stationIds.</li>
+                <li><strong>Existing check:</strong> If <code>hr_codcommission</code> already has rows for this city/month/year → "Already Processed on [date]".</li>
+                <li><strong>COD ranges JOIN:</strong> Each COD amount is matched to <code>lcs_db.cod_ranges</code> to determine the commission bracket (lower_limit, upper_limit → commission amount).</li>
+                <li><strong>Payment verification:</strong> Joins <code>cod_payment_receive.cod_receive</code> to confirm payment was actually received before computing commission.</li>
+                <li><strong>Download filter:</strong> Excludes CNs present in <code>lcs_db.cod_download WHERE collect_amount=0</code> (not yet collected).</li>
+                <li><strong>Bank transaction:</strong> Cross-references <code>tbl_lcs_bank_transaction</code> for final payment confirmation.</li>
+                <li><strong>Activity rows:</strong> Inserts per-activity breakdown into <code>hr_cod_consignments</code>.</li>
+                <li><strong>Return tracking:</strong> Inserts return shipment rows into staging; cross-references <code>hr_codreturn_consignments</code>.</li>
+                <li><strong>Commission rows:</strong> Final aggregated commission per employee inserted into <code>hr_codcommission</code>.</li>
+                <li><strong>Commit:</strong> Single transaction covers all 4 insert operations.</li>
+            </ol>
+        </div>
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-calculator"></i> Formulas &amp; Calculations</div>
+                <table class="info-table">
+                    <tr><td class="label">Commission Amount</td><td>Looked up from <code>lcs_db.cod_ranges</code> by COD collected amount bracket. Each bracket has a fixed commission value.</td></tr>
+                    <tr><td class="label">Eligibility Filter</td><td>Only CNs where <code>cod_payment_receive.cod_receive</code> is confirmed AND <code>cod_download.collect_amount &gt; 0</code></td></tr>
+                    <tr><td class="label">Return Deduction</td><td>Return shipments tracked separately; deducted from commission at Master step</td></tr>
+                </table>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-database"></i> Output Tables</div>
+                <table class="info-table">
+                    <tr><th>Table</th><th>DB</th><th>Content</th></tr>
+                    <tr><td><code>hr_codcommission</code></td><td>lcs_hr</td><td>Aggregated COD commission per employee</td></tr>
+                    <tr><td><code>hr_cod_consignments</code></td><td>lcs_hr</td><td>Per-consignment activity rows</td></tr>
+                    <tr><td><code>hr_all_cod_consignment</code></td><td>lcs_hr</td><td>All COD consignment staging</td></tr>
+                    <tr><td><code>hr_acknowledgment</code></td><td>lcs_hr</td><td>Audit record</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-lock"></i> Hardcoded Values</div>
+            <div class="hc-row"><span class="hc-val">READ COMMITTED</span><span class="hc-desc">Transaction isolation level set at session start. Prevents phantom reads from billing activity during processing.</span></div>
+            <div class="hc-row"><span class="hc-val">Central_OPS</span><span class="hc-desc">Connection string key for the Central_OPS server at 172.16.0.18. Set via OpenExternalCodConnectionAsync.</span></div>
+            <div class="hc-row"><span class="hc-val">collect_amount = 0</span><span class="hc-desc">Filter in cod_download exclusion — excludes CNs not yet collected from COD commission eligibility.</span></div>
+        </div>
+    </div><!-- /body-c2 -->
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COMMISSION 3 — OVERLAND COMMISSION                             -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="comm-card theme-orange">
+    <div class="comm-header" onclick="toggleComm('c3')">
+        <div class="comm-icon"><i class="fas fa-truck"></i></div>
+        <div>
+            <div class="comm-title">OverLand Commission</div>
+            <div class="comm-subtitle">Step 3 of 6 &mdash; OLE (OverLand Express) &amp; RBI route-based incentives</div>
+        </div>
+        <div class="comm-badges">
+            <span class="badge-sm badge-step">Step 3</span>
+            <span class="badge-sm badge-auto">Automated</span>
+        </div>
+        <i class="fas fa-chevron-down comm-toggle" id="toggle-c3"></i>
+    </div>
+    <div class="comm-body" id="body-c3">
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-info-circle"></i> Overview</div>
+                <p style="font-size:.78rem;color:#334155;margin:0;">
+                    Processes inter-city (OverLand) delivery commissions and route-based incentives.
+                    Data is sourced from the MIS server (<code>lcs_billing_download.billing_details</code>).
+                    Covers 20 RateIDs: OLE Leopards (route-based), OLE Ops Staff (location-pool proportional),
+                    Delivery Credits, International, and RBI (Route-Based Incentive) variants.
+                    Results are staged in <code>hr_olecommissionprocess</code> for later use by the Master Commission step.
+                </p>
+                <div style="margin-top:.65rem; display:flex; gap:.4rem; flex-wrap:wrap;">
+                    <span class="tag tag-orange">20 RateIDs</span>
+                    <span class="tag tag-blue">MIS Source</span>
+                    <span class="tag tag-purple">Proportional Distribution</span>
+                    <span class="tag tag-green">RBI Variants</span>
+                </div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-server"></i> Server &amp; Connections</div>
+                <div class="server-box mis">
+                    <i class="fas fa-server" style="color:#0284c7;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.7 — MIS</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Database: <strong>lcs_billing_download</strong> &nbsp;|&nbsp; Connection key: <code>MIS</code></div>
+                        <div style="font-size:.7rem;color:#6b7280;">Source: <code>lcs_billing_download.billing_details</code>, <code>hr_RBI_Incentive_Detail</code></div>
+                    </div>
+                </div>
+                <div class="server-box main">
+                    <i class="fas fa-server" style="color:#15803d;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.10 — Main HR DB</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Output: <code>hr_olecommissionprocess</code></div>
+                        <div style="font-size:.7rem;color:#6b7280;">Reads: <code>hr_employeeroutecode</code>, <code>hr_locationmapping</code></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-tags"></i> RateID Classification</div>
+            <table class="info-table">
+                <tr><th>RateID(s)</th><th>Type</th><th>Distribution Method</th><th>Employee Scope</th></tr>
+                <tr><td><code>1</code></td><td>OLE Credit Booking</td><td>Per-employee (routed)</td><td>CodeType = 9 only</td></tr>
+                <tr><td><code>2</code></td><td>OLE Dispatch Proper</td><td>Location pool → proportional by working days</td><td>All employees at location</td></tr>
+                <tr><td><code>3</code></td><td>OLE Transit Dispatch</td><td>Location pool → proportional by working days</td><td>All employees at location</td></tr>
+                <tr><td><code>4</code></td><td>OLE Delivery OPS</td><td>Location pool → proportional by working days</td><td>All employees at location</td></tr>
+                <tr><td><code>5</code></td><td>OLE Delivery</td><td>Per-employee (routed)</td><td>CodeType NOT IN (3, 10, 11)</td></tr>
+                <tr><td><code>8</code></td><td>International Corporate RBI</td><td>Per-employee (routed)</td><td>CodeType NOT IN (3, 10, 11)</td></tr>
+                <tr><td><code>11, 12</code></td><td>Delivery Credits</td><td>Per-employee</td><td>All eligible couriers</td></tr>
+                <tr><td><code>84–95</code></td><td>RBI Variants (12 types)</td><td>Per-employee (routed)</td><td>CodeType NOT IN (3, 10, 11)</td></tr>
+            </table>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-cogs"></i> Processing Logic</div>
+            <ol class="step-list">
+                <li><strong>Isolation:</strong> READ COMMITTED session level set.</li>
+                <li><strong>Context:</strong> PrepareOverLandCommissionExecutionContextAsync — resolves city's station IDs, GL location IDs, and date range.</li>
+                <li><strong>Load OLE rows:</strong> LoadOverLandSourceRowsAsync — reads <code>lcs_billing_download.billing_details</code> on MIS server. Filters by station, date, and OLE shipment types.</li>
+                <li><strong>Load RBI rows:</strong> LoadOverLandRbiSourceRowsAsync — reads RBI incentive data from MIS.</li>
+                <li><strong>Transaction 1:</strong> Saves OLE raw rows to <code>hr_olecommissionprocess</code> with RateIDs 1–5.</li>
+                <li><strong>Transaction 2:</strong> Saves RBI rows to <code>hr_olecommissionprocess</code> with RateIDs 8, 84–95.</li>
+                <li><strong>Transaction 3:</strong> Saves delivery credit rows (RateIDs 11, 12).</li>
+                <li><strong>Employee route join:</strong> RateIDs 1 and 5 are matched to employees via <code>hr_employeeroutecode</code> (RouteCode = CourierID AND ToDate IS NULL).</li>
+                <li><strong>Proportional distribution (RateIDs 2,3,4):</strong> Total pool amount at each GL location divided proportionally by each employee's working days (from <code>hr_employeeattendanceprocess</code>).</li>
+            </ol>
+        </div>
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-calculator"></i> Proportional Distribution Formula</div>
+                <div style="font-size:.78rem;color:#334155;">
+                    <p style="margin:0 0 .5rem;">For RateIDs 2, 3, 4 (location-pool amounts):</p>
+                    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:.5rem;padding:.6rem .8rem;font-family:monospace;font-size:.75rem;color:#92400e;">
+                        Employee Share = (Employee Working Days / Total Location Working Days) × Pool Amount
+                    </div>
+                    <p style="margin:.5rem 0 0;font-size:.73rem;color:#64748b;">Working days = Total days − Sundays − Absences + Adjustments, read from <code>hr_employeeattendanceprocess</code></p>
+                </div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-lock"></i> Hardcoded Values</div>
+                <div class="hc-row"><span class="hc-val">{1,2,3,4,5,8,11,12,84..95}</span><span class="hc-desc"><strong>OverLandProcessRateIds</strong> — static array in <code>PayrollService.OverLandCommission.cs</code> line 13. Defines all RateIDs this step processes.</span></div>
+                <div class="hc-row"><span class="hc-val">CodeType NOT IN (3,10,11)</span><span class="hc-desc">Filter on <code>hr_employeeroutecode</code> for RateIDs 5, 8, 84–95. Excludes non-delivery route types.</span></div>
+                <div class="hc-row"><span class="hc-val">CodeType = 9</span><span class="hc-desc">Filter for RateID 1 (OLE Credit Booking). Only booking-type routes earn this incentive.</span></div>
+                <div class="hc-row"><span class="hc-val">MIS</span><span class="hc-desc">Connection key for MIS server at 172.16.0.7.</span></div>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-database"></i> Output Tables</div>
+            <table class="info-table">
+                <tr><th>Table</th><th>DB</th><th>Content</th></tr>
+                <tr><td><code>hr_olecommissionprocess</code></td><td>lcs_hr</td><td>All OLE + RBI rows per RateID, per employee/location</td></tr>
+                <tr><td><code>hr_acknowledgment</code></td><td>lcs_hr</td><td>Audit record</td></tr>
+            </table>
+        </div>
+    </div><!-- /body-c3 -->
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COMMISSION 4 — RETURN COD COMMISSION                           -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="comm-card theme-rose">
+    <div class="comm-header" onclick="toggleComm('c4')">
+        <div class="comm-icon"><i class="fas fa-undo-alt"></i></div>
+        <div>
+            <div class="comm-title">Return COD Commission</div>
+            <div class="comm-subtitle">Step 4 of 6 &mdash; Commission on returned COD shipments</div>
+        </div>
+        <div class="comm-badges">
+            <span class="badge-sm badge-step">Step 4</span>
+            <span class="badge-sm badge-auto">Automated</span>
+        </div>
+        <i class="fas fa-chevron-down comm-toggle" id="toggle-c4"></i>
+    </div>
+    <div class="comm-body" id="body-c4">
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-info-circle"></i> Overview</div>
+                <p style="font-size:.78rem;color:#334155;margin:0;">
+                    Processes commission earned by couriers for handling <strong>returned COD shipments</strong>.
+                    These are COD parcels that were not delivered and were returned back to origin.
+                    Source data from Central_OPS (<code>lcs_db.arival</code>), cross-referenced with <code>cod_returnshipments</code>.
+                    Specific client IDs are excluded to avoid double-counting or ineligible commissions.
+                </p>
+                <div style="margin-top:.65rem; display:flex; gap:.4rem; flex-wrap:wrap;">
+                    <span class="tag tag-red">Client Exclusions</span>
+                    <span class="tag tag-orange">5-Step SQL Logic</span>
+                    <span class="tag tag-blue">Return Shipments</span>
+                </div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-server"></i> Server &amp; Connections</div>
+                <div class="server-box ops">
+                    <i class="fas fa-server" style="color:#9333ea;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.18 — Central_OPS</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">DB: <strong>lcs_db</strong> &nbsp;|&nbsp; Key: <code>Central_OPS</code></div>
+                        <div style="font-size:.7rem;color:#6b7280;">Source: <code>lcs_db.arival</code>, <code>cod_returnshipments</code></div>
+                    </div>
+                </div>
+                <div class="server-box main">
+                    <i class="fas fa-server" style="color:#15803d;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.10 — Main HR DB</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Output: <code>hr_codreturncommissionprocess</code></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-cogs"></i> Processing Logic — 5-Step SQL Pipeline</div>
+            <ol class="step-list">
+                <li><strong>Base data:</strong> Read <code>lcs_db.arival</code> filtered by COUR_DATE, station IDs, and excluding specific client IDs (<code>NOT IN (49676, 545237, 545238, ...)</code>).</li>
+                <li><strong>Count CNs:</strong> Count return consignment numbers per employee from <code>cod_returnshipments</code> for the period.</li>
+                <li><strong>Assign RateID:</strong> Bracket the CN count into a RateID tier from <code>hr_codreturn_policy</code>.</li>
+                <li><strong>Join policy:</strong> Join with return commission policy table to get commission rate per RateID bracket.</li>
+                <li><strong>Output:</strong> Final commission amount per employee inserted into <code>hr_codreturncommissionprocess</code>.</li>
+            </ol>
+        </div>
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-ban"></i> Client Exclusion List</div>
+                <p style="font-size:.75rem;color:#475569;margin:0 0 .5rem;">The following client IDs are excluded from Return COD commission eligibility. Defined as a hardcoded IN-list in the source query:</p>
+                <code style="font-size:.72rem;color:#1e293b;background:#fee2e2;padding:.3rem .5rem;border-radius:.35rem;display:block;">49676, 545237, 545238 (+ additional client IDs hardcoded in query)</code>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-database"></i> Output Tables</div>
+                <table class="info-table">
+                    <tr><th>Table</th><th>DB</th><th>Content</th></tr>
+                    <tr><td><code>hr_codreturncommissionprocess</code></td><td>lcs_hr</td><td>Return COD commission per employee</td></tr>
+                    <tr><td><code>cod_returnshipments</code> (read)</td><td>lcs_hr</td><td>Return shipment reference</td></tr>
+                    <tr><td><code>hr_acknowledgment</code></td><td>lcs_hr</td><td>Audit record</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-lock"></i> Hardcoded Values</div>
+            <div class="hc-row"><span class="hc-val">49676, 545237, 545238...</span><span class="hc-desc">Client IDs excluded from Return COD commission. Hardcoded in the source query inside <code>PrepareReturnCodCommissionExecutionContextAsync</code>. These clients use separate commission arrangements.</span></div>
+            <div class="hc-row"><span class="hc-val">READ COMMITTED</span><span class="hc-desc">Transaction isolation level — same as COD Commission.</span></div>
+            <div class="hc-row"><span class="hc-val">Central_OPS</span><span class="hc-desc">Connection string key for 172.16.0.18.</span></div>
+        </div>
+    </div><!-- /body-c4 -->
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COMMISSION 5 — COMMISSION PROCESS (MASTER)                     -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="comm-card theme-green">
+    <div class="comm-header" onclick="toggleComm('c5')">
+        <div class="comm-icon"><i class="fas fa-layer-group"></i></div>
+        <div>
+            <div class="comm-title">Commission Process (Master)</div>
+            <div class="comm-subtitle">Step 5 of 6 &mdash; Aggregates all 4 prerequisite commissions into final employee records</div>
+        </div>
+        <div class="comm-badges">
+            <span class="badge-sm badge-step">Step 5</span>
+            <span class="badge-sm badge-auto">Automated</span>
+        </div>
+        <i class="fas fa-chevron-down comm-toggle" id="toggle-c5"></i>
+    </div>
+    <div class="comm-body" id="body-c5">
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-info-circle"></i> Overview</div>
+                <p style="font-size:.78rem;color:#334155;margin:0;">
+                    The central orchestrator step. Reads output from Steps 1–4, applies employee eligibility checks,
+                    working-day calculations, zone-based rate logic, and OLE proportional distribution.
+                    Produces the final <code>hr_commissionprocess</code> records — one row per employee per commission source.
+                    Also builds commission adjustment records in <code>hr_empcommadjdtl</code>.
+                    Supports a <strong>Preview Mode</strong> (runs inside a rollback transaction) for what-if analysis.
+                </p>
+                <div style="margin-top:.65rem; display:flex; gap:.4rem; flex-wrap:wrap;">
+                    <span class="tag tag-green">Final Aggregator</span>
+                    <span class="tag tag-blue">Zone Logic</span>
+                    <span class="tag tag-purple">Working Days</span>
+                    <span class="tag tag-orange">Preview Mode</span>
+                    <span class="tag tag-gray">Requires Steps 1–4</span>
+                </div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-server"></i> Server &amp; Connections</div>
+                <div class="server-box main">
+                    <i class="fas fa-server" style="color:#15803d;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.10 — Main HR DB (only)</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Database: <strong>lcs_hr</strong></div>
+                        <div style="font-size:.7rem;color:#6b7280;">Reads: hr_cash_consignments, hr_codcommission, hr_olecommissionprocess, hr_codreturncommissionprocess, hr_empcommissioneligibility, hr_employeeattendanceprocess, hr_commissionpolicy, hr_comm_insentives, hr_employeeroutecode, hr_employeelocationdetails, hr_locationmapping, hr_city</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-cogs"></i> Processing Logic — Step by Step</div>
+            <ol class="step-list">
+                <li><strong>Validate:</strong> EnsureProcessesOpenAsync (month not closed). Duplicate check on <code>hr_commissionprocess</code> → "Already Processed on [date]".</li>
+                <li><strong>Context:</strong> LoadCommissionProcessContextAsync — loads city's zone, station ID, all GL location IDs, employee route codes, commission rates.</li>
+                <li><strong>Delete old records:</strong> DeleteCommissionRecordsAsync — removes existing <code>hr_commissionprocess</code> rows for city/month/year before re-inserting.</li>
+                <li><strong>Cash rows:</strong> BuildCommissionProcessRows — reads <code>hr_cash_consignments</code> for this city's locations. Each CN mapped to the employee via route code.</li>
+                <li><strong>COD rows:</strong> Reads <code>hr_codcommission</code> — aggregated COD commission per employee joined in.</li>
+                <li><strong>Return COD rows:</strong> Reads <code>hr_codreturncommissionprocess</code> — aggregated return COD per employee.</li>
+                <li><strong>OLE distribution:</strong> ProcessOleRecordsAsync — reads <code>hr_olecommissionprocess</code>. RateIDs 1,5 = per-employee. RateIDs 2,3,4 = proportionally distributed by working days across all employees at each location.</li>
+                <li><strong>Zone classification:</strong> For each cash CN, classifies delivery zone: Local / Same Zone / Other Zone. Applies different commission rate per zone.</li>
+                <li><strong>Rate lookup:</strong> hr_commissionpolicy (IsPercent=1 → percentage of amount; IsPercent=0 → flat per-CN rate).</li>
+                <li><strong>Eligibility check:</strong> hr_empcommissioneligibility WHERE IsEligible=TRUE — only eligible employees get commission rows.</li>
+                <li><strong>Working days:</strong> From hr_employeeattendanceprocess — TotalDays − Sundays − Absences + Adjustments.</li>
+                <li><strong>Insert commission rows:</strong> InsertCommissionRowsAsync → bulk insert into <code>hr_commissionprocess</code>.</li>
+                <li><strong>Insert adjustments:</strong> BuildCommissionAdjustments → <code>hr_empcommadjdtl</code> with Adjustment_Type_id=3 (excludes types 1,2).</li>
+                <li><strong>Acknowledgment:</strong> InsertCommissionAcknowledgmentAsync → <code>hr_acknowledgment</code>.</li>
+                <li><strong>Commit.</strong></li>
+            </ol>
+        </div>
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-map-marker-alt"></i> Zone Classification Logic</div>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:.5rem;padding:.65rem .8rem;font-family:monospace;font-size:.73rem;color:#166534;line-height:1.7;">
+                    IF(Station_id = dest_City_id, 'Local',<br>
+                    &nbsp;&nbsp;IF(Zone = OvernightZone, 'Same Zone',<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;'Other Zone'))
+                </div>
+                <p style="font-size:.72rem;color:#64748b;margin:.5rem 0 0;">Zone and OvernightZone from <code>lcs.city</code> and <code>lcs.zone_color</code> (LHR_Billing). Each zone tier has a separate commission rate in hr_commissionpolicy.</p>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-calculator"></i> Working Days Formula</div>
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:.5rem;padding:.65rem .8rem;font-family:monospace;font-size:.73rem;color:#1e40af;line-height:1.7;">
+                    WorkingDays = TotalDays<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;− Sundays<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;− Absences<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;+ Adjustments
+                </div>
+                <p style="font-size:.72rem;color:#64748b;margin:.5rem 0 0;">Source: <code>hr_employeeattendanceprocess</code>. Used as denominator in OLE proportional distribution (RateIDs 2,3,4).</p>
+            </div>
+        </div>
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-lock"></i> Hardcoded Values</div>
+                <div class="hc-row"><span class="hc-val">21</span><span class="hc-desc">CommissionStartDay — period start (defined in PayrollService.Commission.cs:14)</span></div>
+                <div class="hc-row"><span class="hc-val">20</span><span class="hc-desc">CommissionEndDay — period end (line 15)</span></div>
+                <div class="hc-row"><span class="hc-val">−1</span><span class="hc-desc">CommissionStartDiff — AddMonths(−1) for from-date (line 16)</span></div>
+                <div class="hc-row"><span class="hc-val">IsEligible = TRUE</span><span class="hc-desc">Filter on hr_empcommissioneligibility — only eligible employees get commission records.</span></div>
+                <div class="hc-row"><span class="hc-val">Adjustment_Type_id NOT IN (1,2)</span><span class="hc-desc">Adjustments of type 1 and 2 are preserved; only type 3+ are deleted/recreated by Master step.</span></div>
+                <div class="hc-row"><span class="hc-val">type=1</span><span class="hc-desc">hr_acknowledgment record type inserted by Commission Process Master step.</span></div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-database"></i> Output Tables</div>
+                <table class="info-table">
+                    <tr><th>Table</th><th>DB</th><th>Content</th></tr>
+                    <tr><td><code>hr_commissionprocess</code></td><td>lcs_hr</td><td>Final commission per employee per source type</td></tr>
+                    <tr><td><code>hr_empcommadjdtl</code></td><td>lcs_hr</td><td>Commission adjustment breakdown rows</td></tr>
+                    <tr><td><code>hr_acknowledgment</code></td><td>lcs_hr</td><td>Audit record (type=1)</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Preview Mode callout -->
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:.6rem;padding:.75rem 1rem;margin-top:1rem;font-size:.78rem;color:#92400e;">
+            <strong><i class="fas fa-eye" style="margin-right:.4rem;"></i>Preview Mode:</strong>
+            PreviewCommissionProcessAsync runs the full processing logic inside a transaction that is <strong>always rolled back</strong>.
+            Output is returned to the caller for review. The <code>RollbackIntegrityPreserved</code> flag confirms no data was written.
+            This allows "what-if" analysis without affecting the live database.
+        </div>
+    </div><!-- /body-c5 -->
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COMMISSION 6 — EMPLOYEE COMMISSION REPROCESS (Manual Tool)    -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="comm-card theme-amber">
+    <div class="comm-header" onclick="toggleComm('c6')">
+        <div class="comm-icon"><i class="fas fa-user-cog"></i></div>
+        <div>
+            <div class="comm-title">Employee Commission Reprocess</div>
+            <div class="comm-subtitle">Manual correction tool — NOT part of the 6-step automation pipeline</div>
+        </div>
+        <div class="comm-badges">
+            <span class="badge-sm" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;">Manual Tool</span>
+            <span class="badge-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;">Not Automated</span>
+        </div>
+        <i class="fas fa-chevron-down comm-toggle" id="toggle-c6"></i>
+    </div>
+    <div class="comm-body" id="body-c6">
+
+        <!-- Why not in automation -->
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:.6rem;padding:.75rem 1rem;margin-top:1rem;font-size:.78rem;color:#92400e;">
+            <strong><i class="fas fa-exclamation-triangle" style="margin-right:.4rem;"></i>Why not in the automation pipeline?</strong>
+            This tool is designed for <strong>post-pipeline individual correction</strong> — when a single employee's commission is wrong due to a data fix, attendance correction,
+            or route code change. Running it for all employees automatically would be redundant with Step 5 (Master). It is intended for
+            targeted, on-demand reprocessing of one employee at a time. Accessible at <code>/Payroll/EmployeeCommissionReprocess</code>.
+        </div>
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-info-circle"></i> Overview</div>
+                <p style="font-size:.78rem;color:#334155;margin:0;">
+                    Recalculates commission for a <strong>single employee</strong> (identified by 14-digit zero-padded EmpNo)
+                    without affecting any other employees. Reuses the same logic as the Master Commission step but scopes
+                    all DELETE and INSERT operations to only the target employee's rows.
+                    Requires all pipeline steps (1–6 including Final Commission) to have been run first.
+                </p>
+                <div style="margin-top:.65rem; display:flex; gap:.4rem; flex-wrap:wrap;">
+                    <span class="tag tag-yellow">Single Employee</span>
+                    <span class="tag tag-blue">Scoped DEL/INS</span>
+                    <span class="tag tag-gray">Requires Full Pipeline</span>
+                </div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-key"></i> Input &amp; Prerequisites</div>
+                <table class="info-table">
+                    <tr><td class="label">Input</td><td>Employee Number (14-digit, zero-padded, e.g. <code>00000000012345</code>), Year, Month</td></tr>
+                    <tr><td class="label">EmpNo format</td><td><code>varchar(14)</code>, zero-padded. All lookup tables use this exact format.</td></tr>
+                    <tr><td class="label">Prerequisite</td><td>Steps 1 (Cash), 2 (COD), 3 (OverLand), 4 (Return COD), 5 (Master) must be complete for that month/city</td></tr>
+                    <tr><td class="label">City resolution</td><td>Employee's city code is auto-resolved via <code>hr_employeelocationdetails</code> (ToDate IS NULL)</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-cogs"></i> Processing Logic — 12 Steps</div>
+            <ol class="step-list">
+                <li>Resolve employee's city code from <code>hr_employeelocationdetails JOIN hr_city ON station_id</code>.</li>
+                <li>LoadCommissionProcessContextAsync — loads full city context (same as Master step).</li>
+                <li>LoadCommissionEmployeePopulationAsync — loads ALL employees in the city. <em>Required so OLE proportional distribution uses the correct total working-days denominator.</em></li>
+                <li>AppendOleDataForSingleEmployeeAsync — loads OLE data. RateIDs 2,3,4 are read without employee filter (pool amounts). RateIDs 1,5 and RBI are filtered to target employee's routes only.</li>
+                <li>AggregateEmployeeCommission — aggregates all OLE components by (emp_no, cour_id).</li>
+                <li>BuildCommissionProcessRows — builds cash rows for the city. MergeCashRowsIntoEmployees matches by emp_no.</li>
+                <li>Filter to ONLY target employee's rows before any write operation.</li>
+                <li><code>DELETE FROM hr_commissionprocess WHERE month=&#64;M AND year=&#64;Y AND emp_no=&#64;EmpNo</code> — scoped delete, does NOT touch other employees.</li>
+                <li>InsertCommissionRowsAsync — inserts only the target employee's rows.</li>
+                <li><code>DELETE FROM hr_empcommadjdtl WHERE ... AND emp_no=&#64;EmpNo AND Adjustment_Type_id NOT IN (1,2)</code></li>
+                <li>INSERT adjustment rows for target employee (Adjustment_Type_id=3).</li>
+                <li>INSERT <code>hr_acknowledgment</code> type=3. Commit.</li>
+            </ol>
+        </div>
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-lock"></i> Hardcoded Values</div>
+                <div class="hc-row"><span class="hc-val">varchar(14)</span><span class="hc-desc">EmpNo format in all 4 lookup tables (hr_commissionprocess, hr_empcommadjdtl, hr_employeeroutecode, hr_employeelocationdetails). Must be 14-digit zero-padded.</span></div>
+                <div class="hc-row"><span class="hc-val">NOT IN (1, 2)</span><span class="hc-desc">Adjustment_Type_id exclusion in DELETE — adjustments of type 1 and 2 are manually-entered overrides that must not be wiped.</span></div>
+                <div class="hc-row"><span class="hc-val">type=3</span><span class="hc-desc">hr_acknowledgment record type for Employee Commission Reprocess (mirrors old EmployeeCommissionProcess.aspx.cs).</span></div>
+                <div class="hc-row"><span class="hc-val">CodeType=9</span><span class="hc-desc">Filter for OLE RateID 1 (Credit Booking) — same as OverLand step.</span></div>
+                <div class="hc-row"><span class="hc-val">NOT IN (3,10,11)</span><span class="hc-desc">Filter for OLE RateIDs 5, 8, 84–95 — same as OverLand step.</span></div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-database"></i> Tables Read &amp; Written</div>
+                <table class="info-table">
+                    <tr><th>Table</th><th>Operation</th><th>Scope</th></tr>
+                    <tr><td><code>hr_employeelocationdetails</code></td><td>READ</td><td>City resolution for emp_no</td></tr>
+                    <tr><td><code>hr_employeeroutecode</code></td><td>READ</td><td>Route-to-employee mapping</td></tr>
+                    <tr><td><code>hr_olecommissionprocess</code></td><td>READ</td><td>OLE data already computed by Step 3</td></tr>
+                    <tr><td><code>hr_cash_consignments</code></td><td>READ</td><td>Cash data already computed by Step 1</td></tr>
+                    <tr><td><code>hr_commissionprocess</code></td><td>DELETE + INSERT</td><td>Scoped to emp_no only</td></tr>
+                    <tr><td><code>hr_empcommadjdtl</code></td><td>DELETE + INSERT</td><td>Scoped to emp_no, excludes types 1,2</td></tr>
+                    <tr><td><code>hr_acknowledgment</code></td><td>INSERT</td><td>type=3 audit record</td></tr>
+                </table>
+            </div>
+        </div>
+    </div><!-- /body-c6 -->
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COMMISSION 7 — FINAL COMMISSION PROCESS                        -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="comm-card theme-indigo">
+    <div class="comm-header" onclick="toggleComm('c7')">
+        <div class="comm-icon"><i class="fas fa-flag-checkered"></i></div>
+        <div>
+            <div class="comm-title">Final Commission Process</div>
+            <div class="comm-subtitle">Step 6 of 6 in automation pipeline &mdash; Finalizes &amp; locks commission month</div>
+        </div>
+        <div class="comm-badges">
+            <span class="badge-sm badge-step">Step 6</span>
+            <span class="badge-sm badge-auto">Automated</span>
+        </div>
+        <i class="fas fa-chevron-down comm-toggle" id="toggle-c7"></i>
+    </div>
+    <div class="comm-body" id="body-c7">
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-info-circle"></i> Overview</div>
+                <p style="font-size:.78rem;color:#334155;margin:0;">
+                    The final step in the commission pipeline. Calls the stored procedure
+                    <code>lcs_incentive.ProcessFinalCommission</code> on the MIS server,
+                    which pushes finalized commission data to the MIS/salary incentive ledger.
+                    On success, inserts a lock record in <code>is_final_commission_process</code>
+                    to prevent re-processing. If MIS source tables have no data (0 rows returned),
+                    the step is marked <strong>NoData</strong> — not an error, fully re-runnable.
+                </p>
+                <div style="margin-top:.65rem; display:flex; gap:.4rem; flex-wrap:wrap;">
+                    <span class="tag tag-blue">Stored Procedure Call</span>
+                    <span class="tag tag-red">Month Lock</span>
+                    <span class="tag tag-orange">MIS Integration</span>
+                    <span class="tag tag-purple">NoData Safe</span>
+                </div>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-server"></i> Server &amp; Connections</div>
+                <div class="server-box main">
+                    <i class="fas fa-server" style="color:#15803d;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.10 — Main HR DB</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Reads: <code>is_final_commission_process</code>, <code>hr_locationmapping</code>, <code>lcs_setup.locations</code>, <code>hr_city</code></div>
+                        <div style="font-size:.7rem;color:#6b7280;">Writes: <code>is_final_commission_process</code> (lock record on success)</div>
+                    </div>
+                </div>
+                <div class="server-box mis">
+                    <i class="fas fa-server" style="color:#0284c7;margin-top:.1rem;"></i>
+                    <div>
+                        <div class="server-ip">172.16.0.7 — MIS</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">Database: <strong>lcs_incentive</strong> &nbsp;|&nbsp; Connection key: <code>MIS</code></div>
+                        <div style="font-size:.7rem;color:#6b7280;">Stored Procedure: <code>lcs_incentive.ProcessFinalCommission</code></div>
+                        <div style="font-size:.7rem;color:#6b7280;">SP reads: delivery_commission, rbi_cn_detail, cash_cn_detail, codcommission, ole_heavecommission_courierwise</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-cogs"></i> Processing Logic — Step by Step</div>
+            <ol class="step-list">
+                <li><strong>Validate month open:</strong> EnsureProcessesOpenAsync — rejects if month already closed in <code>hr_closeprocesses</code>.</li>
+                <li><strong>Duplicate check:</strong> Queries <code>is_final_commission_process</code> for city/month/year. If exists → throws "Already Processed on [date]. By: [user]".</li>
+                <li><strong>Date range check:</strong> toDate (20th of current month) must be ≤ today. Rejects if commission period has not yet ended.</li>
+                <li><strong>Resolve station IDs:</strong> Queries <code>hr_locationmapping JOIN lcs_setup.locations JOIN hr_city</code> to get BStationId list for the city. Fails if none found.</li>
+                <li><strong>Open MIS connection:</strong> Opens a separate MySqlConnection to lcs_incentive &#64; 172.16.0.7. Begins transaction.</li>
+                <li><strong>Call stored procedure:</strong> <code>CALL lcs_incentive.ProcessFinalCommission(city, stationsCsv, fromDate, toDate, userId)</code></li>
+                <li><strong>If rows &gt; 0:</strong> Commits MIS transaction. Continues to lock insert.</li>
+                <li><strong>If rows = 0:</strong> Rolls back MIS transaction. Returns Success=true with ProcessedCount=0. No lock inserted. Automation marks this as <strong>NoData</strong> — city stays out of done-count, auto-resets on next run.</li>
+                <li><strong>Insert lock:</strong> INSERT into <code>is_final_commission_process (city, month, year, userId, created_at)</code> — prevents future re-processing via duplicate check (step 2).</li>
+            </ol>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-terminal"></i> Stored Procedure Call</div>
+            <div style="background:#1e293b;color:#e2e8f0;border-radius:.6rem;padding:.85rem 1rem;font-family:monospace;font-size:.76rem;line-height:1.8;overflow-x:auto;">
+                CALL <span style="color:#6ee7b7;">lcs_incentive.ProcessFinalCommission</span>(<br>
+                &nbsp;&nbsp;<span style="color:#fbbf24;">'KHI'</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">-- city code</span><br>
+                &nbsp;&nbsp;<span style="color:#fbbf24;">'ST001,ST002,ST003'</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">-- stationsCsv (comma-joined from hr_locationmapping)</span><br>
+                &nbsp;&nbsp;<span style="color:#fbbf24;">'2025-12-21'</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">-- fromDate (21st prev month)</span><br>
+                &nbsp;&nbsp;<span style="color:#fbbf24;">'2026-01-20'</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">-- toDate (20th current month)</span><br>
+                &nbsp;&nbsp;<span style="color:#fbbf24;">210</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">-- userId</span><br>
+                );
+            </div>
+        </div>
+
+        <div class="section-grid" style="margin-top:1rem;">
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i> NoData Status Behavior</div>
+                <table class="info-table">
+                    <tr><td class="label">Trigger</td><td>SP returns 0 rows — MIS source tables have no incentive data for the period</td></tr>
+                    <tr><td class="label">Status set</td><td><code>NoData</code> (not Completed, not Failed)</td></tr>
+                    <tr><td class="label">Lock inserted?</td><td>No — <code>is_final_commission_process</code> remains clean</td></tr>
+                    <tr><td class="label">Retries?</td><td>None — retry_count reset to 0, no retry loop entered</td></tr>
+                    <tr><td class="label">Dashboard</td><td>Orange badge "No MIS Data" — city NOT counted as done</td></tr>
+                    <tr><td class="label">Re-run?</td><td>Yes — StartAutomationAsync resets NoData entries to Pending on next run</td></tr>
+                    <tr><td class="label">Old project parity</td><td>Mirrors old FinalComissionProcess.aspx.cs empty <code>else {}</code> block (lines 186-188)</td></tr>
+                </table>
+            </div>
+            <div class="sub-card">
+                <div class="sub-title"><i class="fas fa-lock"></i> Hardcoded Values</div>
+                <div class="hc-row"><span class="hc-val">MIS</span><span class="hc-desc">Connection key for lcs_incentive server at 172.16.0.7. Resolved via ResolveOptionalConnectionString("MIS").</span></div>
+                <div class="hc-row"><span class="hc-val">int.MaxValue</span><span class="hc-desc">commandTimeout for the SP call — no timeout limit. SP can run for unlimited duration.</span></div>
+                <div class="hc-row"><span class="hc-val">21</span><span class="hc-desc">CommissionStartDay — fromDate = 21st of prev month.</span></div>
+                <div class="hc-row"><span class="hc-val">20</span><span class="hc-desc">CommissionEndDay — toDate = 20th of current month.</span></div>
+                <div class="hc-row"><span class="hc-val">NoData:</span><span class="hc-desc">Exception message prefix used by CommissionAutomationService to route 0-row result to NoData handler instead of Completed.</span></div>
+                <div class="hc-row"><span class="hc-val">Already Processed on </span><span class="hc-desc">Exception message prefix triggering AlreadyProcessed status. Checked via StartsWith() in ExecuteSingleCommissionWithRetryAsync.</span></div>
+            </div>
+        </div>
+
+        <div class="sub-card" style="margin-top:1rem;">
+            <div class="sub-title"><i class="fas fa-database"></i> Output Tables</div>
+            <table class="info-table">
+                <tr><th>Table</th><th>DB/Server</th><th>Content</th></tr>
+                <tr><td><code>is_final_commission_process</code></td><td>lcs_hr &#64; 172.16.0.10</td><td>Lock record: city, month, year, userId, created_at</td></tr>
+                <tr><td><code>lcs_incentive.*</code></td><td>MIS &#64; 172.16.0.7</td><td>SP-managed tables: delivery_commission, rbi_cn_detail, cash_cn_detail, codcommission, ole_heavecommission_courierwise</td></tr>
+            </table>
+        </div>
+    </div><!-- /body-c7 -->
+</div>
+
+<!-- ═══════════════════════════════════════ AUTOMATION COVERAGE SUMMARY ═══════════════════════════════════════ -->
+<div class="comm-card" style="margin-top:1.5rem;">
+    <div style="padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9;">
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#64748b;">
+            <i class="fas fa-robot" style="margin-right:.4rem;"></i>Automation Coverage Summary
+        </div>
+    </div>
+    <div style="padding:1rem 1.25rem;">
+        <table class="info-table" style="border:1px solid #e2e8f0;border-radius:.5rem;overflow:hidden;">
+            <thead>
+                <tr style="background:#f8fafc;">
+                    <th>#</th><th>Commission</th><th>In Automation?</th><th>CommissionTypes Key</th><th>Reason (if excluded)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>Cash Commission</td><td><span class="tag tag-green">Yes — Step 1</span></td><td><code>CashCommission</code></td><td>—</td></tr>
+                <tr><td>2</td><td>COD Commission</td><td><span class="tag tag-green">Yes — Step 2</span></td><td><code>CodCommission</code></td><td>—</td></tr>
+                <tr><td>3</td><td>OverLand Commission</td><td><span class="tag tag-green">Yes — Step 3</span></td><td><code>OverLandCommission</code></td><td>—</td></tr>
+                <tr><td>4</td><td>Return COD Commission</td><td><span class="tag tag-green">Yes — Step 4</span></td><td><code>ReturnCodCommission</code></td><td>—</td></tr>
+                <tr><td>5</td><td>Commission Process (Master)</td><td><span class="tag tag-green">Yes — Step 5</span></td><td><code>CommissionProcess</code></td><td>—</td></tr>
+                <tr><td>6</td><td>Final Commission</td><td><span class="tag tag-green">Yes — Step 6</span></td><td><code>FinalCommission</code></td><td>—</td></tr>
+                <tr><td>7</td><td>Employee Commission Reprocess</td><td><span class="tag tag-red">No — Manual Tool</span></td><td><em>Not in CommissionTypes[]</em></td><td>Single-employee targeted correction. Running for all employees automatically would duplicate Step 5 (Master). Use only when individual data correction is needed post-pipeline.</td></tr>
+            </tbody>
+        </table>
+
+        <div style="margin-top:1rem; background:#f0f9ff; border:1px solid #bae6fd; border-radius:.6rem; padding:.8rem 1rem; font-size:.78rem; color:#0c4a6e;">
+            <strong><i class="fas fa-info-circle" style="margin-right:.4rem;"></i>Automation system details:</strong>
+            Service: <code>CommissionAutomationService</code> &nbsp;|&nbsp;
+            Background jobs: <strong>Hangfire</strong> &nbsp;|&nbsp;
+            Real-time progress: <strong>SignalR (CommissionProgressHub)</strong> &nbsp;|&nbsp;
+            Log table: <code>hr_commission_automation_log</code> &nbsp;|&nbsp;
+            System user ID: <code>210</code> (AutomationUserId hardcoded in CommissionAutomationService.cs:33) &nbsp;|&nbsp;
+            Max retries per step: <strong>3</strong> &nbsp;|&nbsp;
+            Retry delays: 5s, 10s
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════ COMPLETE DATA FLOW MAP ═══════════════════════════════════════ -->
+<div class="comm-card" style="margin-top:1.25rem;">
+    <div style="padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9;">
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#64748b;">
+            <i class="fas fa-stream" style="margin-right:.4rem;"></i>Complete Data Flow — Source to Final Output
+        </div>
+    </div>
+    <div style="padding:1rem 1.25rem; overflow-x:auto;">
+        <table class="info-table" style="border:1px solid #e2e8f0; min-width:700px;">
+            <thead>
+                <tr style="background:#f8fafc;">
+                    <th>Step</th><th>Source Server</th><th>Source Table(s)</th><th>→ Output Table(s)</th><th>Read By</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="tag tag-blue">1 Cash</span></td>
+                    <td>LHR_Billing (172.16.0.6)<br>Central_OPS (172.16.0.18)</td>
+                    <td><code>lcs_billing.billing_details</code><br><code>lcs.rms_cod_booking</code></td>
+                    <td><code>hr_cash_consignments</code><br><code>hr_vas_incentive_detail</code></td>
+                    <td>Step 5</td>
+                </tr>
+                <tr style="background:#fafafa;">
+                    <td><span class="tag tag-purple">2 COD</span></td>
+                    <td>Central_OPS (172.16.0.18)</td>
+                    <td><code>lcs_db.arival</code><br><code>lcs_db.cod_ranges</code><br><code>cod_payment_receive</code></td>
+                    <td><code>hr_codcommission</code><br><code>hr_cod_consignments</code></td>
+                    <td>Step 5</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-orange">3 OLE</span></td>
+                    <td>MIS (172.16.0.7)</td>
+                    <td><code>lcs_billing_download.billing_details</code><br><code>hr_RBI_Incentive_Detail</code></td>
+                    <td><code>hr_olecommissionprocess</code></td>
+                    <td>Step 5, Step 7</td>
+                </tr>
+                <tr style="background:#fafafa;">
+                    <td><span class="tag tag-red">4 Ret COD</span></td>
+                    <td>Central_OPS (172.16.0.18)</td>
+                    <td><code>lcs_db.arival</code><br><code>cod_returnshipments</code></td>
+                    <td><code>hr_codreturncommissionprocess</code></td>
+                    <td>Step 5</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-green">5 Master</span></td>
+                    <td>Main HR DB (172.16.0.10)</td>
+                    <td>Steps 1–4 output tables<br>+ hr_commissionpolicy<br>+ hr_empcommissioneligibility</td>
+                    <td><code>hr_commissionprocess</code><br><code>hr_empcommadjdtl</code></td>
+                    <td>Step 6, Step 7</td>
+                </tr>
+                <tr style="background:#fafafa;">
+                    <td><span class="tag tag-yellow">7 Emp Repr.</span></td>
+                    <td>Main HR DB (172.16.0.10)</td>
+                    <td>Steps 1,3 output + hr_empcommissioneligibility</td>
+                    <td><code>hr_commissionprocess</code> (emp-scoped)<br><code>hr_empcommadjdtl</code> (emp-scoped)</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><span style="background:#e0e7ff;color:#4338ca;padding:.1rem .45rem;border-radius:.3rem;font-size:.68rem;font-weight:700;">6 Final</span></td>
+                    <td>MIS (172.16.0.7)</td>
+                    <td><code>lcs_incentive</code> SP reads its own tables</td>
+                    <td><code>is_final_commission_process</code> (lock)<br><code>lcs_incentive.*</code> (SP-managed)</td>
+                    <td>Salary system</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div><!-- /wf-wrap -->
+
+@section Scripts {
+<script>
+function toggleComm(id) {
+    var body   = document.getElementById('body-' + id);
+    var toggle = document.getElementById('toggle-' + id);
+    var open   = body.classList.contains('open');
+    body.classList.toggle('open', !open);
+    toggle.classList.toggle('open', !open);
+}
+// Open first section by default
+document.addEventListener('DOMContentLoaded', function() {
+    toggleComm('c1');
+});
+</script>
+}

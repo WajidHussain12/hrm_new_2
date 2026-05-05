@@ -1,0 +1,179 @@
+@model LCS_HR_MVC.Models.Payroll.FuelPricesViewModel
+@{
+    ViewData["PageTitle"] = "Fuel Prices";
+    ViewData["Title"] = "Fuel Prices";
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+        .animate-main{animation:slideUp .4s ease-out}
+        .f-label{display:block;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+        .f-input{width:100%;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;transition:border-color .15s,box-shadow .15s}
+        .f-input:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .f-select{width:100%;padding:10px 32px 10px 12px;background:#fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right .75rem top 50%;background-size:.65rem;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;appearance:none;transition:border-color .15s,box-shadow .15s}
+        .f-select:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .btn-p{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#fbbf24,#f97316);color:#1e293b;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(245,197,24,.3);transition:all .15s}
+        .btn-p:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,197,24,.4)}
+        .btn-s{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;color:#475569;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #e2e8f0;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
+        .btn-s:hover{background:#f8fafc;transform:translateY(-1px)}
+        .btn-danger{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;transition:all .15s}
+        .btn-danger:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(239,68,68,.4)}
+        #dg1 thead th{background:linear-gradient(135deg,#475569,#334155)!important;color:#f1f5f9!important;font-size:.65rem!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.08em!important;padding:.625rem .75rem!important;border:none!important;white-space:nowrap}
+        #dg1 tbody tr:hover td{background:#fffbeb!important}
+        #dg1 tbody td{padding:.5rem .75rem!important;font-size:.8rem;color:#334155;border-bottom:1px solid #f1f5f9!important;border-top:none!important;border-left:none!important;border-right:none!important}
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5"></i><span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-check tw-mt-0.5"></i><span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <div class="tw-mb-8">
+        <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+            <span class="tw-flex tw-items-center tw-gap-1"><i class="fas fa-calendar-check tw-text-[10px] tw-text-slate-300"></i> Payroll</span>
+            <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+            <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Fuel Prices</span>
+        </nav>
+        <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Fuel Prices</h1>
+        <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+        <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-2">Manage fuel price records by type and date range.</p>
+    </div>
+
+    <!-- Search -->
+    <form asp-action="FuelPrices" method="get" class="tw-mb-5">
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-px-5 tw-py-4 tw-flex tw-flex-wrap tw-items-end tw-gap-4">
+                <div class="tw-flex-1 tw-min-w-[160px]">
+                    <label class="f-label">Search By</label>
+                    <select asp-for="SearchField" asp-items="Model.SearchFields" class="f-select"></select>
+                </div>
+                <div class="tw-flex-1 tw-min-w-[160px]">
+                    <label class="f-label">Search Text</label>
+                    <input asp-for="SearchText" class="f-input" placeholder="Enter search term..." />
+                </div>
+                <div class="tw-flex tw-gap-2 tw-pb-0.5">
+                    <button type="submit" class="btn-p"><i class="fas fa-search tw-text-xs"></i> Search</button>
+                    <a asp-action="FuelPrices" class="btn-s"><i class="fas fa-times tw-text-xs"></i> Clear</a>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Entry Form -->
+    <form asp-action="FuelPrices" method="post" class="tw-mb-5">
+        @Html.AntiForgeryToken()
+        <input asp-for="IsEditMode" type="hidden" />
+        <input asp-for="SearchField" type="hidden" />
+        <input asp-for="SearchText" type="hidden" />
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-gas-pump"></i></div>
+                    @(Model.IsEditMode ? "Edit Record" : "New Entry")
+                </h3>
+            </div>
+            <div class="tw-p-6">
+                <div class="tw-grid sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-5">
+                    <div>
+                        <label class="f-label">Fuel Code</label>
+                        <input asp-for="Code" class="f-input" readonly="readonly" />
+                    </div>
+                    <div>
+                        <label class="f-label">Fuel Type</label>
+                        <select asp-for="TypeCode" asp-items="Model.FuelTypes" class="f-select">
+                            <option value="">Please Select</option>
+                        </select>
+                        <span asp-validation-for="TypeCode" class="tw-text-red-500 tw-text-xs tw-mt-1 tw-block"></span>
+                    </div>
+                    <div>
+                        <label class="f-label">From Date</label>
+                        <input asp-for="FromDate" type="date" class="f-input" />
+                        <span asp-validation-for="FromDate" class="tw-text-red-500 tw-text-xs tw-mt-1 tw-block"></span>
+                    </div>
+                    <div>
+                        <label class="f-label">To Date</label>
+                        <input asp-for="ToDate" type="date" class="f-input" readonly="readonly" />
+                    </div>
+                    <div>
+                        <label class="f-label">Price</label>
+                        <input asp-for="Price" class="f-input" />
+                        <span asp-validation-for="Price" class="tw-text-red-500 tw-text-xs tw-mt-1 tw-block"></span>
+                    </div>
+                    <div class="sm:tw-col-span-3">
+                        <label class="f-label">Comments</label>
+                        <input asp-for="Comments" class="f-input" />
+                    </div>
+                </div>
+                <div class="tw-mt-5 tw-flex tw-gap-3">
+                    @if (Model.IsEditMode)
+                    {
+                        <button type="submit" name="action" value="Update" class="btn-p"><i class="fas fa-save tw-text-xs"></i> Update</button>
+                        <button type="submit" name="action" value="Delete" class="btn-danger" formnovalidate><i class="fas fa-trash tw-text-xs"></i> Delete</button>
+                    }
+                    else
+                    {
+                        <button type="submit" name="action" value="Save" class="btn-p"><i class="fas fa-save tw-text-xs"></i> Save</button>
+                    }
+                    <button type="submit" name="action" value="Reset" class="btn-s" formnovalidate><i class="fas fa-times tw-text-xs"></i> Reset</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Grid -->
+    <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+        <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+            <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-table"></i></div>
+                Fuel Price Records
+            </h3>
+        </div>
+        <div class="tw-p-5 tw-overflow-x-auto tw-max-h-[32rem] tw-overflow-y-auto">
+            <table id="dg1" class="tw-w-full">
+                <thead>
+                    <tr><th>Code</th><th>Type</th><th>From Date</th><th>To Date</th><th>Price</th><th>Comments</th></tr>
+                </thead>
+                <tbody>
+                    @if (Model.Rows.Count == 0)
+                    {
+                        <tr><td colspan="6" class="tw-text-center tw-text-slate-400 tw-py-8 tw-text-sm">No records found.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-action="FuelPrices" asp-route-code="@row.Code"
+                                       asp-route-searchField="@Model.SearchField"
+                                       asp-route-searchText="@Model.SearchText"
+                                       class="tw-text-amber-600 tw-font-black hover:tw-text-amber-800">@row.Code</a>
+                                </td>
+                                <td>@row.TypeName</td>
+                                <td>@row.FromDate.ToString("dd/MM/yyyy")</td>
+                                <td>@(row.ToDate?.ToString("dd/MM/yyyy") ?? "")</td>
+                                <td class="tw-font-bold">@row.Price.ToString("0.##")</td>
+                                <td>@row.Comments</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

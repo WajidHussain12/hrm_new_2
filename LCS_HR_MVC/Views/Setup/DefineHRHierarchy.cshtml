@@ -1,0 +1,483 @@
+@model LCS_HR_MVC.Models.HRHierarchyViewModel
+@{
+    ViewData["PageTitle"] = "Define HR Hierarchy";
+    var divList = ViewBag.DivisionsList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var deptList = ViewBag.DepartmentsList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var subDeptList = ViewBag.SubDepartmentsList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Detail Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Modern UI Autocomplete Override */
+        .ui-autocomplete {
+            @@apply tw-max-h-60 tw-overflow-y-auto tw-rounded-xl tw-border-slate-200 tw-shadow-xl tw-text-sm tw-font-medium tw-font-sans tw-bg-white !important;
+            z-index: 1000 !important;
+        }
+        .ui-menu-item-wrapper {
+            @@apply tw-py-2 tw-px-3 tw-transition-colors tw-text-slate-700 !important;
+        }
+        .ui-menu-item-wrapper.ui-state-active {
+            @@apply tw-bg-amber-400 tw-text-slate-900 tw-border-transparent tw-rounded-md tw-font-bold !important;
+            margin: 0 !important;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    
+    <div id="pnlmessage"></div>
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-cogs tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Setup</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Organization Tree</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Topology Node</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Establish reporting lines and organizational structures for divisions & departments.</p>
+        </div>
+    </div>
+
+
+    <div class="tw-grid xl:tw-grid-cols-[1fr_0.5fr] tw-gap-6 xl:tw-gap-8 align-top">
+        
+        <!-- Left Side: Builder Canvas -->
+        <div class="tw-space-y-6">
+            
+            <!-- Step 1: Workspace Context -->
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+                <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none z-0"></div>
+                
+                <div class="tw-relative tw-z-10 tw-px-6 tw-py-4 tw-border-b tw-border-slate-100 tw-bg-slate-50/80 tw-flex tw-items-center tw-justify-between">
+                    <div class="tw-flex tw-items-center tw-gap-3">
+                        <div class="tw-w-8 tw-h-8 tw-rounded-lg tw-bg-slate-900 tw-text-amber-400 tw-flex tw-items-center tw-justify-center tw-font-black tw-text-sm shadow-md">1</div>
+                        <h3 class="tw-font-black tw-text-xs tw-text-slate-800 tw-uppercase tw-tracking-widest">Workspace Context</h3>
+                    </div>
+                </div>
+
+                <div class="tw-relative tw-z-10 tw-p-6">
+                    <div class="tw-grid md:tw-grid-cols-3 tw-gap-5">
+                        <div>
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Division</label>
+                            <div class="tw-relative">
+                                <i class="fas fa-layer-group tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                                <select asp-for="BUID" asp-items="divList" id="ddlBU" 
+                                        class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-appearance-none tw-shadow-sm"
+                                        style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;"></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Department</label>
+                            <div class="tw-relative">
+                                <i class="fas fa-sitemap tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                                <select asp-for="DepartmentID" asp-items="deptList" id="ddlDepartment" 
+                                        class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-appearance-none tw-shadow-sm"
+                                        style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;"></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Sub-Department</label>
+                            <div class="tw-relative">
+                                <i class="fas fa-link tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                                <select asp-for="SubDepartmentID" asp-items="subDeptList" id="ddlSubDepartments" 
+                                        class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-appearance-none tw-shadow-sm"
+                                        style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Line Manager -->
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+                <div class="tw-px-6 tw-py-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-text-white tw-flex tw-items-center tw-gap-3">
+                    <div class="tw-w-7 tw-h-7 tw-rounded tw-bg-white/10 tw-text-amber-400 tw-flex tw-items-center tw-justify-center tw-font-black tw-text-xs">2</div>
+                    <h3 class="tw-font-black tw-text-xs tw-uppercase tw-tracking-widest">Assign Line Manager (HOD)</h3>
+                </div>
+                <div class="tw-p-6">
+                    <div class="tw-flex tw-gap-4">
+                        <div class="tw-flex-1 tw-relative">
+                            <i class="fas fa-user-tie tw-absolute tw-left-4 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-sm"></i>
+                            <input type="text" asp-for="HODEmployeeDescription" id="txtHODEmployeeDescription" 
+                                   class="tw-w-full tw-pl-11 tw-pr-4 tw-py-3.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 placeholder-slate-400 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm" placeholder="Search Manager by Name / %" />
+                        </div>
+                        <div class="tw-w-28 tw-relative">
+                             <input type="text" asp-for="HODEmployeeCode" id="txtHODEmployeeCode" readonly="readonly" 
+                               class="tw-w-full tw-px-3 tw-py-3.5 tw-bg-slate-100 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-mono tw-font-black tw-text-slate-500 tw-text-center tw-outline-none tw-shadow-inner" placeholder="ID" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Reportees Graph -->
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+                <div class="tw-px-6 tw-py-4 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-3 tw-bg-slate-50/80">
+                    <div class="tw-w-7 tw-h-7 tw-rounded tw-bg-amber-400 tw-text-slate-900 tw-flex tw-items-center tw-justify-center tw-font-black tw-text-xs shadow-md">3</div>
+                    <h3 class="tw-font-black tw-text-xs tw-text-slate-800 tw-uppercase tw-tracking-widest">Active Reportees Graph</h3>
+                </div>
+                
+                <div class="tw-p-6">
+                    <div class="tw-overflow-x-auto custom-scrollbar">
+                        <table class="tw-w-full tw-text-xs" id="tblReportTo">
+                            <thead>
+                                <tr>
+                                    <th class="tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-widest tw-py-4 tw-px-5 tw-border-b tw-border-slate-100 tw-text-left">Employee Name & ID</th>
+                                    <th class="tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-widest tw-py-4 tw-px-5 tw-border-b tw-border-slate-100 tw-text-left">Email Matrix</th>
+                                    <th class="tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-widest tw-py-4 tw-px-5 tw-border-b tw-border-slate-100 tw-text-left">Cellular</th>
+                                    <th class="tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-widest tw-py-4 tw-px-5 tw-border-b tw-border-slate-100 tw-text-center">Remove</th>
+                                </tr>
+                            </thead>
+                            <tbody class="tw-divide-y tw-divide-slate-50">
+                                <tr id="emptyReportsRow">
+                                    <td colspan="4" class="tw-py-12 tw-text-center tw-text-slate-400 tw-font-medium tw-text-sm">
+                                        <i class="fas fa-sitemap tw-text-4xl tw-block tw-mb-4 tw-text-slate-200"></i>
+                                        Select Manager to view reporting chain
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Side: Config Controls -->
+        <div class="tw-space-y-6">
+            
+            <!-- Connection Panel -->
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-sticky tw-top-24">
+                <div class="tw-p-5 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-relative tw-z-10">
+                    <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                        <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        Connect Staff
+                    </h3>
+                </div>
+
+                <div class="tw-p-5 tw-space-y-5">
+                     <div class="tw-bg-slate-50 tw-rounded-2xl tw-p-4 tw-border tw-border-slate-100" id="rowEmp" style="display:none;">
+                        <label class="tw-flex tw-items-center tw-gap-3 tw-cursor-pointer tw-p-2 tw-rounded-lg hover:tw-bg-amber-50 tw-transition-colors">
+                            <div class="tw-relative tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                                <input type="checkbox" id="chkHeaderAll" class="tw-peer tw-sr-only" />
+                                <div class="tw-w-5 tw-h-5 tw-bg-white tw-border-2 tw-border-slate-300 tw-rounded peer-focus:tw-ring-2 peer-focus:tw-ring-amber-400 tw-transition-all peer-checked:tw-bg-amber-500 peer-checked:tw-border-amber-500"></div>
+                                <i class="fas fa-check tw-absolute tw-text-white tw-text-[10px] tw-opacity-0 peer-checked:tw-opacity-100 tw-transition-opacity"></i>
+                            </div>
+                            <span class="tw-text-xs tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wider">Select All Staff</span>
+                        </label>
+                        
+                        <div class="tw-mt-4 tw-h-[350px] tw-overflow-y-auto custom-scrollbar tw-pr-2" id="pnlDepartments">
+                             <table id="cblemps" class="tw-w-full">
+                                <tbody class="tw-space-y-1.5"></tbody>
+                            </table>
+                        </div>
+                     </div>
+
+                     <div class="tw-border-t tw-border-slate-100 tw-pt-3"></div>
+
+                     <!-- Action Buttons (2x2 Grid) -->
+                     <div class="tw-space-y-3">
+                        <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                            <button type="button" id="btnSave" 
+                                    class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-4 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all">
+                                <i class="fas fa-check-circle tw-text-sm"></i> File Intent
+                            </button>
+                            <button type="button" disabled
+                                    class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-4 tw-bg-slate-900 tw-text-white tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-800 hover:tw-shadow-[0_8px_20px_rgba(15,23,42,0.2)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-40 disabled:hover:tw-transform-none">
+                                <i class="fas fa-sync-alt tw-text-sm"></i> Edit Target
+                            </button>
+                        </div>
+                        <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                            <button type="button" disabled
+                                    class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-white tw-text-red-500 tw-border tw-border-red-100 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-red-50 hover:tw-border-red-200 tw-transition-all disabled:tw-opacity-40">
+                                <i class="fas fa-trash-alt"></i> Revoke
+                            </button>
+                            <button type="button" id="btnReset" onclick="window.location.reload();"
+                                    class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                                <i class="fas fa-undo-alt tw-opacity-60"></i> Deselect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+        <script type="text/javascript">
+        var delEmpIDS = '';
+
+        $(document).ready(function () {
+            
+            function showMessage(type, msg) {
+                var isError = type === 'error';
+                var colorClass = isError ? 'tw-bg-red-50 tw-border-red-100 tw-text-red-600' : 'tw-bg-emerald-50 tw-border-emerald-100 tw-text-emerald-700';
+                var iconClass = isError ? 'fa-exclamation-triangle tw-text-red-500 tw-bg-red-100' : 'fa-check tw-text-emerald-600 tw-bg-emerald-100';
+                var alertHtml = `
+                    <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 ${colorClass} tw-border tw-rounded-xl tw-text-sm tw-font-bold tw-shadow-sm animate-main">
+                        <div class="tw-w-6 tw-h-6 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0 ${iconClass}">
+                            <i class="fas ${iconClass.split(' ')[0]} tw-text-[10px]"></i>
+                        </div>
+                        <span class="tw-pt-0.5">${msg}</span>
+                    </div>
+                `;
+                $('#pnlmessage').html(alertHtml);
+                $('html, body').animate({ scrollTop: 0 }, 'fast');
+            }
+
+            function resetEmployeeSelection() {
+                $("#txtHODEmployeeDescription").val('');
+                $("#txtHODEmployeeCode").val('');
+                $("#tblReportTo tbody").html('<tr id="emptyReportsRow"><td colspan="4" class="tw-py-12 tw-text-center tw-text-slate-400 tw-font-medium tw-text-sm"><i class="fas fa-sitemap tw-text-4xl tw-block tw-mb-4 tw-text-slate-200"></i>Select Manager to view reporting chain</td></tr>');
+                $("#cblemps tbody").empty();
+                $("#rowEmp").hide();
+                delEmpIDS = '';
+            }
+
+            function bindDepartments(buId) {
+                $("#ddlDepartment").empty().append(new Option("Select Department", "00"));
+                $("#ddlSubDepartments").empty().append(new Option("All Departments", "00"));
+                resetEmployeeSelection();
+
+                if (!buId || buId === "0") return;
+
+                $.get('@Url.Action("GetDepartmentsByBU", "Setup")', { buId: buId }, function (data) {
+                    $.each(data, function (_, item) {
+                        if (item.value && item.value !== "00") {
+                            $("#ddlDepartment").append(new Option(item.text, item.value));
+                        }
+                    });
+                });
+            }
+
+            function bindSubDepartments(parentId) {
+                $("#ddlSubDepartments").empty().append(new Option("All Departments", "00"));
+                resetEmployeeSelection();
+
+                if (!parentId || parentId === "00") return;
+
+                $.get('@Url.Action("GetSubDepartmentsByParent", "Setup")', { parentId: parentId }, function (data) {
+                    $.each(data, function (_, item) {
+                        if (item.value && item.value !== "0") {
+                            $("#ddlSubDepartments").append(new Option(item.text, item.value));
+                        }
+                    });
+                });
+            }
+
+            $("#ddlBU").change(function () { bindDepartments($(this).val()); });
+            $("#ddlDepartment").change(function () { bindSubDepartments($(this).val()); });
+            $("#ddlSubDepartments").change(function () { resetEmployeeSelection(); });
+
+            $("#txtHODEmployeeDescription").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("SearchActiveEmployees", "Setup")',
+                        type: "GET",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.label, value: item.desc, id: item.value };
+                            }))
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    $("#txtHODEmployeeDescription").val(ui.item.value);
+                    $("#txtHODEmployeeCode").val(ui.item.id);
+                    loadEmployeesData(ui.item.id);
+                    return false;
+                },
+                minLength: 1
+            });
+            
+            $("#txtHODEmployeeDescription").keyup(function() {
+                if (!$(this).val()) {
+                    $("#txtHODEmployeeCode").val('');
+                    resetEmployeeSelection();
+                }
+            });
+
+            function loadEmployeesData(reportToId) {
+                var deptID = $("#ddlDepartment").val();
+                var subDeptID = $("#ddlSubDepartments").val();
+
+                if (deptID === '00' || !deptID) {
+                    showMessage('error', 'Please select a division and department first.');
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("GetReportedToEmployees", "Setup")',
+                    type: 'GET',
+                    data: { reportToId: reportToId, deptId: deptID, subDeptId: subDeptID },
+                    success: function (data) {
+                        $("#tblReportTo tbody").empty();
+                        $("#cblemps tbody").empty();
+                        $("#rowEmp").fadeIn();
+                        delEmpIDS = '';
+
+                        if (data.obj2 && data.obj2.length > 0) {
+                            $.each(data.obj2, function(i, item) {
+                                var row = `
+                                    <tr>
+                                        <td class="tw-p-1">
+                                            <label class="tw-flex tw-items-center tw-gap-3 tw-cursor-pointer tw-p-3 tw-rounded-xl tw-bg-white hover:tw-bg-amber-50 tw-border tw-border-slate-100 hover:tw-border-amber-100 tw-transition-all">
+                                                <div class="tw-relative tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                                                    <input type="checkbox" class="chkbx tw-peer tw-sr-only" value="${item.empNo}" data-name="${item.empName}" data-email="${item.email}" data-cell="${item.cell}" />
+                                                    <div class="tw-w-5 tw-h-5 tw-bg-white tw-border-2 tw-border-slate-300 tw-rounded peer-focus:tw-ring-2 peer-focus:tw-ring-amber-400 tw-transition-all peer-checked:tw-bg-amber-500 peer-checked:tw-border-amber-500"></div>
+                                                    <i class="fas fa-check tw-absolute tw-text-white tw-text-[10px] tw-opacity-0 peer-checked:tw-opacity-100 tw-transition-opacity"></i>
+                                                </div>
+                                                <span class="tw-text-xs tw-font-bold tw-text-slate-700">${item.empName} <span class="tw-text-slate-400 tw-font-mono tw-text-[10px] ml-1">#${item.empNo}</span></span>
+                                            </label>
+                                        </td>
+                                    </tr>
+                                `;
+                                $('#cblemps tbody').append(row);
+                            });
+                        }
+
+                        if (data.obj1 && data.obj1.length > 0) {
+                            $.each(data.obj1, function(i, item) {
+                                var row = '<tr class="assigned-row hover:tw-bg-amber-50/30 tw-transition-colors group">' +
+                                          '<td class="tw-p-4 tw-border-b tw-border-slate-50"><span class="empNO tw-font-bold tw-text-slate-700">' + item.empName + '-<span class="tw-font-mono tw-text-slate-500">' + item.empNo + '</span></span></td>' +
+                                          '<td class="tw-p-3 tw-border-b tw-border-slate-50"><input type="text" class="empEmail tw-w-full tw-px-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-transition-all focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none" value="' + item.email + '" maxlength="50" /></td>' +
+                                          '<td class="tw-p-3 tw-border-b tw-border-slate-50"><input type="text" class="cell tw-w-full tw-px-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-transition-all focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none" value="' + item.cell + '" maxlength="12" /></td>' +
+                                          '<td class="tw-p-3 tw-border-b tw-border-slate-50 tw-text-center"><button type="button" class="RemoveMSRecord tw-w-9 tw-h-9 tw-rounded-xl tw-bg-slate-50 tw-text-slate-400 hover:tw-bg-red-500 hover:tw-text-white tw-transition-all tw-flex tw-items-center tw-justify-center tw-mx-auto"><i class="fas fa-times tw-text-sm"></i></button></td>' +
+                                          '</tr>';
+                                $("#tblReportTo tbody").append(row);
+                                $('.chkbx[value="' + item.empNo + '"]').prop('checked', true);
+                            });
+                        } else {
+                            if($("#tblReportTo tbody tr").length === 0) {
+                                $("#tblReportTo tbody").html('<tr id="emptyReportsRow"><td colspan="4" class="tw-py-12 tw-text-center tw-text-slate-400 tw-font-medium tw-text-sm"><i class="fas fa-project-diagram tw-text-4xl tw-block tw-mb-4 tw-text-slate-200"></i>No direct reports assigned yet.</td></tr>');
+                            }
+                        }
+                        checkAllStatus();
+                    }
+                });
+            }
+
+            function checkAllStatus() {
+                var total = $('.chkbx').length;
+                var checked = $('.chkbx:checked').length;
+                $('#chkHeaderAll').prop('checked', total > 0 && total === checked);
+            }
+
+            $('#chkHeaderAll').change(function() {
+                var isChecked = $(this).is(':checked');
+                $('.chkbx').each(function() {
+                    if ($(this).is(':checked') !== isChecked) {
+                        $(this).prop('checked', isChecked).trigger('change');
+                    }
+                });
+            });
+
+            $(document).on('change', '.chkbx', function() {
+                $('#emptyReportsRow').remove();
+                var empNo = $(this).val(), empName = $(this).data('name'), email = $(this).data('email'), cell = $(this).data('cell');
+                var empInfo = empName + '-' + empNo; 
+                var empVisual = empName + '-<span class="tw-font-mono tw-text-slate-500">' + empNo + '</span>'; 
+
+                if ($(this).is(':checked')) {
+                    delEmpIDS = delEmpIDS.replace(empNo + ',', '');
+                    var row = '<tr class="assigned-row hover:tw-bg-amber-50/30 tw-transition-colors group">' +
+                                '<td class="tw-p-4 tw-border-b tw-border-slate-50"><span class="empNO tw-none tw-hidden">' + empInfo + '</span><span class="tw-font-bold tw-text-slate-700">' + empVisual + '</span></td>' +
+                                '<td class="tw-p-3 tw-border-b tw-border-slate-50"><input type="text" class="empEmail tw-w-full tw-px-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-transition-all focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none" value="' + email + '" maxlength="50" /></td>' +
+                                '<td class="tw-p-3 tw-border-b tw-border-slate-50"><input type="text" class="cell tw-w-full tw-px-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-transition-all focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none" value="' + cell + '" maxlength="12" /></td>' +
+                                '<td class="tw-p-3 tw-border-b tw-border-slate-50 tw-text-center"><button type="button" class="RemoveMSRecord tw-w-9 tw-h-9 tw-rounded-xl tw-bg-slate-50 tw-text-slate-400 hover:tw-bg-red-500 hover:tw-text-white tw-transition-all tw-flex tw-items-center tw-justify-center tw-mx-auto"><i class="fas fa-times tw-text-sm"></i></button></td>' +
+                                '</tr>';
+                    $("#tblReportTo tbody").append(row);
+                } else {
+                    delEmpIDS += empNo + ",";
+                    $('#tblReportTo tbody tr.assigned-row').each(function() {
+                        if($(this).find('.empNO').text() === empInfo) $(this).remove();
+                    });
+                    if($("#tblReportTo tbody tr.assigned-row").length === 0) {
+                        $("#tblReportTo tbody").html('<tr id="emptyReportsRow"><td colspan="4" class="tw-py-12 tw-text-center tw-text-slate-400 tw-font-medium tw-text-sm"><i class="fas fa-project-diagram tw-text-4xl tw-block tw-mb-4 tw-text-slate-200"></i>No direct reports assigned yet.</td></tr>');
+                    }
+                }
+                checkAllStatus();
+            });
+
+            $(document).on('click', '.RemoveMSRecord', function() {
+                var theRow = $(this).closest("tr"), rawIdCombo = theRow.find('.empNO').text(), idParts = rawIdCombo.split('-'), empNo = idParts[idParts.length - 1];
+                delEmpIDS += empNo + ","; theRow.remove();
+                $('.chkbx[value="' + empNo + '"]').prop('checked', false);
+                checkAllStatus();
+                if($("#tblReportTo tbody tr.assigned-row").length === 0) {
+                    $("#tblReportTo tbody").html('<tr id="emptyReportsRow"><td colspan="4" class="tw-py-12 tw-text-center tw-text-slate-400 tw-font-medium tw-text-sm"><i class="fas fa-project-diagram tw-text-4xl tw-block tw-mb-4 tw-text-slate-200"></i>No direct reports assigned yet.</td></tr>');
+                }
+            });
+
+            $('#btnSave').click(function() {
+                var deptId = $("#ddlDepartment").val(), reportToId = $("#txtHODEmployeeCode").val(), tblCount = $('#tblReportTo>tbody>tr.assigned-row').length;
+                if (deptId === '00' || reportToId === '') { showMessage('error', 'Workspace context and Manager must be valid.'); return; }
+                if (tblCount === 0 && delEmpIDS === '') { showMessage('error', 'Must specify at least one reportee.'); return; }
+
+                var empDetail = [];
+                $('#tblReportTo > tbody > tr.assigned-row').each(function () {
+                    var rawIdText = $(this).find(".empNO").text(), idParts = rawIdText.split('-'), empId = idParts[idParts.length - 1];
+                    empDetail.push({ EmpNo: empId, Email: $(this).find(".empEmail").val(), CellNo: $(this).find(".cell").val(), ReportTo: reportToId, DeleteHirerchyEmpIDS: delEmpIDS });
+                });
+                if (empDetail.length === 0 && delEmpIDS !== '') empDetail.push({ EmpNo: '', Email: '', CellNo: '', ReportTo: reportToId, DeleteHirerchyEmpIDS: delEmpIDS });
+
+                var dataPayload = { BUID: $('#ddlBU').val(), DepartmentID: deptId, SubDepartmentID: $('#ddlSubDepartments').val(), HODEmployeeCode: reportToId, HODEmployeeDescription: $('#txtHODEmployeeDescription').val(), Employees: empDetail };
+                var oldBtnContent = $(this).html();
+                $(this).html('<i class="fas fa-circle-notch fa-spin tw-text-sm"></i> Saving...').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("DefineHRHierarchy", "Setup")',
+                    type: "POST", data: JSON.stringify(dataPayload), contentType: "application/json; charset=utf-8",
+                    headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+                    success: function (res) {
+                        $('#btnSave').html(oldBtnContent).prop('disabled', false);
+                        if(res.success) { showMessage('success', res.message); delEmpIDS = ''; } else showMessage('error', res.message);
+                    },
+                    error: function() { $('#btnSave').html(oldBtnContent).prop('disabled', false); showMessage('error', 'Request failed.'); }
+                });
+            });
+        });
+    </script>
+}

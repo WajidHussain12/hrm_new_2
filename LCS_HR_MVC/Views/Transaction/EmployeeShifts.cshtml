@@ -1,0 +1,220 @@
+@model LCS_HR_MVC.Models.EmployeeShiftDetailModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["PageTitle"] = "Employee Shifts";
+    var dataList = ViewBag.ShiftDetailList as IEnumerable<LCS_HR_MVC.Models.EmployeeShiftDetailModel> ?? new List<LCS_HR_MVC.Models.EmployeeShiftDetailModel>();
+    var activeShifts = ViewBag.ActiveShifts as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var isAdmin = (bool)(ViewBag.IsAdmin ?? false);
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+}
+
+<div class="w-full p-6 bg-white">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="text-red-700 bg-red-100 border border-red-400 p-3 rounded mb-4 shadow-sm"><div class="font-medium"><strong>Error! </strong>@TempData["ErrorMessage"]</div></div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="text-green-700 bg-green-100 border border-green-400 p-3 rounded mb-4 shadow-sm"><div class="font-medium"><strong>Success! </strong>@TempData["SuccessMessage"]</div></div>
+    }
+
+    <div class="w-full max-w-7xl mx-auto">
+        <table class="w-full shadow-lg bg-white rounded-lg border border-gray-200">
+            <tr>
+                <td colspan="2" class="border border-gray-300 p-2">
+                    <div class="p-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+                        <table width="750px" border="0" cellpadding="0" cellspacing="0">
+                            <tbody>
+                                <tr>
+                                    <td class="border border-gray-300 p-2"><span class="text-sm font-semibold text-gray-700">Search</span></td>
+                                    <td class="border border-gray-300 p-2">
+                                        <input type="text" id="txtsearch" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Enter keyword to search" style="width:200px;" />
+                                    </td>
+                                    <td class="border border-gray-300 p-2">
+                                        <button type="button" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm" onclick="filterTable()">Search</button>
+                                        <button type="button" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm" onclick="resetSearch()">Clear Search</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td valign="top" width="55%" style="padding-right:10px;" class="border border-gray-300 p-2">
+                    <div style="max-height:400px;overflow-y:auto;">
+                        <table id="dg1" class="tablesorter w-full border-collapse border border-gray-300 text-sm bg-white shadow-sm rounded-lg overflow-hidden">
+                            <thead>
+                                <tr>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs">ID</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs">Shift Name</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs">Employee</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs">From Date</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs">To Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in dataList)
+                                {
+                                    <tr class="gridRow hover:bg-gray-100 border-b border-gray-200 transition-colors">
+                                        <td class="border border-gray-300 p-2">
+                                            <a href="@Url.Action("EmployeeShifts", "Transaction", new { id = item.Id })" class="text-blue-600 hover:underline">@item.Id</a>
+                                        </td>
+                                        <td class="border border-gray-300 p-2">@item.ShiftName</td>
+                                        <td class="border border-gray-300 p-2">@item.EmpName (@item.EmpNo)</td>
+                                        <td class="border border-gray-300 p-2">@(item.FromDate?.ToString("dd/MM/yyyy"))</td>
+                                        <td class="border border-gray-300 p-2">@(item.ToDate?.ToString("dd/MM/yyyy"))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+
+                <td style="vertical-align:baseline;" class="border border-gray-300 p-2">
+                    <form asp-controller="Transaction" asp-action="EmployeeShifts" method="post" id="shiftForm" enctype="multipart/form-data">
+                        <fieldset class="border border-gray-300 p-5 rounded-md mb-4 bg-gray-50 shadow-sm">
+                            <legend class="text-sm font-semibold text-gray-800 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm">Entry</legend>
+                            <table class="w-full border-spacing-y-2 border-separate" border="0" cellpadding="0" cellspacing="5">
+                                <tbody>
+                                    <tr>
+                                        <td class="font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2" width="120">ID</td>
+                                        <td class="border border-gray-300 p-2">
+                                            <input type="text" value="@Model.Id" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1" style="width:200px;" disabled="disabled" />
+                                            <input type="hidden" asp-for="Id" id="Id" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2">Employee</td>
+                                        <td class="border border-gray-300 p-2">
+                                            <input type="text" asp-for="EmpName" id="txtEmpName" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:200px;" placeholder="Search name or emp no" autocomplete="off" />
+                                            <input type="hidden" asp-for="EmpNo" id="txtEmpNo" />
+                                            <span asp-validation-for="EmpName" class="text-red-500 text-xs"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2">Shift</td>
+                                        <td class="border border-gray-300 p-2">
+                                            <select asp-for="ShiftCode" id="ddlShifts" asp-items="@(new SelectList(activeShifts, "Value", "Text", Model.ShiftCode))" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:290px;">
+                                                <option value="0">-- Please Select --</option>
+                                            </select>
+                                            <span asp-validation-for="ShiftCode" class="text-red-500 text-xs"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2">From Date</td>
+                                        <td class="border border-gray-300 p-2">
+                                            <input type="date" asp-for="FromDate" id="txtFromDate" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:160px;"
+                                                   value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                                            <span asp-validation-for="FromDate" class="text-red-500 text-xs"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2">To Date</td>
+                                        <td class="border border-gray-300 p-2">
+                                            <input type="date" asp-for="ToDate" id="txtToDate" class="border border-gray-300 rounded text-gray-700 text-sm h-[30px] px-2 py-1 bg-gray-100" style="width:160px;" readonly="readonly"
+                                                   value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2">Off Day</td>
+                                        <td class="border border-gray-300 p-2">
+                                            <select asp-for="OffDay" id="ddlOffDay" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:200px;">
+                                                <option value="">-- No Off Day --</option>
+                                                <option value="Sunday">Sunday</option>
+                                                <option value="Monday">Monday</option>
+                                                <option value="Tuesday">Tuesday</option>
+                                                <option value="Wednesday">Wednesday</option>
+                                                <option value="Thursday">Thursday</option>
+                                                <option value="Friday">Friday</option>
+                                                <option value="Saturday">Saturday</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2">Comments</td>
+                                        <td class="border border-gray-300 p-2">
+                                            <textarea asp-for="Comments" id="txtComments" class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:290px;height:60px;"></textarea>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </fieldset>
+
+                        <div class="buttonWrapper" style="margin-top:10px;">
+                            @if (string.IsNullOrEmpty(Model.Id) || Model.Id == "Auto Generated")
+                            {
+                                <button type="submit" name="action" value="Save" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">Save</button>
+                            }
+                            else
+                            {
+                                <button type="submit" name="action" value="Update" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">Update</button>
+                                <button type="submit" name="action" value="Delete" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        onclick="return confirm('Delete this record?');">Delete</button>
+                            }
+                            <button type="submit" name="action" value="Reset" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" formnovalidate>Reset</button>
+                        </div>
+
+                        @if (isAdmin)
+                        {
+                            <fieldset class="border border-gray-300 p-5 rounded-md mt-4 bg-gray-50 shadow-sm">
+                                <legend class="text-sm font-semibold text-gray-800 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm">Bulk Upload (Admin Only)</legend>
+                                <table class="w-full border-spacing-y-2 border-separate" border="0" cellpadding="0" cellspacing="5">
+                                    <tr>
+                                        <td class="font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2" width="120">Excel File</td>
+                                        <td class="border border-gray-300 p-2">
+                                            <input type="file" asp-for="BulkUploadFile" id="bulkFile" class="text-sm text-gray-700" accept=".xlsx,.xls" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" class="border border-gray-300 p-2">
+                                            <button type="submit" name="action" value="BulkUpload" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm" formnovalidate>Bulk Upload</button>
+                                            <span class="text-xs text-gray-500 ml-2">Columns: EmpNo | ShiftName | FromDate</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </fieldset>
+                        }
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            // Employee autocomplete
+            $('#txtEmpName').autocomplete({
+                source: function (request, response) {
+                    $.getJSON('@Url.Action("SearchActiveEmployees", "Setup")', { term: request.term }, function (data) {
+                        response($.map(data, function (item) {
+                            return { label: item.text, value: item.text, empNo: item.value };
+                        }));
+                    });
+                },
+                minLength: 2,
+                select: function (event, ui) {
+                    $('#txtEmpNo').val(ui.item.empNo);
+                }
+            });
+        });
+
+        function filterTable() {
+            var q = $('#txtsearch').val().toLowerCase();
+            $('#dg1 tbody tr.gridRow').each(function () {
+                $(this).toggle($(this).text().toLowerCase().indexOf(q) > -1);
+            });
+        }
+
+        function resetSearch() {
+            $('#txtsearch').val('');
+            $('#dg1 tbody tr.gridRow').show();
+        }
+    </script>
+}

@@ -1,0 +1,181 @@
+@model LCS_HR_MVC.Models.AttendanceAdjustmentModel
+@{
+    ViewData["PageTitle"] = "Employee Attendance Adjustment";
+    var adjustmentList = ViewBag.AdjustmentList as IEnumerable<LCS_HR_MVC.Models.AttendanceAdjustmentModel> ?? new List<LCS_HR_MVC.Models.AttendanceAdjustmentModel>();
+    bool isNew = string.IsNullOrEmpty(Model.OriginalDate);
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+}
+
+<div class="w-full p-6 bg-white">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="text-red-700 bg-red-100 border border-red-400 p-3 rounded mb-4 shadow-sm"><strong>Error! </strong>@TempData["ErrorMessage"]</div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="text-green-700 bg-green-100 border border-green-400 p-3 rounded mb-4 shadow-sm"><strong>Success! </strong>@TempData["SuccessMessage"]</div>
+    }
+
+    <div class="w-full max-w-7xl mx-auto">
+        <table class="w-full shadow-lg bg-white rounded-lg border border-gray-200">
+            <tr>
+                <!-- Grid -->
+                <td valign="top" width="55%" class="border border-gray-300 p-2">
+                    <div style="max-height:420px;overflow-y:auto;">
+                        <table class="w-full border-collapse border border-gray-300 text-sm bg-white shadow-sm">
+                            <thead>
+                                <tr>
+                                    <th class="bg-gray-200 border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 uppercase">Emp No</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 uppercase">Employee Name</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 uppercase">Type</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 uppercase">Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in adjustmentList)
+                                {
+                                    <tr class="hover:bg-gray-100 border-b border-gray-200 cursor-pointer"
+                                        onclick="loadRecord('@item.EmpNo', '@item.AdjustmentDate?.ToString("yyyy-MM-dd")')">
+                                        <td class="border border-gray-300 p-2">
+                                            <a href="@Url.Action("EmployeeAttendanceAdjust", "Transaction", new { empNo = item.EmpNo, date = item.AdjustmentDate?.ToString("yyyy-MM-dd") })"
+                                               class="text-blue-600 hover:underline">@item.EmpNo</a>
+                                        </td>
+                                        <td class="border border-gray-300 p-2">@item.EmpName</td>
+                                        <td class="border border-gray-300 p-2">@item.AdjustmentDate?.ToString("dd/MM/yyyy")</td>
+                                        <td class="border border-gray-300 p-2">
+                                            @(item.AdjustmentType switch {
+                                                "A" => "Absent",
+                                                "L" => "Late",
+                                                "E" => "Early",
+                                                "RA" => "Rule Absent",
+                                                _ => item.AdjustmentType
+                                            })
+                                        </td>
+                                        <td class="border border-gray-300 p-2">@item.Reason</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Showing last 40 days — @adjustmentList.Count() records</p>
+                </td>
+
+                <!-- Form -->
+                <td style="vertical-align:baseline;" class="border border-gray-300 p-2">
+                    <form asp-controller="Transaction" asp-action="EmployeeAttendanceAdjust" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="OriginalDate" />
+
+                        <fieldset class="border border-gray-300 p-4 rounded-md mb-3 bg-gray-50 shadow-sm">
+                            <legend class="text-sm font-semibold text-gray-800 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm">Entry</legend>
+                            <table class="w-full border-spacing-y-1 border-separate text-sm">
+                                <tr>
+                                    <td class="font-semibold text-gray-700 border border-gray-300 p-1" width="140">Employee No <span class="text-red-500">*</span></td>
+                                    <td class="border border-gray-300 p-1">
+                                        <div class="flex gap-1 items-center">
+                                            <input type="text" asp-for="EmpNo" id="txtEmpNo"
+                                                   class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[28px] px-2"
+                                                   style="width:160px;" />
+                                            <input type="text" id="txtEmpName" asp-for="EmpName" readonly
+                                                   class="border border-gray-300 rounded text-gray-600 text-sm h-[28px] px-2 bg-gray-100"
+                                                   style="width:160px;" placeholder="Employee name" />
+                                        </div>
+                                        <span asp-validation-for="EmpNo" class="text-red-500 text-xs block"></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-semibold text-gray-700 border border-gray-300 p-1">Adjustment Date <span class="text-red-500">*</span></td>
+                                    <td class="border border-gray-300 p-1">
+                                        <input type="date" asp-for="AdjustmentDate"
+                                               value="@(Model.AdjustmentDate?.ToString("yyyy-MM-dd"))"
+                                               class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[28px] px-2"
+                                               style="width:160px;" />
+                                        <span asp-validation-for="AdjustmentDate" class="text-red-500 text-xs block"></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-semibold text-gray-700 border border-gray-300 p-1">Adjustment Type <span class="text-red-500">*</span></td>
+                                    <td class="border border-gray-300 p-1">
+                                        <select asp-for="AdjustmentType"
+                                                class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[28px] px-2"
+                                                style="width:180px;">
+                                            <option value="A">Absent</option>
+                                            <option value="L">Late</option>
+                                            <option value="E">Early</option>
+                                            <option value="RA">Rule Absent</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-semibold text-gray-700 border border-gray-300 p-1">Reason</td>
+                                    <td class="border border-gray-300 p-1">
+                                        <textarea asp-for="Reason"
+                                                  class="bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm px-2 py-1"
+                                                  style="width:280px;height:60px;"></textarea>
+                                    </td>
+                                </tr>
+                            </table>
+                        </fieldset>
+
+                        <div class="buttonWrapper" style="margin-top:8px;">
+                            @if (isNew)
+                            {
+                                <button type="submit" name="action" value="Save"
+                                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm">Save</button>
+                            }
+                            else
+                            {
+                                <button type="submit" name="action" value="Update"
+                                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm">Update</button>
+                                <button type="submit" name="action" value="Delete"
+                                        class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm"
+                                        onclick="return confirm('Delete this adjustment?');">Delete</button>
+                            }
+                            <button type="submit" name="action" value="Reset"
+                                    class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm"
+                                    formnovalidate>Reset</button>
+                            <a href="@Url.Action("CompleteAttendenceAdjustment", "Transaction")"
+                               class="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm">Bulk Adjust</a>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script>
+        $(function () {
+            $("#txtEmpNo").autocomplete({
+                source: function (request, response) {
+                    $.getJSON('@Url.Action("SearchEmployees", "Transaction")', { term: request.term }, function (data) {
+                        response(data);
+                    });
+                },
+                minLength: 2,
+                select: function (event, ui) {
+                    $("#txtEmpNo").val(ui.item.value);
+                    $("#txtEmpName").val(ui.item.label.split(' - ')[1] || '');
+                    return false;
+                }
+            });
+
+            $("#txtEmpNo").on('change blur', function () {
+                var empNo = $(this).val().trim();
+                if (empNo.length >= 2) {
+                    $.getJSON('@Url.Action("GetEmployeeNameByNo", "Transaction")', { empNo: empNo }, function (data) {
+                        if (data && data.name) {
+                            $("#txtEmpName").val(data.name);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

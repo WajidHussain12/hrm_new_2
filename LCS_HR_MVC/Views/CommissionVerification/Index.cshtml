@@ -1,0 +1,1007 @@
+@model LCS_HR_MVC.Models.CommissionVerificationViewModel
+@{
+    ViewData["Title"] = "Commission Verification";
+    var monthNames = new[] { "January","February","March","April","May","June",
+                             "July","August","September","October","November","December" };
+    var now      = DateTime.Now;
+    var selYear  = Model.Filter.Year  > 0 ? Model.Filter.Year  : now.Year;
+    var selMonth = Model.Filter.Month > 0 ? Model.Filter.Month : now.Month;
+
+    // Period label (e.g. "21 Dec 2025 – 20 Jan 2026")
+    var periodLabel = $"21 {Model.PeriodFrom:MMM yyyy} – 20 {Model.PeriodTo:MMM yyyy}";
+}
+
+<div class="tw-min-h-screen tw-bg-slate-50 tw-p-4 lg:tw-p-6">
+
+    <!-- ── Page Header ────────────────────────────────────────────── -->
+    <div class="tw-flex tw-items-center tw-gap-3 tw-mb-5">
+        <div class="tw-w-10 tw-h-10 tw-flex tw-items-center tw-justify-center tw-bg-indigo-600 tw-rounded-xl tw-shadow-sm">
+            <i class="fas fa-search-dollar tw-text-white"></i>
+        </div>
+        <div>
+            <h1 class="tw-text-xl tw-font-bold tw-text-slate-800 tw-mb-0">Commission Verification</h1>
+            <p class="tw-text-xs tw-text-slate-500 tw-mb-0">
+                Employee commission audit — Cash &amp; COD CN detail &nbsp;|&nbsp;
+                <span class="tw-font-semibold tw-text-indigo-600">Period: @periodLabel</span>
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="tw-mb-4 tw-p-3 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-xl tw-text-sm tw-text-red-700 tw-flex tw-items-start tw-gap-2">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5 tw-text-red-500"></i>
+            <span>@Model.ErrorMessage</span>
+        </div>
+    }
+
+    <!-- ── Filter Panel ───────────────────────────────────────────── -->
+    <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-mb-5">
+        <div class="tw-p-4 tw-border-b tw-border-slate-100">
+            <div class="tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-2">
+                <div class="tw-flex tw-items-center tw-gap-2">
+                    <i class="fas fa-filter tw-text-indigo-500"></i>
+                    <span class="tw-text-sm tw-font-bold tw-text-slate-700">Filters</span>
+                </div>
+                @if (!Model.IsDefaultView || Model.SearchPerformed)
+                {
+                    <a href="@Url.Action("Index", "CommissionVerification", new { year = selYear, month = selMonth })"
+                       class="tw-text-xs tw-text-indigo-600 hover:tw-text-indigo-800 tw-flex tw-items-center tw-gap-1">
+                        <i class="fas fa-list tw-text-xs"></i> Back to All Records
+                    </a>
+                }
+            </div>
+        </div>
+
+        <div class="tw-p-4">
+            <!-- Row 1: Global filters (apply to default all-records view) -->
+            <form method="get" action="@Url.Action("Index", "CommissionVerification")" id="globalFilterForm">
+                <div class="tw-grid tw-grid-cols-2 sm:tw-grid-cols-3 lg:tw-grid-cols-5 tw-gap-3">
+
+                    <div>
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">Year</label>
+                        <select name="year" onchange="this.form.submit()"
+                                class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-2 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400">
+                            @foreach (var y in Model.AvailableYears)
+                            {
+                                <option value="@y" selected="@(y == selYear)">@y</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">Month</label>
+                        <select name="month" onchange="this.form.submit()"
+                                class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-2 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400">
+                            @for (int mi = 1; mi <= 12; mi++)
+                            {
+                                <option value="@mi" selected="@(mi == selMonth)">@monthNames[mi-1]</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">City</label>
+                        <select name="cityCode" onchange="this.form.submit()"
+                                class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-2 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400">
+                            <option value="">All Cities</option>
+                            @foreach (var city in Model.AvailableCities)
+                            {
+                                <option value="@city.Code" selected="@(city.Code == Model.Filter.CityCode)">@city.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">Type</label>
+                        <select name="commissionTypeFilter" onchange="this.form.submit()"
+                                class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-2 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400">
+                            <option value="All"  selected="@(Model.Filter.CommissionTypeFilter == "All")">All Types</option>
+                            <option value="Cash" selected="@(Model.Filter.CommissionTypeFilter == "Cash")">Cash Only</option>
+                            <option value="COD"  selected="@(Model.Filter.CommissionTypeFilter == "COD")">COD Only</option>
+                        </select>
+                    </div>
+
+                    <!-- Period display badge -->
+                    <div class="tw-flex tw-items-end">
+                        <div class="tw-w-full tw-bg-indigo-50 tw-border tw-border-indigo-200 tw-rounded-lg tw-px-3 tw-py-2 tw-text-center">
+                            <p class="tw-text-[10px] tw-font-bold tw-text-indigo-400 tw-uppercase tw-tracking-wider tw-mb-0.5">Commission Period</p>
+                            <p class="tw-text-xs tw-font-bold tw-text-indigo-700 tw-mb-0">@periodLabel</p>
+                        </div>
+                    </div>
+
+                </div>
+            </form>
+
+            <!-- Row 2: Employee search (POST) -->
+            <form method="post" action="@Url.Action("Search", "CommissionVerification")" class="tw-mt-3 tw-pt-3 tw-border-t tw-border-slate-100">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Year"   value="@selYear" />
+                <input type="hidden" name="Month"  value="@selMonth" />
+                <input type="hidden" name="CityCode" value="@Model.Filter.CityCode" />
+                <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-3 tw-gap-3">
+                    <div>
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">
+                            <i class="fas fa-user-search tw-text-slate-400 tw-mr-1"></i>Employee Search
+                        </label>
+                        <input type="text" name="EmpNoSearch" value="@Model.Filter.EmpNoSearch"
+                               placeholder="Employee No (e.g. 00000000003028)"
+                               class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-2 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400" />
+                    </div>
+                    <div>
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">&nbsp;</label>
+                        <input type="text" name="EmpNameSearch" value="@Model.Filter.EmpNameSearch"
+                               placeholder="Employee Name (e.g. DILAWAR)"
+                               class="tw-w-full tw-text-sm tw-border tw-border-slate-300 tw-rounded-lg tw-px-3 tw-py-2 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400" />
+                    </div>
+                    <div>
+                        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-500 tw-mb-1">&nbsp;</label>
+                        <button type="submit"
+                                class="tw-w-full tw-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-indigo-600 hover:tw-bg-indigo-700 tw-text-white tw-text-sm tw-font-semibold tw-px-4 tw-py-2 tw-rounded-lg tw-transition-colors">
+                            <i class="fas fa-search"></i> Find Employee
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PROCESSED COMMISSION RESULTS — hr_commissionprocess per emp     -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    @if (Model.IsDefaultView && !Model.SearchPerformed && Model.SelectedEmployee == null)
+    {
+        <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-mb-5">
+
+            <!-- Header -->
+            <div class="tw-p-4 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-2">
+                <div class="tw-flex tw-items-center tw-gap-2">
+                    <i class="fas fa-check-circle tw-text-emerald-500"></i>
+                    <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-mb-0">
+                        Processed Commission Results
+                    </h2>
+                    <span class="tw-text-xs tw-text-slate-400">
+                        — @Model.TotalProcessedCount.ToString("N0") employees processed for @monthNames[selMonth-1] @selYear
+                    </span>
+                </div>
+                <span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-emerald-600 tw-bg-emerald-50 tw-border tw-border-emerald-200 tw-rounded-full tw-px-2.5 tw-py-0.5">
+                    From hr_commissionprocess
+                </span>
+            </div>
+
+            @if (Model.ProcessedRows.Count == 0)
+            {
+                <div class="tw-p-8 tw-text-center">
+                    <i class="fas fa-database tw-text-2xl tw-text-slate-300 tw-mb-2"></i>
+                    <p class="tw-text-sm tw-text-slate-500 tw-mb-0">
+                        No processed commission records found for @monthNames[selMonth-1] @selYear.
+                        Run the commission automation first.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="tw-overflow-x-auto">
+                    <table class="tw-w-full tw-text-sm">
+                        <thead>
+                            <tr class="tw-bg-slate-50 tw-border-b tw-border-slate-200 tw-text-left">
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">#</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">Emp No</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">Employee Name</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">City</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap tw-text-right">Cash</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap tw-text-right">COD</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap tw-text-right">OLE</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap tw-text-right">VAS</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap tw-text-right">Grand Total</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-100">
+                            @{
+                                int pRowStart = (Model.ProcessedPage - 1) * Model.PageSize + 1;
+                                int pRowIdx   = pRowStart;
+                            }
+                            @foreach (var pr in Model.ProcessedRows)
+                            {
+                                var detailUrl = Url.Action("Detail", "CommissionVerification", new {
+                                    empNo = pr.EmpNo, year = selYear, month = selMonth, cityCode = pr.CityCode
+                                });
+                                <tr class="hover:tw-bg-slate-50 tw-transition-colors">
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-slate-400">@pRowIdx</td>
+                                    <td class="tw-px-3 tw-py-2 tw-font-mono tw-text-xs tw-text-slate-500 tw-whitespace-nowrap">@pr.EmpNo</td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-800 tw-whitespace-nowrap">
+                                        @if (!string.IsNullOrEmpty(pr.EmpName))
+                                        {
+                                            <a href="@detailUrl" class="hover:tw-text-indigo-600 tw-transition-colors">@pr.EmpName</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="tw-text-slate-400">—</span>
+                                        }
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-slate-600 tw-whitespace-nowrap">
+                                        @(string.IsNullOrEmpty(pr.CityName) ? pr.CityCode : pr.CityName)
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-right tw-whitespace-nowrap @(pr.CashTotal > 0 ? "tw-text-emerald-700 tw-font-semibold" : "tw-text-slate-300")">
+                                        @pr.CashTotal.ToString("N2")
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-right tw-whitespace-nowrap @(pr.CodTotal > 0 ? "tw-text-blue-700 tw-font-semibold" : "tw-text-slate-300")">
+                                        @pr.CodTotal.ToString("N2")
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-right tw-whitespace-nowrap @(pr.OleTotal > 0 ? "tw-text-indigo-700 tw-font-semibold" : "tw-text-slate-300")">
+                                        @pr.OleTotal.ToString("N2")
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-right tw-whitespace-nowrap @(pr.Vas > 0 ? "tw-text-purple-700 tw-font-semibold" : "tw-text-slate-300")">
+                                        @pr.Vas.ToString("N2")
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-sm tw-font-black tw-text-right tw-whitespace-nowrap @(pr.GrandTotal > 0 ? "tw-text-slate-800" : "tw-text-slate-400")">
+                                        @pr.GrandTotal.ToString("N2")
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-right">
+                                        <a href="@detailUrl"
+                                           class="tw-text-[10px] tw-font-semibold tw-text-indigo-600 hover:tw-text-indigo-800 tw-bg-indigo-50 hover:tw-bg-indigo-100 tw-rounded tw-px-2 tw-py-0.5 tw-transition-colors tw-whitespace-nowrap">
+                                            Detail →
+                                        </a>
+                                    </td>
+                                </tr>
+                                pRowIdx++;
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="tw-bg-slate-50 tw-border-t-2 tw-border-slate-200">
+                                <td colspan="4" class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-bold tw-text-slate-600">
+                                    Page @Model.ProcessedPage total
+                                </td>
+                                <td class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-bold tw-text-right tw-text-emerald-700">
+                                    @Model.ProcessedRows.Sum(r => r.CashTotal).ToString("N2")
+                                </td>
+                                <td class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-bold tw-text-right tw-text-blue-700">
+                                    @Model.ProcessedRows.Sum(r => r.CodTotal).ToString("N2")
+                                </td>
+                                <td class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-bold tw-text-right tw-text-indigo-700">
+                                    @Model.ProcessedRows.Sum(r => r.OleTotal).ToString("N2")
+                                </td>
+                                <td class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-bold tw-text-right tw-text-purple-700">
+                                    @Model.ProcessedRows.Sum(r => r.Vas).ToString("N2")
+                                </td>
+                                <td class="tw-px-3 tw-py-2.5 tw-text-sm tw-font-black tw-text-right tw-text-slate-800">
+                                    @Model.ProcessedRows.Sum(r => r.GrandTotal).ToString("N2")
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Pagination for processed section -->
+                @if (Model.TotalProcessedPages > 1)
+                {
+                    <div class="tw-p-4 tw-border-t tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-3">
+                        <div class="tw-text-xs tw-text-slate-500">
+                            Showing <span class="tw-font-semibold">@(((Model.ProcessedPage-1)*Model.PageSize)+1)</span>
+                            – <span class="tw-font-semibold">@(Math.Min(Model.ProcessedPage*Model.PageSize, Model.TotalProcessedCount))</span>
+                            of <span class="tw-font-semibold">@Model.TotalProcessedCount.ToString("N0")</span> employees
+                        </div>
+                        <div class="tw-flex tw-items-center tw-gap-1">
+                            @{
+                                var p2BaseUrl = Url.Action("Index", "CommissionVerification", new {
+                                    year = selYear, month = selMonth,
+                                    cityCode = Model.Filter.CityCode,
+                                    commissionTypeFilter = Model.Filter.CommissionTypeFilter
+                                });
+
+                                if (Model.ProcessedPage > 1)
+                                {
+                                    <a href="@p2BaseUrl&page2=@(Model.ProcessedPage-1)"
+                                       class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-lg tw-border tw-border-slate-200 tw-text-slate-300">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </span>
+                                }
+
+                                int p2WinStart = Math.Max(1, Model.ProcessedPage - 2);
+                                int p2WinEnd   = Math.Min(Model.TotalProcessedPages, p2WinStart + 4);
+                                p2WinStart     = Math.Max(1, p2WinEnd - 4);
+
+                                if (p2WinStart > 1)
+                                {
+                                    <a href="@p2BaseUrl&page2=1" class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">1</a>
+                                    if (p2WinStart > 2) { <span class="tw-px-2 tw-text-xs tw-text-slate-400">…</span> }
+                                }
+
+                                for (int pg = p2WinStart; pg <= p2WinEnd; pg++)
+                                {
+                                    if (pg == Model.ProcessedPage)
+                                    {
+                                        <span class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-bold tw-rounded-lg tw-bg-indigo-600 tw-text-white tw-border tw-border-indigo-600">@pg</span>
+                                    }
+                                    else
+                                    {
+                                        <a href="@p2BaseUrl&page2=@pg" class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">@pg</a>
+                                    }
+                                }
+
+                                if (p2WinEnd < Model.TotalProcessedPages)
+                                {
+                                    if (p2WinEnd < Model.TotalProcessedPages - 1) { <span class="tw-px-2 tw-text-xs tw-text-slate-400">…</span> }
+                                    <a href="@p2BaseUrl&page2=@Model.TotalProcessedPages" class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">@Model.TotalProcessedPages</a>
+                                }
+
+                                if (Model.ProcessedPage < Model.TotalProcessedPages)
+                                {
+                                    <a href="@p2BaseUrl&page2=@(Model.ProcessedPage+1)"
+                                       class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-lg tw-border tw-border-slate-200 tw-text-slate-300">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- MODE 1: DEFAULT — All commission records paginated              -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    @if (Model.IsDefaultView && !Model.SearchPerformed && Model.SelectedEmployee == null)
+    {
+        <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm">
+
+            <!-- Table header -->
+            <div class="tw-p-4 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-2">
+                <div class="tw-flex tw-items-center tw-gap-2">
+                    <i class="fas fa-table tw-text-indigo-500"></i>
+                    <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-mb-0">
+                        All Commission Records
+                    </h2>
+                    <span class="tw-text-xs tw-text-slate-400">
+                        — @Model.TotalAllCount.ToString("N0") total, showing page @Model.CurrentPage of @Model.TotalPages
+                    </span>
+                </div>
+                <div class="tw-flex tw-items-center tw-gap-3 tw-text-xs tw-text-slate-500">
+                    <span class="tw-flex tw-items-center tw-gap-1">
+                        <span class="tw-w-3 tw-h-3 tw-rounded tw-bg-emerald-200 tw-inline-block"></span> Cash
+                    </span>
+                    <span class="tw-flex tw-items-center tw-gap-1">
+                        <span class="tw-w-3 tw-h-3 tw-rounded tw-bg-blue-200 tw-inline-block"></span> COD
+                    </span>
+                </div>
+            </div>
+
+            @if (Model.AllCommissionRows.Count == 0)
+            {
+                <div class="tw-p-10 tw-text-center">
+                    <i class="fas fa-inbox tw-text-3xl tw-text-slate-300 tw-mb-3"></i>
+                    <p class="tw-text-sm tw-text-slate-500">
+                        No commission records found for @monthNames[selMonth-1] @selYear.
+                        @if (string.IsNullOrEmpty(Model.Filter.CityCode))
+                        {
+                            <span>Try selecting a specific city.</span>
+                        }
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="tw-overflow-x-auto">
+                    <table class="tw-w-full tw-text-sm">
+                        <thead>
+                            <tr class="tw-bg-slate-50 tw-border-b tw-border-slate-200 tw-text-left">
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">#</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">Date</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">Employee</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">Emp No</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">Route</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">City</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">CN Number</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">Type</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">Delivery</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap">Criteria</th>
+                                <th class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-whitespace-nowrap tw-text-right">Commission</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-100">
+                            @{
+                                int rowStart = (Model.CurrentPage - 1) * Model.PageSize + 1;
+                                int rowIdx   = rowStart;
+                            }
+                            @foreach (var row in Model.AllCommissionRows)
+                            {
+                                var rowBg = row.CommissionType == "Cash" ? "" : "tw-bg-blue-50/20";
+                                var empDetailUrl = Url.Action("Detail", "CommissionVerification", new {
+                                    empNo = row.EmpNo, year = selYear, month = selMonth, cityCode = row.CityCode
+                                });
+                                <tr class="hover:tw-bg-slate-50 tw-transition-colors @rowBg">
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-slate-400">@rowIdx</td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-slate-700 tw-font-semibold tw-whitespace-nowrap">
+                                        @(row.CnDate.HasValue ? row.CnDate.Value.ToString("dd-MMM-yyyy") : "-")
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-800 tw-whitespace-nowrap">
+                                        @if (!string.IsNullOrEmpty(row.EmpNo))
+                                        {
+                                            <a href="@empDetailUrl" class="hover:tw-text-indigo-600 tw-transition-colors">
+                                                @(string.IsNullOrEmpty(row.EmpName) ? "—" : row.EmpName)
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="tw-text-slate-400">—</span>
+                                        }
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-font-mono tw-text-xs tw-text-slate-500 tw-whitespace-nowrap">
+                                        @(string.IsNullOrEmpty(row.EmpNo) ? "—" : row.EmpNo)
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-font-mono tw-text-xs tw-text-slate-500 tw-whitespace-nowrap">
+                                        @(string.IsNullOrEmpty(row.RouteCode) ? "—" : row.RouteCode)
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-slate-600 tw-whitespace-nowrap">
+                                        @(string.IsNullOrEmpty(row.CityName) ? row.CityCode : row.CityName)
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-font-mono tw-text-xs tw-font-semibold tw-text-slate-700 tw-whitespace-nowrap">
+                                        @row.CnNumber
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-whitespace-nowrap">
+                                        @if (row.CommissionType == "Cash")
+                                        {
+                                            <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-emerald-100 tw-text-emerald-800">Cash</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-blue-100 tw-text-blue-800">COD</span>
+                                        }
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-whitespace-nowrap">
+                                        @if (row.CommissionType == "COD")
+                                        {
+                                            if (row.IsOnTime)
+                                            {
+                                                <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-green-100 tw-text-green-700">
+                                                    <i class="fas fa-check tw-mr-1 tw-text-[9px]"></i>On-Time
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-red-100 tw-text-red-700">
+                                                    <i class="fas fa-clock tw-mr-1 tw-text-[9px]"></i>+@row.DateDif d
+                                                </span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="tw-text-slate-300 tw-text-xs">—</span>
+                                        }
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-text-slate-500 tw-whitespace-nowrap">
+                                        @(string.IsNullOrEmpty(row.Criteria) ? "—" : row.Criteria)
+                                    </td>
+                                    <td class="tw-px-3 tw-py-2 tw-text-xs tw-font-bold tw-text-right tw-whitespace-nowrap @(row.CommissionAmount > 0 ? "tw-text-emerald-700" : "tw-text-slate-400")">
+                                        @row.CommissionAmount.ToString("N2")
+                                    </td>
+                                </tr>
+                                rowIdx++;
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="tw-bg-slate-50 tw-border-t-2 tw-border-slate-200">
+                                <td colspan="10" class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-bold tw-text-slate-600">
+                                    Page @Model.CurrentPage total
+                                </td>
+                                <td class="tw-px-3 tw-py-2.5 tw-text-sm tw-font-black tw-text-right tw-text-emerald-700">
+                                    @Model.AllCommissionRows.Sum(r => r.CommissionAmount).ToString("N2")
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- ── Pagination ───────────────────────────────────────────── -->
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="tw-p-4 tw-border-t tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-3">
+                        <div class="tw-text-xs tw-text-slate-500">
+                            Showing <span class="tw-font-semibold">@(((Model.CurrentPage-1)*Model.PageSize)+1)</span>
+                            – <span class="tw-font-semibold">@(Math.Min(Model.CurrentPage*Model.PageSize, Model.TotalAllCount))</span>
+                            of <span class="tw-font-semibold">@Model.TotalAllCount.ToString("N0")</span> records
+                        </div>
+                        <div class="tw-flex tw-items-center tw-gap-1">
+                            @{
+                                // Build base URL for pagination
+                                var baseUrl = Url.Action("Index", "CommissionVerification", new {
+                                    year = selYear, month = selMonth,
+                                    cityCode = Model.Filter.CityCode,
+                                    commissionTypeFilter = Model.Filter.CommissionTypeFilter
+                                });
+
+                                // Previous
+                                if (Model.CurrentPage > 1)
+                                {
+                                    <a href="@baseUrl&page=@(Model.CurrentPage-1)"
+                                       class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-200 tw-text-slate-300">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </span>
+                                }
+
+                                // Page numbers (show window of 5)
+                                int winStart = Math.Max(1, Model.CurrentPage - 2);
+                                int winEnd   = Math.Min(Model.TotalPages, winStart + 4);
+                                winStart     = Math.Max(1, winEnd - 4);
+
+                                if (winStart > 1)
+                                {
+                                    <a href="@baseUrl&page=1" class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">1</a>
+                                    if (winStart > 2)
+                                    {
+                                        <span class="tw-px-2 tw-text-xs tw-text-slate-400">…</span>
+                                    }
+                                }
+
+                                for (int pg = winStart; pg <= winEnd; pg++)
+                                {
+                                    if (pg == Model.CurrentPage)
+                                    {
+                                        <span class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-bold tw-rounded-lg tw-bg-indigo-600 tw-text-white">@pg</span>
+                                    }
+                                    else
+                                    {
+                                        <a href="@baseUrl&page=@pg"
+                                           class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">@pg</a>
+                                    }
+                                }
+
+                                if (winEnd < Model.TotalPages)
+                                {
+                                    if (winEnd < Model.TotalPages - 1)
+                                    {
+                                        <span class="tw-px-2 tw-text-xs tw-text-slate-400">…</span>
+                                    }
+                                    <a href="@baseUrl&page=@Model.TotalPages" class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">@Model.TotalPages</a>
+                                }
+
+                                // Next
+                                if (Model.CurrentPage < Model.TotalPages)
+                                {
+                                    <a href="@baseUrl&page=@(Model.CurrentPage+1)"
+                                       class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition-colors">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-lg tw-border tw-border-slate-200 tw-text-slate-300">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- MODE 2: Employee Search Results                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    @if (Model.SearchPerformed && Model.SelectedEmployee == null)
+    {
+        @if (Model.MatchedEmployees.Count > 0)
+        {
+            <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm">
+                <div class="tw-p-4 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between">
+                    <div class="tw-flex tw-items-center tw-gap-2">
+                        <i class="fas fa-users tw-text-indigo-500"></i>
+                        <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-mb-0">
+                            Matching Employees <span class="tw-text-slate-400 tw-font-normal">(@Model.MatchedEmployees.Count found)</span>
+                        </h2>
+                    </div>
+                    <span class="tw-text-xs tw-text-slate-400">Click to view commission detail</span>
+                </div>
+                <div class="tw-overflow-x-auto">
+                    <table class="tw-w-full tw-text-sm">
+                        <thead>
+                            <tr class="tw-bg-slate-50 tw-text-left">
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">Employee</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">Emp No</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">Route</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">City</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-100">
+                            @foreach (var emp in Model.MatchedEmployees)
+                            {
+                                var detailUrl = Url.Action("Detail", "CommissionVerification", new {
+                                    empNo = emp.EmpNo, year = selYear, month = selMonth, cityCode = emp.CityCode
+                                });
+                                <tr class="hover:tw-bg-indigo-50 tw-cursor-pointer tw-transition-colors"
+                                    onclick="window.location='@detailUrl'">
+                                    <td class="tw-px-4 tw-py-3 tw-font-semibold tw-text-slate-800">@emp.EmpName</td>
+                                    <td class="tw-px-4 tw-py-3 tw-font-mono tw-text-xs tw-text-slate-600">@emp.EmpNo</td>
+                                    <td class="tw-px-4 tw-py-3 tw-font-mono tw-text-xs tw-text-slate-600">@emp.RouteCode</td>
+                                    <td class="tw-px-4 tw-py-3 tw-text-sm tw-text-slate-600">@emp.CityName</td>
+                                    <td class="tw-px-4 tw-py-3 tw-text-right">
+                                        <a href="@detailUrl" class="tw-text-indigo-600 hover:tw-text-indigo-800 tw-text-xs tw-font-semibold">
+                                            View Detail <i class="fas fa-arrow-right tw-ml-1"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else if (string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-p-8 tw-text-center">
+                <i class="fas fa-user-slash tw-text-3xl tw-text-slate-300 tw-mb-3"></i>
+                <p class="tw-text-sm tw-text-slate-500">No employees found matching your search criteria.</p>
+            </div>
+        }
+    }
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- MODE 3: Employee Detail                                         -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    @if (Model.SelectedEmployee != null)
+    {
+        var emp = Model.SelectedEmployee;
+
+        @* Reprocess result notification *@
+        @if (TempData["ReprocessResult"] != null)
+        {
+            var isOk  = TempData["ReprocessResult"]?.ToString() == "success";
+            var msg   = TempData["ReprocessMessage"]?.ToString() ?? "";
+            <div class="tw-mb-4 tw-p-3 tw-rounded-xl tw-flex tw-items-start tw-gap-2 tw-text-sm
+                        @(isOk ? "tw-bg-green-50 tw-border tw-border-green-200 tw-text-green-800"
+                                : "tw-bg-red-50 tw-border tw-border-red-200 tw-text-red-700")">
+                <i class="fas @(isOk ? "fa-check-circle" : "fa-exclamation-triangle") tw-mt-0.5"></i>
+                <span>@msg</span>
+            </div>
+        }
+
+        <!-- Summary Cards -->
+        <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-4 tw-gap-4 tw-mb-5">
+
+            <!-- Employee Info -->
+            <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-p-4">
+                <div class="tw-flex tw-items-center tw-gap-3 tw-mb-3">
+                    <div class="tw-w-10 tw-h-10 tw-rounded-full tw-bg-indigo-100 tw-flex tw-items-center tw-justify-center tw-text-indigo-600 tw-font-black tw-text-sm">
+                        @(string.IsNullOrEmpty(emp.EmpName) ? "?" : emp.EmpName[0].ToString())
+                    </div>
+                    <div>
+                        <div class="tw-font-bold tw-text-slate-800 tw-text-sm">@emp.EmpName</div>
+                        <div class="tw-font-mono tw-text-xs tw-text-slate-500">@emp.EmpNo</div>
+                    </div>
+                </div>
+                <div class="tw-space-y-1">
+                    <div class="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-text-slate-600">
+                        <i class="fas fa-route tw-text-slate-400 tw-w-3.5"></i>
+                        Route: <span class="tw-font-mono tw-font-semibold">@emp.RouteCode</span>
+                    </div>
+                    <div class="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-text-slate-600">
+                        <i class="fas fa-city tw-text-slate-400 tw-w-3.5"></i>
+                        @emp.CityName <span class="tw-font-mono tw-text-slate-400">(@emp.CityCode)</span>
+                    </div>
+                    <div class="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-text-indigo-600 tw-font-semibold">
+                        <i class="fas fa-calendar tw-text-indigo-400 tw-w-3.5"></i>
+                        @periodLabel
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cash Summary -->
+            <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-emerald-200 tw-shadow-sm tw-p-4">
+                <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                    <div class="tw-w-8 tw-h-8 tw-rounded-lg tw-bg-emerald-100 tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-money-bill-wave tw-text-emerald-600 tw-text-sm"></i>
+                    </div>
+                    <span class="tw-text-sm tw-font-bold tw-text-slate-700">Cash Commission</span>
+                </div>
+                <div class="tw-text-2xl tw-font-black tw-text-emerald-700">
+                    @emp.CashCnCount <span class="tw-text-base tw-font-semibold tw-text-slate-500">CNs</span>
+                </div>
+                <div class="tw-text-lg tw-font-bold tw-text-emerald-600">
+                    PKR @emp.CashCommissionAmount.ToString("N0")
+                </div>
+            </div>
+
+            <!-- COD Summary -->
+            <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-blue-200 tw-shadow-sm tw-p-4">
+                <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                    <div class="tw-w-8 tw-h-8 tw-rounded-lg tw-bg-blue-100 tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-hand-holding-usd tw-text-blue-600 tw-text-sm"></i>
+                    </div>
+                    <span class="tw-text-sm tw-font-bold tw-text-slate-700">COD Commission</span>
+                </div>
+                <div class="tw-text-2xl tw-font-black tw-text-blue-700">
+                    @emp.CodCnCount <span class="tw-text-base tw-font-semibold tw-text-slate-500">CNs</span>
+                </div>
+                <div class="tw-text-lg tw-font-bold tw-text-blue-600">PKR @emp.CodCommissionAmount.ToString("N0")</div>
+                <div class="tw-flex tw-gap-3 tw-mt-1 tw-text-xs">
+                    <span class="tw-text-green-600 tw-font-semibold"><i class="fas fa-check"></i> @emp.CodOnTimeCount On-Time</span>
+                    @if (emp.CodDelayedCount > 0)
+                    {
+                        <span class="tw-text-red-500 tw-font-semibold"><i class="fas fa-clock"></i> @emp.CodDelayedCount Delayed</span>
+                    }
+                </div>
+            </div>
+
+            <!-- Processed Status -->
+            <div class="tw-bg-white tw-rounded-2xl tw-border @(emp.IsCommissionProcessed ? "tw-border-green-200" : "tw-border-amber-200") tw-shadow-sm tw-p-4">
+                <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                    <div class="tw-w-8 tw-h-8 tw-rounded-lg @(emp.IsCommissionProcessed ? "tw-bg-green-100" : "tw-bg-amber-100") tw-flex tw-items-center tw-justify-center">
+                        <i class="fas @(emp.IsCommissionProcessed ? "fa-check-circle tw-text-green-600" : "fa-hourglass-half tw-text-amber-500") tw-text-sm"></i>
+                    </div>
+                    <span class="tw-text-sm tw-font-bold tw-text-slate-700">Processed Status</span>
+                </div>
+                @if (emp.IsCommissionProcessed)
+                {
+                    <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-green-100 tw-text-green-800 tw-rounded-lg tw-text-xs tw-font-bold">
+                        <i class="fas fa-check"></i> Commission Processed
+                    </span>
+                    @if (emp.ProcessedTotalAmount.HasValue)
+                    {
+                        <div class="tw-text-lg tw-font-bold tw-text-green-700 tw-mt-1">PKR @emp.ProcessedTotalAmount.Value.ToString("N0")</div>
+                        <div class="tw-text-xs tw-mt-1 @(Math.Abs(emp.ProcessedDifference) < 1 ? "tw-text-green-600" : emp.ProcessedDifference < 0 ? "tw-text-red-500" : "tw-text-slate-500")">
+                            @if (Math.Abs(emp.ProcessedDifference) < 1)
+                            {<span><i class="fas fa-equals"></i> Matches CN total</span>}
+                            else if (emp.ProcessedDifference > 0)
+                            {<span>+PKR @emp.ProcessedDifference.ToString("N0") vs CN total</span>}
+                            else
+                            {<span>-PKR @Math.Abs(emp.ProcessedDifference).ToString("N0") vs CN total</span>}
+                        </div>
+                    }
+                }
+                else
+                {
+                    <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-amber-100 tw-text-amber-800 tw-rounded-lg tw-text-xs tw-font-bold">
+                        <i class="fas fa-exclamation"></i> Not Yet Processed
+                    </span>
+                    <div class="tw-text-xs tw-text-slate-400 tw-mt-2">Estimated: PKR @emp.TotalRawCommission.ToString("N0")</div>
+                }
+            </div>
+        </div>
+
+        <!-- Secondary filters (Commission Type / Delivery) -->
+        <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-mb-5 tw-p-3">
+            <div class="tw-flex tw-items-center tw-gap-3 tw-flex-wrap">
+                <span class="tw-text-xs tw-font-semibold tw-text-slate-500">Filter CNs:</span>
+                @{
+                    var baseDetailUrl = $"/CommissionVerification/Detail?empNo={Uri.EscapeDataString(emp.EmpNo)}&year={selYear}&month={selMonth}&cityCode={Uri.EscapeDataString(Model.Filter.CityCode ?? "")}";
+                    foreach (var opt in new[] { ("All","All Types"), ("Cash","Cash Only"), ("COD","COD Only") })
+                    {
+                        var active = Model.Filter.CommissionTypeFilter == opt.Item1;
+                        <a href="@baseDetailUrl&commissionTypeFilter=@opt.Item1&deliveryFilter=@Model.Filter.DeliveryFilter"
+                           class="tw-text-xs tw-font-semibold tw-px-3 tw-py-1.5 tw-rounded-lg tw-border tw-transition-colors
+                                  @(active ? "tw-bg-indigo-600 tw-text-white tw-border-indigo-600" : "tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-50")">
+                            @opt.Item2
+                        </a>
+                    }
+                    <span class="tw-text-xs tw-text-slate-300">|</span>
+                    foreach (var opt in new[] { ("All","All Delivery"), ("OnTime","On-Time"), ("Delayed","Delayed") })
+                    {
+                        var active = Model.Filter.DeliveryFilter == opt.Item1;
+                        <a href="@baseDetailUrl&commissionTypeFilter=@Model.Filter.CommissionTypeFilter&deliveryFilter=@opt.Item1"
+                           class="tw-text-xs tw-font-semibold tw-px-3 tw-py-1.5 tw-rounded-lg tw-border tw-transition-colors
+                                  @(active ? "tw-bg-indigo-600 tw-text-white tw-border-indigo-600" : "tw-border-slate-300 tw-text-slate-600 hover:tw-bg-slate-50")">
+                            @opt.Item2
+                        </a>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- CN Detail Table -->
+        <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm">
+            <div class="tw-p-4 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between">
+                <div class="tw-flex tw-items-center tw-gap-2">
+                    <i class="fas fa-list tw-text-indigo-500"></i>
+                    <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-mb-0">
+                        CN Details <span class="tw-text-slate-400 tw-font-normal">(@Model.CnDetails.Count shown)</span>
+                    </h2>
+                </div>
+                <div class="tw-flex tw-items-center tw-gap-4 tw-text-xs tw-text-slate-500">
+                    <span><span class="tw-w-3 tw-h-3 tw-rounded tw-bg-emerald-200 tw-inline-block tw-mr-1"></span>Cash: @Model.CashCns.Count</span>
+                    <span><span class="tw-w-3 tw-h-3 tw-rounded tw-bg-blue-200 tw-inline-block tw-mr-1"></span>COD: @Model.CodCns.Count</span>
+                </div>
+            </div>
+
+            @if (Model.CnDetails.Count == 0)
+            {
+                <div class="tw-p-8 tw-text-center">
+                    <i class="fas fa-inbox tw-text-3xl tw-text-slate-300 tw-mb-3"></i>
+                    <p class="tw-text-sm tw-text-slate-500">No CN records found for the selected filters.</p>
+                </div>
+            }
+            else
+            {
+                <div class="tw-overflow-x-auto">
+                    <table class="tw-w-full tw-text-sm">
+                        <thead>
+                            <tr class="tw-bg-slate-50 tw-border-b tw-border-slate-200 tw-text-left">
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">#</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">CN Number</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">Type</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">CN Date</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">Delivery Date</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">Status</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">Criteria</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500">Reason</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-slate-500 tw-text-right">Commission</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-100">
+                            @{ int idx = 0; }
+                            @foreach (var cn in Model.CnDetails)
+                            {
+                                idx++;
+                                <tr class="hover:tw-bg-slate-50 tw-transition-colors @(cn.CommissionType == "Cash" ? "" : "tw-bg-blue-50/20")">
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-400">@idx</td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-font-mono tw-text-xs tw-font-semibold tw-text-slate-700">@cn.CnNumber</td>
+                                    <td class="tw-px-4 tw-py-2.5">
+                                        @if (cn.CommissionType == "Cash")
+                                        {<span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-emerald-100 tw-text-emerald-800">Cash</span>}
+                                        else
+                                        {<span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-blue-100 tw-text-blue-800">COD</span>}
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-600">
+                                        @(cn.CnDate.HasValue ? cn.CnDate.Value.ToString("dd-MMM-yyyy") : "—")
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-600">
+                                        @(cn.DeliveryDate.HasValue ? cn.DeliveryDate.Value.ToString("dd-MMM-yyyy") : "—")
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5">
+                                        @if (cn.CommissionType == "COD")
+                                        {
+                                            if (cn.IsOnTime)
+                                            {<span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-green-100 tw-text-green-700"><i class="fas fa-check tw-mr-1 tw-text-[9px]"></i>On-Time</span>}
+                                            else
+                                            {<span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-red-100 tw-text-red-700"><i class="fas fa-clock tw-mr-1 tw-text-[9px]"></i>Delayed @cn.DateDif d</span>}
+                                        }
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-500">@(cn.Criteria ?? "—")</td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-500">@(cn.Reason ?? "—")</td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-bold tw-text-right @(cn.CommissionAmount > 0 ? "tw-text-emerald-700" : "tw-text-slate-400")">
+                                        @cn.CommissionAmount.ToString("N2")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="tw-bg-slate-50 tw-border-t-2 tw-border-slate-200">
+                                <td colspan="8" class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-bold tw-text-slate-600">
+                                    Total (@Model.CnDetails.Count CNs)
+                                </td>
+                                <td class="tw-px-4 tw-py-2.5 tw-text-sm tw-font-black tw-text-right tw-text-emerald-700">
+                                    @Model.CnDetails.Sum(c => c.CommissionAmount).ToString("N2")
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- ─── Missing CNs + Reprocess ───────────────────────────────── -->
+        <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-amber-200 tw-shadow-sm tw-mt-5">
+            <div class="tw-p-4 tw-border-b tw-border-amber-100 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-2">
+                <div class="tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-8 tw-h-8 tw-rounded-lg tw-bg-amber-100 tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-exclamation-triangle tw-text-amber-600 tw-text-sm"></i>
+                    </div>
+                    <div>
+                        <h2 class="tw-text-sm tw-font-bold tw-text-slate-700 tw-mb-0">
+                            Missing Commission CNs
+                            @if (emp.MissingCnCount > 0)
+                            {
+                                <span class="tw-ml-2 tw-text-xs tw-font-bold tw-bg-amber-500 tw-text-white tw-rounded-full tw-px-2 tw-py-0.5">
+                                    @emp.MissingCnCount
+                                </span>
+                            }
+                        </h2>
+                        <p class="tw-text-[10px] tw-text-slate-400 tw-mb-0">CNs assigned to this employee with commission = 0 in source tables</p>
+                    </div>
+                </div>
+
+                @* Reprocess button — only when there are missing CNs or commission not yet fully processed *@
+                <form method="post" action="@Url.Action("Reprocess", "CommissionVerification")"
+                      onsubmit="return confirm('Reprocess commission for @emp.EmpName (@emp.EmpNo) for @monthNames[selMonth-1] @selYear?\n\nThis will recalculate and overwrite their commission record.');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="empNo"    value="@emp.EmpNo" />
+                    <input type="hidden" name="year"     value="@selYear" />
+                    <input type="hidden" name="month"    value="@selMonth" />
+                    <input type="hidden" name="cityCode" value="@Model.Filter.CityCode" />
+                    <button type="submit"
+                            class="tw-flex tw-items-center tw-gap-2 tw-bg-indigo-600 hover:tw-bg-indigo-700 tw-text-white tw-text-xs tw-font-bold tw-px-4 tw-py-2 tw-rounded-xl tw-transition-colors tw-shadow-sm">
+                        <i class="fas fa-sync-alt"></i>
+                        Reprocess Commission
+                    </button>
+                </form>
+            </div>
+
+            @if (Model.MissingCns.Count == 0)
+            {
+                <div class="tw-p-6 tw-text-center">
+                    <i class="fas fa-check-circle tw-text-2xl tw-text-green-400 tw-mb-2"></i>
+                    <p class="tw-text-sm tw-text-slate-500 tw-mb-0">
+                        No missing commissions detected — all assigned CNs have commission values.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="tw-p-3 tw-bg-amber-50 tw-border-b tw-border-amber-100 tw-text-xs tw-text-amber-800">
+                    <i class="fas fa-info-circle tw-mr-1"></i>
+                    These CNs are assigned to this employee but have <strong>commission = 0</strong> in the source tables.
+                    Click <strong>Reprocess Commission</strong> to recalculate and fix them.
+                </div>
+                <div class="tw-overflow-x-auto">
+                    <table class="tw-w-full tw-text-sm">
+                        <thead>
+                            <tr class="tw-bg-amber-50 tw-border-b tw-border-amber-200 tw-text-left">
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-amber-700">#</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-amber-700">CN Number</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-amber-700">Type</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-amber-700">CN Date</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-amber-700">Delivery Date</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-amber-700">Shipment Type</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-amber-700 tw-text-right">Billed Amt</th>
+                                <th class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-amber-700">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-amber-50">
+                            @{ int mIdx = 0; }
+                            @foreach (var mcn in Model.MissingCns)
+                            {
+                                mIdx++;
+                                <tr class="hover:tw-bg-amber-50/60 tw-transition-colors">
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-400">@mIdx</td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-font-mono tw-text-xs tw-font-semibold tw-text-slate-700">@mcn.CnNumber</td>
+                                    <td class="tw-px-4 tw-py-2.5">
+                                        @if (mcn.CommissionType == "Cash")
+                                        {<span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-emerald-100 tw-text-emerald-800">Cash</span>}
+                                        else
+                                        {<span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-semibold tw-bg-blue-100 tw-text-blue-800">COD</span>}
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-600">
+                                        @(mcn.CnDate.HasValue ? mcn.CnDate.Value.ToString("dd-MMM-yyyy") : "—")
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-600">
+                                        @(mcn.DeliveryDate.HasValue ? mcn.DeliveryDate.Value.ToString("dd-MMM-yyyy") : "—")
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-500">@(mcn.ShipmentId ?? "—")</td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-right tw-text-slate-700">
+                                        @mcn.BilledAmount.ToString("N2")
+                                    </td>
+                                    <td class="tw-px-4 tw-py-2.5 tw-text-xs tw-text-slate-500">@(mcn.Reason ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+</div>

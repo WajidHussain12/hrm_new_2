@@ -1,0 +1,220 @@
+@model LCS_HR_MVC.Models.Support.ResultSetExporterViewModel
+@{
+    ViewData["Title"] = "Excel Exporter Nexus";
+    ViewData["PageTitle"] = "Excel Exporter";
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-amber-500 tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-database tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Data Engineering</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Query Exporter</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Result Set Nexus</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Translate raw SQL query signatures into formatted Excel volumes with advanced grouping logic.</p>
+        </div>
+    </div>
+
+    <div class="tw-max-w-6xl tw-mx-auto">
+        <!-- Main Panel -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+            <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-amber-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none"></div>
+
+            <div class="tw-p-6 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-relative tw-z-10">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    Operational Signature
+                </h3>
+            </div>
+
+            <form asp-action="ResultSetExporter" method="post" class="tw-p-8 tw-space-y-8 tw-relative tw-z-10">
+                @Html.AntiForgeryToken()
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-xs tw-font-bold tw-flex tw-items-start tw-gap-3">
+                        <i class="fas fa-exclamation-circle tw-mt-0.5"></i>
+                        @Html.ValidationSummary(false, "", new { @class = "tw-list-none tw-space-y-1" })
+                    </div>
+                }
+
+                <div class="tw-grid lg:tw-grid-cols-12 tw-gap-8">
+                    <!-- Left: Query Editor (8 cols) -->
+                    <div class="lg:tw-col-span-8 tw-space-y-6">
+                        <div class="tw-space-y-3">
+                            <label asp-for="Query" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide">SQL Query Statement <span class="tw-text-red-500">*</span></label>
+                            <div class="tw-relative group">
+                                <div class="tw-absolute tw-inset-0 tw-bg-slate-900 tw-rounded-2xl tw-shadow-inner group-focus-within:tw-ring-4 group-focus-within:tw-ring-amber-400/20 tw-transition-all"></div>
+                                <textarea asp-for="Query" class="tw-relative tw-w-full tw-p-6 tw-bg-transparent tw-text-emerald-400 tw-font-mono tw-text-sm tw-rounded-2xl tw-min-h-[350px] focus:tw-outline-none custom-scrollbar leading-relaxed" placeholder="SELECT * FROM table_nexus..."></textarea>
+                                <div class="tw-absolute tw-bottom-4 tw-right-4 tw-flex tw-items-center tw-gap-2">
+                                    <span class="tw-text-[9px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest">Query Buffer</span>
+                                    <div class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-emerald-500 tw-animate-pulse"></div>
+                                </div>
+                            </div>
+                            <span asp-validation-for="Query" class="tw-text-[9px] tw-font-bold tw-text-red-500"></span>
+                        </div>
+
+                        <div class="tw-grid md:tw-grid-cols-2 tw-gap-6">
+                            <div class="tw-bg-slate-50 tw-p-5 tw-rounded-2xl tw-border tw-border-slate-100">
+                                <h4 class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mb-4">Grouping Nexus</h4>
+                                <div class="tw-space-y-4">
+                                    <div>
+                                        <label class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-500 tw-uppercase tw-mb-1.5">Column ID</label>
+                                        <input asp-for="GroupingColumnName" class="tw-w-full tw-px-3 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-mono tw-font-bold focus:tw-border-amber-400 tw-outline-none" />
+                                    </div>
+                                    <div>
+                                        <label class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-500 tw-uppercase tw-mb-1.5">Label Prefix</label>
+                                        <input asp-for="GroupingColumnPrefix" class="tw-w-full tw-px-3 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-bold focus:tw-border-amber-400 tw-outline-none" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tw-bg-slate-50 tw-p-5 tw-rounded-2xl tw-border tw-border-slate-100">
+                                <h4 class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mb-4">System Identity</h4>
+                                <div class="tw-space-y-4">
+                                    <div>
+                                        <label class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-500 tw-uppercase tw-mb-1.5">File Alias</label>
+                                        <input asp-for="ExportFileName" class="tw-w-full tw-px-3 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-bold focus:tw-border-amber-400 tw-outline-none" />
+                                    </div>
+                                    <div>
+                                        <label class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-500 tw-uppercase tw-mb-1.5">Output Logic</label>
+                                        <select asp-for="ExportFormat" class="tw-w-full tw-px-3 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-bold focus:tw-border-amber-400 tw-outline-none">
+                                            <option value="0">Microsoft Excel (XLSX)</option>
+                                            <option value="1">Compressed Archive (ZIP)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Logic & Formatting (4 cols) -->
+                    <div class="lg:tw-col-span-4 tw-space-y-6">
+                        <div class="tw-bg-slate-50 tw-p-6 tw-rounded-3xl tw-border tw-border-slate-100 tw-space-y-6">
+                            <h4 class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-flex tw-items-center tw-gap-2">
+                                <i class="fas fa-sliders-h tw-text-indigo-500"></i> Operation Flags
+                            </h4>
+                            <div class="tw-grid tw-grid-cols-1 tw-gap-3">
+                                <label class="tw-flex tw-items-center tw-gap-3 tw-p-3 tw-bg-white tw-rounded-xl tw-border tw-border-slate-200 tw-cursor-pointer hover:tw-border-amber-400 tw-transition-all">
+                                    <input asp-for="IncludeHeader" class="tw-w-4 tw-h-4 tw-rounded tw-text-amber-500 focus:tw-ring-amber-500" />
+                                    <span class="tw-text-xs tw-font-bold tw-text-slate-700">Include Header</span>
+                                </label>
+                                <label class="tw-flex tw-items-center tw-gap-3 tw-p-3 tw-bg-white tw-rounded-xl tw-border tw-border-slate-200 tw-cursor-pointer hover:tw-border-amber-400 tw-transition-all">
+                                    <input asp-for="IncludeSummary" class="tw-w-4 tw-h-4 tw-rounded tw-text-amber-500 focus:tw-ring-amber-500" />
+                                    <span class="tw-text-xs tw-font-bold tw-text-slate-700">Include Summary</span>
+                                </label>
+                                <label class="tw-flex tw-items-center tw-gap-3 tw-p-3 tw-bg-white tw-rounded-xl tw-border tw-border-slate-200 tw-cursor-pointer hover:tw-border-amber-400 tw-transition-all">
+                                    <input asp-for="HighlightNegatives" class="tw-w-4 tw-h-4 tw-rounded tw-text-amber-500 focus:tw-ring-amber-500" />
+                                    <span class="tw-text-xs tw-font-bold tw-text-slate-700">Highlight Negatives</span>
+                                </label>
+                                <label class="tw-flex tw-items-center tw-gap-3 tw-p-3 tw-bg-white tw-rounded-xl tw-border tw-border-slate-200 tw-cursor-pointer hover:tw-border-amber-400 tw-transition-all">
+                                    <input asp-for="Filtering" class="tw-w-4 tw-h-4 tw-rounded tw-text-amber-500 focus:tw-ring-amber-500" />
+                                    <span class="tw-text-xs tw-font-bold tw-text-slate-700">Enable Filter</span>
+                                </label>
+                                <label class="tw-flex tw-items-center tw-gap-3 tw-p-3 tw-bg-white tw-rounded-xl tw-border tw-border-slate-200 tw-cursor-pointer hover:tw-border-amber-400 tw-transition-all">
+                                    <input asp-for="EnableGrouping" class="tw-w-4 tw-h-4 tw-rounded tw-text-amber-500 focus:tw-ring-amber-500" />
+                                    <span class="tw-text-xs tw-font-bold tw-text-slate-700">Enable Grouping</span>
+                                </label>
+                                <label class="tw-flex tw-items-center tw-gap-3 tw-p-3 tw-bg-white tw-rounded-xl tw-border tw-border-slate-200 tw-cursor-pointer hover:tw-border-amber-400 tw-transition-all">
+                                    <input asp-for="UseCustomConnectionString" class="tw-w-4 tw-h-4 tw-rounded tw-text-amber-500 focus:tw-ring-amber-500" />
+                                    <span class="tw-text-xs tw-font-bold tw-text-slate-700">Custom Connection</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="tw-bg-slate-50 tw-p-6 tw-rounded-3xl tw-border tw-border-slate-100 tw-space-y-4">
+                            <h4 class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-flex tw-items-center tw-gap-2">
+                                <i class="fas fa-paint-brush tw-text-amber-500"></i> Render Params
+                            </h4>
+                            <div class="tw-grid tw-grid-cols-2 tw-gap-4">
+                                <div>
+                                    <label class="tw-block tw-text-[9px] tw-font-black tw-text-slate-400 tw-uppercase tw-mb-1">Zoom</label>
+                                    <input asp-for="Zoom" class="tw-w-full tw-px-2 tw-py-1.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-bold" />
+                                </div>
+                                <div>
+                                    <label class="tw-block tw-text-[9px] tw-font-black tw-text-slate-400 tw-uppercase tw-mb-1">Freeze Idx</label>
+                                    <input asp-for="FilterIndex" class="tw-w-full tw-px-2 tw-py-1.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-bold" />
+                                </div>
+                                <div>
+                                    <label class="tw-block tw-text-[9px] tw-font-black tw-text-slate-400 tw-uppercase tw-mb-1">H-Size</label>
+                                    <input asp-for="HeadingFontSize" class="tw-w-full tw-px-2 tw-py-1.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-bold" />
+                                </div>
+                                <div>
+                                    <label class="tw-block tw-text-[9px] tw-font-black tw-text-slate-400 tw-uppercase tw-mb-1">C-Size</label>
+                                    <input asp-for="ContentFontSize" class="tw-w-full tw-px-2 tw-py-1.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-bold" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[9px] tw-font-black tw-text-slate-400 tw-uppercase tw-mb-1">DateTime Protocol</label>
+                                <input asp-for="DateTimeFormate" placeholder="dd-MMM-yyyy" class="tw-w-full tw-px-3 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-xs tw-font-mono" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tw-bg-slate-50 tw-p-6 tw-rounded-3xl tw-border tw-border-slate-100">
+                    <label asp-for="ConnectionString" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-3">Custom Connection String Nexus</label>
+                    <textarea asp-for="ConnectionString" rows="3" placeholder="Only used if 'Custom Connection' is flagged..."
+                              class="tw-w-full tw-p-4 tw-bg-white tw-border tw-border-slate-200 tw-rounded-2xl tw-text-xs tw-font-mono tw-font-medium tw-text-slate-600 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-inner custom-scrollbar"></textarea>
+                </div>
+
+                <div class="tw-border-t tw-border-slate-100 tw-pt-6"></div>
+
+                <!-- Action Controls -->
+                <div class="tw-flex tw-flex-col sm:tw-flex-row tw-gap-4 sm:tw-justify-end">
+                    <button type="submit" name="action" value="Export" 
+                            class="tw-flex tw-items-center tw-justify-center tw-gap-3 tw-py-4 tw-px-12 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-2xl tw-font-black tw-text-xs tw-tracking-[0.15em] tw-uppercase tw-shadow-[0_10px_30px_rgba(245,197,24,0.3)] hover:tw-shadow-[0_15px_40px_rgba(245,197,24,0.4)] hover:tw--translate-y-1 tw-transition-all">
+                        <i class="fas fa-file-excel tw-text-sm"></i> Run Nexus Export
+                    </button>
+                    <button type="submit" name="action" value="Reset" formnovalidate
+                            class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-4 tw-px-8 tw-bg-white tw-text-slate-600 tw-border-2 tw-border-slate-100 tw-rounded-2xl tw-font-black tw-text-xs tw-tracking-widest tw-uppercase hover:tw-bg-slate-50 hover:tw-border-slate-200 tw-transition-all shadow-sm">
+                        <i class="fas fa-undo-alt"></i> Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

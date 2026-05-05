@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="dbtest\**" />
+    <Content Remove="dbtest\**" />
+    <EmbeddedResource Remove="dbtest\**" />
+    <None Remove="dbtest\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.72" />
+    <PackageReference Include="ExcelDataReader" Version="3.8.0" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
+    <PackageReference Include="EPPlus" Version="8.5.0" />
+    <PackageReference Include="MySqlBackup.NET" Version="2.7.0" />
+    <PackageReference Include="MySql.Data" Version="9.6.0" />
+    <PackageReference Include="System.Data.OleDb" Version="10.0.5" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.5" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.18" />
+    <PackageReference Include="Hangfire.MySqlStorage" Version="2.0.3" />
+  </ItemGroup>
+
+  <Target Name="BuildTailwindCss" BeforeTargets="Build;Publish" Condition="Exists('$(MSBuildProjectDirectory)\node_modules\.bin\tailwindcss.cmd')">
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="npm run build:css" />
+  </Target>
+
+</Project>

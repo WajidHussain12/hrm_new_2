@@ -1,0 +1,1287 @@
+@{
+    ViewData["Title"] = "Commission Flow Explained";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string pageTitle = "Commission Flow Explained";
+}
+
+<style>
+    .cfe-section {
+        border-left: 4px solid #f5c518;
+        padding-left: 1.25rem;
+        margin-bottom: 2.5rem;
+    }
+    .cfe-section-header {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .cfe-section-header .badge-num {
+        background: #f5c518;
+        color: #0f172a;
+        font-size: 0.75rem;
+        font-weight: 900;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .cfe-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .cfe-card.amber   { background: #fffbeb; border-color: #fde68a; }
+    .cfe-card.blue    { background: #eff6ff; border-color: #bfdbfe; }
+    .cfe-card.green   { background: #f0fdf4; border-color: #bbf7d0; }
+    .cfe-card.red     { background: #fef2f2; border-color: #fecaca; }
+    .cfe-card.purple  { background: #faf5ff; border-color: #e9d5ff; }
+    .cfe-card.slate   { background: #f1f5f9; border-color: #cbd5e1; }
+    .cfe-card.indigo  { background: #eef2ff; border-color: #c7d2fe; }
+    .cfe-card-title {
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #334155;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .cfe-step {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        padding: 0.85rem 1.1rem;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.625rem;
+        margin-bottom: 0.65rem;
+        transition: all 0.2s;
+    }
+    .cfe-step:hover { border-color: #f5c518; box-shadow: 0 2px 8px rgba(245,197,24,0.15); }
+    .cfe-step-num {
+        background: linear-gradient(135deg, #f5c518, #eab308);
+        color: #0f172a;
+        font-size: 0.7rem;
+        font-weight: 900;
+        min-width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 0.4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+    }
+    .cfe-step-body p { margin: 0; font-size: 0.875rem; color: #374151; line-height: 1.6; }
+    .cfe-step-body strong { color: #0f172a; }
+    .cfe-table { width: 100%; border-collapse: collapse; font-size: 0.825rem; }
+    .cfe-table th {
+        background: #0f172a;
+        color: #f5c518;
+        padding: 0.6rem 0.85rem;
+        text-align: left;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .cfe-table td {
+        padding: 0.55rem 0.85rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: #374151;
+        vertical-align: top;
+    }
+    .cfe-table tr:last-child td { border-bottom: none; }
+    .cfe-table tr:hover td { background: #f8fafc; }
+    .cfe-code {
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 1rem 1.25rem;
+        font-family: 'Courier New', monospace;
+        font-size: 0.78rem;
+        line-height: 1.7;
+        overflow-x: auto;
+        margin: 0.75rem 0;
+    }
+    .cfe-code .kw  { color: #f5c518; font-weight: bold; }
+    .cfe-code .cmt { color: #64748b; font-style: italic; }
+    .cfe-code .str { color: #86efac; }
+    .cfe-code .tbl { color: #93c5fd; }
+    .cfe-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 9999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+    .cfe-badge.yellow { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+    .cfe-badge.blue   { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .cfe-badge.green  { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .cfe-badge.red    { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .cfe-badge.purple { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+    .cfe-badge.slate  { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .cfe-arrow {
+        text-align: center;
+        color: #f5c518;
+        font-size: 1.2rem;
+        margin: 0.3rem 0;
+        font-weight: 900;
+    }
+    .toc-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 0.4rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #475569;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+    .toc-link:hover { background: #fef9c3; color: #0f172a; border-color: #fde047; }
+    .highlight-box {
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+        border: 2px solid #f5c518;
+        border-radius: 0.75rem;
+        padding: 1.1rem 1.4rem;
+        margin: 1rem 0;
+    }
+    .warn-box {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-left: 4px solid #ef4444;
+        border-radius: 0.5rem;
+        padding: 0.85rem 1.1rem;
+        margin: 0.75rem 0;
+        font-size: 0.85rem;
+        color: #7f1d1d;
+    }
+    .info-box {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-left: 4px solid #3b82f6;
+        border-radius: 0.5rem;
+        padding: 0.85rem 1.1rem;
+        margin: 0.75rem 0;
+        font-size: 0.85rem;
+        color: #1e3a5f;
+    }
+    .success-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #22c55e;
+        border-radius: 0.5rem;
+        padding: 0.85rem 1.1rem;
+        margin: 0.75rem 0;
+        font-size: 0.85rem;
+        color: #14532d;
+    }
+    .server-card {
+        border-radius: 0.875rem;
+        padding: 1.25rem;
+        border: 2px solid;
+        transition: all 0.2s;
+    }
+    .server-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    .server-6  { background: #fff7ed; border-color: #fed7aa; }
+    .server-7  { background: #f0f9ff; border-color: #bae6fd; }
+    .server-10 { background: #faf5ff; border-color: #e9d5ff; }
+    .flow-line {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    .flow-box {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.6rem;
+        padding: 0.7rem 1.1rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .flow-box.active { border-color: #f5c518; background: #fffbeb; }
+    .flow-box .dot {
+        width: 0.65rem;
+        height: 0.65rem;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .scroll-top-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: #f5c518;
+        color: #0f172a;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(245,197,24,0.4);
+        border: none;
+        font-size: 1rem;
+        font-weight: bold;
+        z-index: 100;
+        transition: all 0.2s;
+    }
+    .scroll-top-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245,197,24,0.5); }
+</style>
+
+<!-- Scroll to Top -->
+<button class="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Upar Jao">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+<!-- PAGE HEADER -->
+<div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-center tw-justify-between tw-gap-4 tw-mb-8">
+    <div>
+        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-1">
+            <span class="cfe-badge yellow"><i class="fas fa-chalkboard-teacher"></i> Learning Guide</span>
+            <span class="cfe-badge slate">Roman Urdu</span>
+        </div>
+        <p class="tw-text-slate-500 tw-text-sm tw-m-0">Commission system ka mukammal aur asaan explanation — servers, tables, flow, aur real examples ke saath</p>
+    </div>
+    <div class="tw-text-right tw-text-xs tw-text-slate-400 tw-leading-loose">
+        <div><i class="fas fa-server"></i> 3 Servers covered</div>
+        <div><i class="fas fa-table"></i> 15+ Tables explained</div>
+        <div><i class="fas fa-code-branch"></i> 7 Commission types</div>
+    </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="cfe-card tw-mb-8">
+    <div class="cfe-card-title"><i class="fas fa-list-ul tw-mr-1"></i> Table of Contents — Fehrist</div>
+    <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-1">
+        <a href="#sec1" class="toc-link"><span class="cfe-badge yellow tw-mr-1">1</span> Overall Summary</a>
+        <a href="#sec2" class="toc-link"><span class="cfe-badge blue tw-mr-1">2</span> Conversation Breakdown</a>
+        <a href="#sec3" class="toc-link"><span class="cfe-badge purple tw-mr-1">3</span> Teen Servers Ki Roles</a>
+        <a href="#sec4" class="toc-link"><span class="cfe-badge green tw-mr-1">4</span> Tables Aur Relationships</a>
+        <a href="#sec5" class="toc-link"><span class="cfe-badge slate tw-mr-1">5</span> Commission Types Detail</a>
+        <a href="#sec6" class="toc-link"><span class="cfe-badge yellow tw-mr-1">6</span> Commission Execution Sequence</a>
+        <a href="#sec7" class="toc-link"><span class="cfe-badge red tw-mr-1">7</span> Real Examples with Data</a>
+        <a href="#sec8" class="toc-link"><span class="cfe-badge green tw-mr-1">8</span> Critical JOIN Rules</a>
+        <a href="#sec9" class="toc-link"><span class="cfe-badge blue tw-mr-1">9</span> Employee Setup Requirements</a>
+        <a href="#sec10" class="toc-link"><span class="cfe-badge purple tw-mr-1">10</span> Final Conclusion</a>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 1: OVERALL SUMMARY                        -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec1" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">1</span> Overall Summary — Ijmali Jaiza
+    </div>
+
+    <div class="highlight-box">
+        <p class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0 tw-leading-relaxed">
+            <strong>LCS (Leopards Courier Service)</strong> ek courier company hai. Is company mein couriers (delivery boys) ko unki delivery performance ke basis par
+            har mahine <strong>commission/incentive</strong> diya jata hai. Yeh commission automatically calculate hoti hai — billing data, COD data,
+            aur overland data alag alag databases se liya jata hai, phir saari information combine hokar ek final commission figure nikalti hai jo salary mein shamil hoti hai.
+        </p>
+    </div>
+
+    <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4 tw-mt-4">
+        <div class="cfe-card amber">
+            <div class="cfe-card-title"><i class="fas fa-calendar-alt tw-mr-1"></i> Commission Period</div>
+            <p class="tw-text-sm tw-text-slate-700 tw-m-0">
+                Har mahine ki commission <strong>21 tarikh (pichle mahine)</strong> se shuru hokar <strong>20 tarikh (is mahine)</strong> tak ka data cover karti hai.<br><br>
+                <em>Misaal: February 2026 commission = 21 Jan → 20 Feb ka data</em>
+            </p>
+        </div>
+        <div class="cfe-card blue">
+            <div class="cfe-card-title"><i class="fas fa-server tw-mr-1"></i> Teen Servers</div>
+            <p class="tw-text-sm tw-text-slate-700 tw-m-0">
+                Data teen alag servers par hai:<br>
+                <strong>Server 6</strong> = Billing (Lahore)<br>
+                <strong>Server 7</strong> = MIS (Lahore backup)<br>
+                <strong>Server 10</strong> = Main HR / Central
+            </p>
+        </div>
+        <div class="cfe-card green">
+            <div class="cfe-card-title"><i class="fas fa-rupee-sign tw-mr-1"></i> Commission Types</div>
+            <p class="tw-text-sm tw-text-slate-700 tw-m-0">
+                Cash Commission, COD Commission, Overland (OLE), Return COD,
+                RBI (Retail Business Incentive), VAS, General Delivery — 7 qisam ki commissions
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 2: CONVERSATION BREAKDOWN                 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec2" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">2</span> Conversation Breakdown — Guftagoo Ka Tafsili Jaiza
+    </div>
+    <p class="tw-text-sm tw-text-slate-600 tw-mb-4">Yeh un sawalon aur muddo ka khulasa hai jo commission system ke hawale se discuss hue:</p>
+
+    <div class="cfe-step">
+        <div class="cfe-step-num">A</div>
+        <div class="cfe-step-body">
+            <p><strong>Masla: Courier ke liye commission kab banti hai?</strong><br>
+            Jab courier koi parcel deliver karta hai, to us delivery ka data billing server par record hota hai. Month ke akhir mein (21 se 20 tak), HR system us data ko utha kar commission calculate karta hai. Yeh ek automated process hai.</p>
+        </div>
+    </div>
+
+    <div class="cfe-step">
+        <div class="cfe-step-num">B</div>
+        <div class="cfe-step-body">
+            <p><strong>Masla: Employee ka city mein hona zaroori kyun hai?</strong><br>
+            Commission sirf un employees ki banti hai jo us city mein officially assign hain. Agar employee ka <code>hr_employeeroutecode</code> mein koi record nahi, ya uska location register nahi, to us ka commission miss ho jata hai. Isiliye location setup teen jagah hona zaroori hai — Server 7 (MIS), Server 6 (Billing), aur Server 10 (Main).</p>
+        </div>
+    </div>
+
+    <div class="cfe-step">
+        <div class="cfe-step-num">C</div>
+        <div class="cfe-step-body">
+            <p><strong>Masla: Route Code aur Employee Number alag kyun hai?</strong><br>
+            Billing system mein courier ko uske <strong>Route Code</strong> se pehchana jata hai (maslan "3028"). Lekin HR system mein har employee ka apna <strong>Employee Number</strong> hota hai (maslan "LHE0001234567890"). Dono ko connect karta hai <code>hr_employeeroutecode</code> table jahan <code>RouteCode = '3028'</code> aur <code>Emp_No = 'LHE0001234567890'</code> saath record hota hai.</p>
+        </div>
+    </div>
+
+    <div class="cfe-step">
+        <div class="cfe-step-num">D</div>
+        <div class="cfe-step-body">
+            <p><strong>Masla: City ID mismatch ka problem</strong><br>
+            Billing server par Karachi ka <code>Station_id = '00592'</code> hota hai. Lekin HR server par Karachi ka City Code = <code>'001'</code> hai. Yeh directly match nahi karte. Join karna parta hai: <code>hr_city.station_id = '00592'</code> aur phir <code>hr_city.Code = '001'</code> milta hai. Agar yeh join theek na ho, to saara commission data ghum ho jata hai.</p>
+        </div>
+    </div>
+
+    <div class="cfe-step">
+        <div class="cfe-step-num">E</div>
+        <div class="cfe-step-body">
+            <p><strong>Masla: COD bonus aur deduction kab hota hai?</strong><br>
+            Agar courier ka COD collection record theek hai to use bonus milta hai. Lekin agar usne late payment ki ya koi irregularity hui, to deduction lagta hai. Yeh <code>hr_codcommission</code> table mein record hota hai.</p>
+        </div>
+    </div>
+
+    <div class="cfe-step">
+        <div class="cfe-step-num">F</div>
+        <div class="cfe-step-body">
+            <p><strong>Masla: Attendance ka commission se connection?</strong><br>
+            Commission calculate karte waqt employee ki attendance bhi dekhi jati hai. Jo din employee present tha, us hisab se commission prorate hoti hai. Formula: <strong>Total Days - Sundays - Absences + Adjustments</strong>. Agar employee bohat zyada absent raha, to commission kam hoti hai.</p>
+        </div>
+    </div>
+
+    <div class="cfe-step">
+        <div class="cfe-step-num">G</div>
+        <div class="cfe-step-body">
+            <p><strong>Masla: Ek employee ke do route codes ho sakte hain?</strong><br>
+            Haan, ek employee ke paas do route codes ho sakte hain (maslan ek local route aur ek cross-city route). Dono ke liye alag alag commission records ban sakte hain. Yeh <code>hr_employeeroutecode</code> mein ek se zyada rows se pata chalta hai.</p>
+        </div>
+    </div>
+
+    <div class="cfe-step">
+        <div class="cfe-step-num">H</div>
+        <div class="cfe-step-body">
+            <p><strong>Masla: Akele employee ki commission reprocess karna?</strong><br>
+            Agar kisi ek employee ki commission galat bani ya koi data miss hua, to sirf us employee ki commission dobara process ki ja sakti hai bina poori city ki commission dobara chalave. Yeh feature new MVC system mein available hai.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 3: TEEN SERVERS                           -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec3" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">3</span> Teen Servers Ki Roles — Har Server Ka Kaam
+    </div>
+
+    <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-3 tw-gap-5 tw-mb-5">
+        <!-- Server 6 -->
+        <div class="server-card server-6">
+            <div class="tw-flex tw-items-center tw-gap-3 tw-mb-3">
+                <div class="tw-w-10 tw-h-10 tw-bg-orange-500 tw-rounded-xl tw-flex tw-items-center tw-justify-center tw-text-white tw-font-black tw-text-lg">6</div>
+                <div>
+                    <div class="tw-font-black tw-text-slate-800">Server 6</div>
+                    <div class="tw-text-xs tw-text-slate-500">172.16.0.6 — MySQL 5.5</div>
+                </div>
+            </div>
+            <div class="cfe-badge yellow tw-mb-2"><i class="fas fa-file-invoice-dollar"></i> Billing Server (LHR)</div>
+            <p class="tw-text-xs tw-text-slate-700 tw-leading-relaxed tw-mt-2">
+                <strong>Kaam:</strong> Courier deliveries ka billing data yahan rakha jata hai. Jab koi parcel deliver hota hai, uski billing detail yahan record hoti hai.<br><br>
+                <strong>Aham Tables:</strong>
+            </p>
+            <ul class="tw-text-xs tw-text-slate-600 tw-mt-1 tw-space-y-1 tw-pl-4">
+                <li><code>lcs_billing.billing_details</code> — Cash delivery records</li>
+                <li><code>hr_city</code> — City + station_id mapping</li>
+                <li><code>hr_employeepersonaldetail</code> — Employee basic info</li>
+                <li><code>hr_employeeroutecode</code> — RouteCode ↔ EmpNo mapping</li>
+                <li><code>hr_commissionpolicy</code> — Commission rate rules</li>
+            </ul>
+            <div class="info-box tw-mt-3 tw-text-xs">
+                <strong>Important:</strong> Karachi ka Station_id yahan <code>'00592'</code> hai — yeh 3-char Code <code>'001'</code> se directly match nahi karta.
+            </div>
+        </div>
+
+        <!-- Server 7 -->
+        <div class="server-card server-7">
+            <div class="tw-flex tw-items-center tw-gap-3 tw-mb-3">
+                <div class="tw-w-10 tw-h-10 tw-bg-sky-500 tw-rounded-xl tw-flex tw-items-center tw-justify-center tw-text-white tw-font-black tw-text-lg">7</div>
+                <div>
+                    <div class="tw-font-black tw-text-slate-800">Server 7</div>
+                    <div class="tw-text-xs tw-text-slate-500">172.16.0.7 — MySQL 8.0.18</div>
+                </div>
+            </div>
+            <div class="cfe-badge blue tw-mb-2"><i class="fas fa-database"></i> MIS Server (Lahore Backup)</div>
+            <p class="tw-text-xs tw-text-slate-700 tw-leading-relaxed tw-mt-2">
+                <strong>Kaam:</strong> Management Information System — employee location details, overland commission staging, aur RBI incentive details yahan hain.<br><br>
+                <strong>Aham Tables:</strong>
+            </p>
+            <ul class="tw-text-xs tw-text-slate-600 tw-mt-1 tw-space-y-1 tw-pl-4">
+                <li><code>hr_employeelocationdetails</code> — Employee location assignments</li>
+                <li><code>hr_olecommissionprocess</code> — Overland staging data</li>
+                <li><code>hr_employeeroutecode</code> — Route assignments</li>
+                <li><code>hr_rbi_incentive_detail_*</code> — RBI monthly incentives</li>
+                <li><code>hr_gazetted_holidays</code> — Public holidays</li>
+                <li><code>lcs_billing_download.billing_details</code> — MIS billing download</li>
+            </ul>
+            <div class="info-box tw-mt-3 tw-text-xs">
+                <strong>Location:</strong> Agar employee ka location Server 7 par update nahi, to us employee ki commission process nahi hogi. MIS team se coordinate karo.
+            </div>
+        </div>
+
+        <!-- Server 10 -->
+        <div class="server-card server-10">
+            <div class="tw-flex tw-items-center tw-gap-3 tw-mb-3">
+                <div class="tw-w-10 tw-h-10 tw-bg-purple-600 tw-rounded-xl tw-flex tw-items-center tw-justify-center tw-text-white tw-font-black tw-text-lg">10</div>
+                <div>
+                    <div class="tw-font-black tw-text-slate-800">Server 10</div>
+                    <div class="tw-text-xs tw-text-slate-500">172.16.0.10 — MySQL 8.0.27</div>
+                </div>
+            </div>
+            <div class="cfe-badge purple tw-mb-2"><i class="fas fa-crown"></i> Main HR / Central (18th Floor)</div>
+            <p class="tw-text-xs tw-text-slate-700 tw-leading-relaxed tw-mt-2">
+                <strong>Kaam:</strong> Yeh master server hai. Saari processed commission data yahan store hoti hai. Payroll, salary processing, final commission output — sab yahan hota hai.<br><br>
+                <strong>Aham Tables:</strong>
+            </p>
+            <ul class="tw-text-xs tw-text-slate-600 tw-mt-1 tw-space-y-1 tw-pl-4">
+                <li><code>hr_commissionprocess</code> — Final commission (90+ columns)</li>
+                <li><code>hr_cash_consignments</code> — Cash commission staging</li>
+                <li><code>hr_codcommission</code> — COD commission records</li>
+                <li><code>hr_codreturncommissionprocess</code> — Return COD</li>
+                <li><code>hr_empcommissioneligibility</code> — Eligible employees</li>
+                <li><code>hr_employeeattendanceprocess</code> — Processed attendance</li>
+                <li><code>hr_acknowledgment</code> — Process audit trail</li>
+                <li><code>lcs_db.arival</code> — Central OPS arrival data (COD)</li>
+            </ul>
+            <div class="info-box tw-mt-3 tw-text-xs">
+                <strong>Final Output:</strong> <code>hr_commissionprocess</code> mein 90+ columns hain — OVERNIGHT, COD, YB1KG, YB2KG, YB5KG, YB10KG, YB25KG, CASH_Economy_Booking, OLE, RBI, VAS — sab types ki commission alag columns mein.
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Interaction Diagram -->
+    <div class="cfe-card slate">
+        <div class="cfe-card-title"><i class="fas fa-arrows-alt-h tw-mr-1"></i> Servers Kaise Interact Karte Hain</div>
+        <div class="tw-flex tw-flex-col lg:tw-flex-row tw-items-center tw-justify-center tw-gap-3 tw-mt-3">
+            <div class="tw-flex tw-flex-col tw-items-center tw-gap-1">
+                <div class="tw-bg-orange-100 tw-border-2 tw-border-orange-300 tw-rounded-xl tw-p-3 tw-text-center tw-min-w-[120px]">
+                    <div class="tw-text-orange-700 tw-font-black tw-text-sm">Server 6</div>
+                    <div class="tw-text-xs tw-text-orange-600">Billing Data</div>
+                </div>
+                <div class="tw-text-xs tw-text-slate-500">lcs_billing.billing_details</div>
+            </div>
+            <div class="tw-text-2xl tw-text-[#f5c518] tw-font-black lg:tw-rotate-0 tw-rotate-90">→</div>
+            <div class="tw-flex tw-flex-col tw-items-center tw-gap-1">
+                <div class="tw-bg-blue-100 tw-border-2 tw-border-blue-300 tw-rounded-xl tw-p-3 tw-text-center tw-min-w-[120px]">
+                    <div class="tw-text-blue-700 tw-font-black tw-text-sm">Server 7</div>
+                    <div class="tw-text-xs tw-text-blue-600">MIS / OLE Data</div>
+                </div>
+                <div class="tw-text-xs tw-text-slate-500">hr_olecommissionprocess</div>
+            </div>
+            <div class="tw-text-2xl tw-text-[#f5c518] tw-font-black lg:tw-rotate-0 tw-rotate-90">→</div>
+            <div class="tw-flex tw-flex-col tw-items-center tw-gap-1">
+                <div class="tw-bg-purple-100 tw-border-2 tw-border-purple-300 tw-rounded-xl tw-p-3 tw-text-center tw-min-w-[120px]">
+                    <div class="tw-text-purple-700 tw-font-black tw-text-sm">Server 10</div>
+                    <div class="tw-text-xs tw-text-purple-600">Final HR Data</div>
+                </div>
+                <div class="tw-text-xs tw-text-slate-500">hr_commissionprocess</div>
+            </div>
+            <div class="tw-text-2xl tw-text-[#f5c518] tw-font-black lg:tw-rotate-0 tw-rotate-90">→</div>
+            <div class="tw-flex tw-flex-col tw-items-center tw-gap-1">
+                <div class="tw-bg-green-100 tw-border-2 tw-border-green-300 tw-rounded-xl tw-p-3 tw-text-center tw-min-w-[120px]">
+                    <div class="tw-text-green-700 tw-font-black tw-text-sm">Salary System</div>
+                    <div class="tw-text-xs tw-text-green-600">Final Payment</div>
+                </div>
+                <div class="tw-text-xs tw-text-slate-500">lcs_finance.CreateNewJV_Test()</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 4: TABLES AND RELATIONSHIPS               -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec4" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">4</span> Tables Aur Unke Relationships — Database Structure
+    </div>
+
+    <div class="tw-overflow-x-auto tw-mb-5">
+        <table class="cfe-table">
+            <thead>
+                <tr>
+                    <th>Table Name</th>
+                    <th>Server</th>
+                    <th>Kya Store Hota Hai</th>
+                    <th>Kahan Use Hoti Hai</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>hr_city</code></td>
+                    <td><span class="cfe-badge yellow">6 / 7 / 10</span></td>
+                    <td>City info: <code>Code</code> (3-char), <code>station_id</code> (5-char), <code>FullName</code></td>
+                    <td>Billing station_id ko HR city Code se connect karne ke liye — <strong>central bridge table</strong></td>
+                </tr>
+                <tr>
+                    <td><code>hr_employeepersonaldetail</code></td>
+                    <td><span class="cfe-badge yellow">6 / 7 / 10</span></td>
+                    <td>Employee ki personal info, EMP_NO, naam, joining date, status</td>
+                    <td>Commission eligibility check, employee lookup</td>
+                </tr>
+                <tr>
+                    <td><code>hr_employeeroutecode</code></td>
+                    <td><span class="cfe-badge yellow">6 / 7</span></td>
+                    <td>RouteCode (varchar 5) ↔ Emp_No (varchar 14), citycode</td>
+                    <td>Billing ka RouteCode → HR ka EmpNo — <strong>critical link</strong></td>
+                </tr>
+                <tr>
+                    <td><code>hr_employeelocationdetails</code></td>
+                    <td><span class="cfe-badge blue">7</span></td>
+                    <td>Employee → LocationId mapping (kaunsi city/branch mein hai)</td>
+                    <td>Commission process mein eligibility + OLE distribution</td>
+                </tr>
+                <tr>
+                    <td><code>lcs_billing.billing_details</code></td>
+                    <td><span class="cfe-badge yellow">6 (ext)</span></td>
+                    <td>Har CN (Consignment Number) ki delivery detail, shipment type, amount</td>
+                    <td>Cash commission ka source data — <strong>Step 1</strong></td>
+                </tr>
+                <tr>
+                    <td><code>lcs_db.arival</code></td>
+                    <td><span class="cfe-badge purple">10 (ext)</span></td>
+                    <td>COD delivery records — Cour_Date, Cour_id (Route Code)</td>
+                    <td>COD commission + Return COD ka source — <strong>Step 2 & 4</strong></td>
+                </tr>
+                <tr>
+                    <td><code>hr_cash_consignments</code></td>
+                    <td><span class="cfe-badge purple">10</span></td>
+                    <td>Cash commission staging — Step 1 ka processed output</td>
+                    <td>Master commission process mein yahan se data liya jata hai</td>
+                </tr>
+                <tr>
+                    <td><code>hr_codcommission</code></td>
+                    <td><span class="cfe-badge purple">10</span></td>
+                    <td>COD commission aggregates per employee per city</td>
+                    <td>Master commission process mein COD ka input</td>
+                </tr>
+                <tr>
+                    <td><code>hr_olecommissionprocess</code></td>
+                    <td><span class="cfe-badge blue">7</span></td>
+                    <td>Overland commission staging — GL location ID, RateId, amount</td>
+                    <td>Master process mein OLE (Overland) ka input — <strong>Step 3</strong></td>
+                </tr>
+                <tr>
+                    <td><code>hr_codreturncommissionprocess</code></td>
+                    <td><span class="cfe-badge purple">10</span></td>
+                    <td>Return COD staging — returned parcels ki commission</td>
+                    <td>Master commission process mein — <strong>Step 4</strong></td>
+                </tr>
+                <tr>
+                    <td><code>hr_commissionprocess</code></td>
+                    <td><span class="cfe-badge purple">10</span></td>
+                    <td><strong>Final output table</strong> — 90+ columns, Year, Month, CityCode, Emp_No, saari commissions</td>
+                    <td>Yahan saari commission types merge hokar final figure banti hai</td>
+                </tr>
+                <tr>
+                    <td><code>hr_commissionpolicy</code></td>
+                    <td><span class="cfe-badge yellow">6 / 7</span></td>
+                    <td>RateID ke hisab se rate rules — flat amount ya percentage</td>
+                    <td>Commission calculate karte waqt rate lena — <code>IsPercent</code> flag</td>
+                </tr>
+                <tr>
+                    <td><code>hr_empcommissioneligibility</code></td>
+                    <td><span class="cfe-badge purple">10</span></td>
+                    <td>Kaunsa employee is mahine commission ke liye eligible hai</td>
+                    <td>Commission process mein sirf eligible employees process hote hain</td>
+                </tr>
+                <tr>
+                    <td><code>hr_employeeattendanceprocess</code></td>
+                    <td><span class="cfe-badge purple">10</span></td>
+                    <td>Processed attendance — working days, absences, adjustments per employee</td>
+                    <td>Commission proration ke liye — kitne din present tha</td>
+                </tr>
+                <tr>
+                    <td><code>hr_acknowledgment</code></td>
+                    <td><span class="cfe-badge purple">10</span></td>
+                    <td>Audit trail — kab, kisne, kaunsi city ki commission process ki</td>
+                    <td>Duplicate processing rokna, history rakhna</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Critical Relationship Diagram -->
+    <div class="cfe-card amber">
+        <div class="cfe-card-title"><i class="fas fa-link tw-mr-1"></i> Sabse Zaroori JOIN Path — Billing se HR tak</div>
+        <div class="cfe-code">
+<span class="cmt">-- Billing server par: Station_id = '00592' (Karachi)</span>
+<span class="cmt">-- HR server par: hr_city.Code = '001' (Karachi)</span>
+<span class="cmt">-- Dono match nahi karte DIRECTLY</span>
+
+<span class="kw">SELECT</span> hc.<span class="tbl">Code</span>, hc.<span class="tbl">FullName</span>, hc.<span class="tbl">station_id</span>
+<span class="kw">FROM</span> <span class="tbl">hr_city</span> hc
+<span class="kw">WHERE</span> hc.station_id = <span class="str">'00592'</span>;
+<span class="cmt">-- Result: Code='001', FullName='Karachi', station_id='00592'</span>
+
+<span class="cmt">-- Correct JOIN pattern:</span>
+<span class="kw">JOIN</span> <span class="tbl">hr_city</span> hc <span class="kw">ON</span> hc.station_id = cc.Station_id
+<span class="cmt">-- phir citycode compare karo: erc.citycode = hc.Code</span>
+        </div>
+        <div class="warn-box">
+            <strong>GALAT tarika (kabhi mat karo):</strong> <code>LPAD(CAST(Station_id AS UNSIGNED), 3, '0')</code><br>
+            Yeh '00592' ko convert karta hai '592' mein — jo '001' se kabhi match nahi karega. Is bug ki wajah se poora commission data miss ho jata tha.
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 5: COMMISSION TYPES                       -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec5" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">5</span> Commission Types Ka Detail — Har Qisam Ki Tafseelat
+    </div>
+
+    <!-- Type 1: Cash -->
+    <div class="cfe-card amber tw-mb-4">
+        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+            <span class="cfe-badge yellow">Step 1</span>
+            <strong class="tw-text-slate-800">Cash / Retail Commission</strong>
+        </div>
+        <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+            <div>
+                <p class="tw-text-sm tw-text-slate-700 tw-m-0 tw-leading-relaxed">
+                    <strong>Kya hai:</strong> Jab courier ne koi parcel deliver kiya aur us par cash charge tha, to us delivery ke liye commission milti hai.<br><br>
+                    <strong>Source Table:</strong> <code>lcs_billing.billing_details</code> (Server 6)<br>
+                    <strong>Output Table:</strong> <code>hr_cash_consignments</code> (Server 10)<br>
+                    <strong>Date Filter:</strong> 21 prev month → 20 current month
+                </p>
+            </div>
+            <div>
+                <p class="tw-text-xs tw-font-bold tw-text-slate-600 tw-mb-1">Shipment Type IDs (Sabhi cover hote hain):</p>
+                <div class="tw-flex tw-flex-wrap tw-gap-1">
+                    @foreach (var item in new[] {
+                        "17,9,40,41 = Overnight", "21,65,68,71 = YB 1KG", "22,66,69,72 = YB 2KG",
+                        "23,52,67,70,73 = YB 5KG", "24 = YB 10KG", "25,53 = YB 25KG",
+                        "10,20,61 = Flayer", "2,33,42 = Economy", "3,8,38 = Overland",
+                        "26 = Prepaid", "4 = LoveLine", "6,7,34,47 = International",
+                        "99 = RMS COD", "48 = All-in-One", "49 = Document Care"
+                    }) {
+                        <span class="cfe-badge slate" style="font-size:0.65rem;">@item</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Type 2: COD -->
+    <div class="cfe-card blue tw-mb-4">
+        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+            <span class="cfe-badge blue">Step 2</span>
+            <strong class="tw-text-slate-800">COD (Cash On Delivery) Commission</strong>
+        </div>
+        <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+            <div>
+                <p class="tw-text-sm tw-text-slate-700 tw-m-0 tw-leading-relaxed">
+                    <strong>Kya hai:</strong> Jab courier ne COD parcel deliver kiya aur paise collect kiye, to us collection par commission milti hai.<br><br>
+                    <strong>Source Table:</strong> <code>lcs_db.arival</code> (Central OPS)<br>
+                    <strong>Date Field:</strong> <code>COUR_DATE</code><br>
+                    <strong>COD Range:</strong> <code>lcs_db.cod_ranges</code> se rate calculate hoti hai<br>
+                    <strong>Output Table:</strong> <code>hr_codcommission</code> (Server 10)
+                </p>
+            </div>
+            <div>
+                <div class="success-box tw-text-xs">
+                    <strong>Bonus:</strong> Agar courier time par COD payment karta hai, extra bonus milta hai.
+                </div>
+                <div class="warn-box tw-text-xs">
+                    <strong>Deduction:</strong> Late payment ya missing collection par deduction hota hai.
+                </div>
+                <p class="tw-text-xs tw-text-slate-600 tw-mt-2">
+                    <strong>Critical:</strong> <code>arival.Cour_id</code> = RouteCode (e.g. "3028") — yeh EmpNo NAHI hai. <code>hr_employeeroutecode</code> se join karo.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Type 3: OLE -->
+    <div class="cfe-card green tw-mb-4">
+        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+            <span class="cfe-badge green">Step 3</span>
+            <strong class="tw-text-slate-800">OLE / Overland Commission</strong>
+        </div>
+        <p class="tw-text-sm tw-text-slate-700 tw-m-0 tw-leading-relaxed">
+            <strong>Kya hai:</strong> Overland parcels (ek city se doosri city) ki delivery par commission.<br>
+            <strong>Source:</strong> <code>lcs_billing_download.billing_details</code> (MIS Server 7)<br>
+            <strong>Output:</strong> <code>hr_olecommissionprocess</code><br><br>
+            <strong>RateIDs breakdown:</strong>
+        </p>
+        <div class="tw-overflow-x-auto tw-mt-2">
+            <table class="cfe-table">
+                <thead><tr><th>RateID(s)</th><th>Type</th><th>Kya Hota Hai</th></tr></thead>
+                <tbody>
+                    <tr><td>1, 5</td><td>OLE Leopards</td><td>Leopards ke courier ki overland delivery</td></tr>
+                    <tr><td>2, 3, 4</td><td>OLE Ops Staff</td><td>Operations staff ki overland delivery</td></tr>
+                    <tr><td>8</td><td>International</td><td>International shipment delivery</td></tr>
+                    <tr><td>11, 12</td><td>Delivery Credits</td><td>Special delivery credit</td></tr>
+                    <tr><td>84–95</td><td>RBI Variants</td><td>Retail Business Incentive — overland component</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Type 4: Return COD -->
+    <div class="cfe-card red tw-mb-4">
+        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+            <span class="cfe-badge red">Step 4</span>
+            <strong class="tw-text-slate-800">Return COD Commission</strong>
+        </div>
+        <p class="tw-text-sm tw-text-slate-700 tw-m-0 tw-leading-relaxed">
+            <strong>Kya hai:</strong> Woh COD parcels jo customer ne lene se inkar kar diya (return ho gaye), unke liye bhi courier ko commission milti hai — kyunki usne delivery attempt ki.<br>
+            <strong>Source:</strong> <code>lcs_db.arival</code> JOIN <code>cod_returnshipments</code><br>
+            <strong>Output:</strong> <code>hr_codreturncommissionprocess</code><br>
+            <strong>Client Exclusion:</strong> Kuch specific clients (IDs: 49676, 545237, 545238 etc.) is commission se exclude hain.
+        </p>
+    </div>
+
+    <!-- Type 5: RBI -->
+    <div class="cfe-card purple tw-mb-4">
+        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+            <span class="cfe-badge purple">Bonus</span>
+            <strong class="tw-text-slate-800">RBI — Retail Business Incentive</strong>
+        </div>
+        <p class="tw-text-sm tw-text-slate-700 tw-m-0 tw-leading-relaxed">
+            <strong>Kya hai:</strong> Retail clients se milne wali deliveries par special incentive. Isme overland component bhi shamil hai.<br>
+            <strong>Tables:</strong> <code>hr_rbi_incentive_detail_[month]_[year]</code> — har mahine ki alag table hoti hai<br>
+            <strong>Fields:</strong> Station_id, Cour_Id, CN_Number, RateID, FinalIncentive, Emp_No, ClientName
+        </p>
+    </div>
+
+    <!-- Type 6: VAS -->
+    <div class="cfe-card slate tw-mb-4">
+        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+            <span class="cfe-badge slate">Extra</span>
+            <strong class="tw-text-slate-800">VAS (Value Added Services) Commission</strong>
+        </div>
+        <p class="tw-text-sm tw-text-slate-700 tw-m-0 tw-leading-relaxed">
+            <strong>Kya hai:</strong> Extra services (insurance, special handling) par commission.<br>
+            <strong>Source (New System):</strong> <code>lcs.rms_cod_booking</code> via Central_OPS connection<br>
+            <strong>Output:</strong> <code>hr_vas_incentive_detail</code>
+        </p>
+    </div>
+
+    <!-- Type 7: General Delivery -->
+    <div class="cfe-card indigo">
+        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+            <span class="cfe-badge blue">GD</span>
+            <strong class="tw-text-slate-800">General Delivery Commission</strong>
+        </div>
+        <p class="tw-text-sm tw-text-slate-700 tw-m-0 tw-leading-relaxed">
+            <strong>Kya hai:</strong> Regular local deliveries — Economy, Prepaid, YellowBox types — jo normal courier ne ki hain.<br>
+            <strong>Zone Logic:</strong>
+        </p>
+        <ul class="tw-text-sm tw-text-slate-700 tw-mt-2 tw-space-y-1 tw-pl-4">
+            <li>Agar <code>Station_id = dest_City_id</code> → "Local" delivery</li>
+            <li>Agar zone same hai → "Same Zone" rate</li>
+            <li>Agar zone alag hai → "Other Zone" rate</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 6: EXECUTION SEQUENCE                     -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec6" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">6</span> Commission Execution Sequence — Kaunsa Step Pehle, Kaunsa Baad
+    </div>
+
+    <div class="info-box tw-mb-4">
+        <strong>Zaroori baat:</strong> Yeh steps is exact order mein chalane chahiye. Agar Step 1 complete na ho, Step 5 (Master) fail ho sakta hai. Order change karne par data galat ya missing ho sakta hai.
+    </div>
+
+    <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
+        <div>
+            <div class="flow-line">
+                <div class="flow-box active">
+                    <div class="dot tw-bg-orange-400"></div>
+                    <div>
+                        <div class="tw-text-xs tw-font-black">STEP 1 — Cash Commission</div>
+                        <div class="tw-text-xs tw-font-normal tw-text-slate-500">lcs_billing.billing_details → hr_cash_consignments</div>
+                    </div>
+                </div>
+                <div class="cfe-arrow">↓</div>
+                <div class="flow-box active">
+                    <div class="dot tw-bg-blue-400"></div>
+                    <div>
+                        <div class="tw-text-xs tw-font-black">STEP 2 — COD Commission</div>
+                        <div class="tw-text-xs tw-font-normal tw-text-slate-500">lcs_db.arival → hr_codcommission</div>
+                    </div>
+                </div>
+                <div class="cfe-arrow">↓</div>
+                <div class="flow-box active">
+                    <div class="dot tw-bg-green-400"></div>
+                    <div>
+                        <div class="tw-text-xs tw-font-black">STEP 3 — Overland (OLE) Commission</div>
+                        <div class="tw-text-xs tw-font-normal tw-text-slate-500">billing_download → hr_olecommissionprocess</div>
+                    </div>
+                </div>
+                <div class="cfe-arrow">↓</div>
+                <div class="flow-box active">
+                    <div class="dot tw-bg-red-400"></div>
+                    <div>
+                        <div class="tw-text-xs tw-font-black">STEP 4 — Return COD Commission</div>
+                        <div class="tw-text-xs tw-font-normal tw-text-slate-500">cod_returnshipments → hr_codreturncommissionprocess</div>
+                    </div>
+                </div>
+                <div class="cfe-arrow">↓</div>
+                <div class="flow-box active">
+                    <div class="dot tw-bg-yellow-400"></div>
+                    <div>
+                        <div class="tw-text-xs tw-font-black">STEP 5 — Commission Process (Master)</div>
+                        <div class="tw-text-xs tw-font-normal tw-text-slate-500">Sab ko aggregate karo → hr_commissionprocess</div>
+                    </div>
+                </div>
+                <div class="cfe-arrow">↓</div>
+                <div class="flow-box">
+                    <div class="dot tw-bg-purple-400"></div>
+                    <div>
+                        <div class="tw-text-xs tw-font-black">STEP 6 — Final Commission Lock</div>
+                        <div class="tw-text-xs tw-font-normal tw-text-slate-500">Month finalize → Salary system ko push</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tw-flex tw-flex-col tw-gap-3">
+            <div class="cfe-card amber">
+                <div class="cfe-card-title">Step 5 (Master) mein kya hota hai?</div>
+                <ul class="tw-text-sm tw-text-slate-700 tw-space-y-1.5 tw-pl-4 tw-m-0">
+                    <li>Duplicate check — agar already process hua hai to error</li>
+                    <li>Puraane records delete karo us month ke</li>
+                    <li>Cash, COD, OLE, Return COD sab ke records uthao</li>
+                    <li>Employee eligibility check karo (<code>hr_empcommissioneligibility</code>)</li>
+                    <li>Attendance se working days calculate karo</li>
+                    <li>Zone logic apply karo (Local / Same Zone / Other Zone)</li>
+                    <li>Rate table (<code>hr_commissionpolicy</code>) se rate lao</li>
+                    <li>IsPercent flag dekho — percentage ya flat amount</li>
+                    <li>Final result <code>hr_commissionprocess</code> mein insert karo</li>
+                    <li>Audit trail <code>hr_acknowledgment</code> mein likho</li>
+                </ul>
+            </div>
+            <div class="cfe-card blue">
+                <div class="cfe-card-title">Har City Ke Liye Alag Process</div>
+                <p class="tw-text-sm tw-text-slate-700 tw-m-0">
+                    Automation ek ek city ke liye loop chalata hai. Pehle Karachi, phir Lahore, phir baaki cities.
+                    Har city ke Steps 1-5 complete hone chahiye.<br><br>
+                    New system mein yeh <strong>Hangfire background jobs</strong> ke zariye hota hai — aap page chhod bhi do to process chalti rahti hai.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Formula -->
+    <div class="cfe-card purple tw-mt-4">
+        <div class="cfe-card-title"><i class="fas fa-calculator tw-mr-1"></i> Attendance Formula — Working Days Calculate Karna</div>
+        <div class="highlight-box">
+            <div class="tw-text-center tw-font-black tw-text-lg tw-text-slate-800">
+                Working Days = Total Days − Sundays − Absences + Adjustments
+            </div>
+        </div>
+        <p class="tw-text-sm tw-text-slate-700 tw-mt-2 tw-m-0">
+            Yeh formula <code>hr_employeeattendanceprocess</code> table se liya jata hai. Agar employee 10 din absent raha aur 2 din ka adjustment approved hua, to commission us hisab se prorate hogi.
+        </p>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 7: REAL EXAMPLES                          -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec7" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">7</span> Real Examples with Data — Asal Misaalein
+    </div>
+
+    <!-- Example 1: City Lookup -->
+    <div class="cfe-card amber tw-mb-4">
+        <div class="cfe-card-title"><i class="fas fa-search tw-mr-1"></i> Misaal 1 — Karachi ka City Code dhundna</div>
+        <div class="cfe-code">
+<span class="cmt">-- Sawaal: Karachi ka HR city Code kya hai?</span>
+<span class="kw">SELECT</span> Code, FullName, station_id
+<span class="kw">FROM</span> <span class="tbl">hr_city</span>
+<span class="kw">WHERE</span> FullName <span class="kw">LIKE</span> <span class="str">'%Karachi%'</span>;
+
+<span class="cmt">-- Jawab:</span>
+<span class="cmt">-- Code='001' | FullName='Karachi' | station_id='00592'</span>
+
+<span class="cmt">-- Billing mein Station_id='00592' hai</span>
+<span class="cmt">-- HR mein Code='001' hai</span>
+<span class="cmt">-- Yeh 2 alag values hain — LPAD se kabhi match nahi hongi!</span>
+        </div>
+    </div>
+
+    <!-- Example 2: Employee Route -->
+    <div class="cfe-card blue tw-mb-4">
+        <div class="cfe-card-title"><i class="fas fa-route tw-mr-1"></i> Misaal 2 — Employee ka Route Code dhundna</div>
+        <div class="cfe-code">
+<span class="cmt">-- Sawaal: Employee 'LHE0001234567890' ka route code kya hai?</span>
+<span class="kw">SELECT</span> erc.RouteCode, erc.citycode, hc.FullName
+<span class="kw">FROM</span> <span class="tbl">hr_employeeroutecode</span> erc
+<span class="kw">JOIN</span> <span class="tbl">hr_city</span> hc <span class="kw">ON</span> hc.Code = erc.citycode
+<span class="kw">WHERE</span> erc.Emp_No = <span class="str">'LHE0001234567890'</span>
+  <span class="kw">AND</span> (erc.ToDate <span class="kw">IS NULL OR</span> erc.ToDate >= <span class="kw">NOW</span>());
+
+<span class="cmt">-- Jawab:</span>
+<span class="cmt">-- RouteCode='3028' | citycode='001' | FullName='Karachi'</span>
+
+<span class="cmt">-- Ab billing mein is courier ki deliveries dhundni hain:</span>
+<span class="kw">SELECT</span> cn_no, delivery_date, shipment_type_id
+<span class="kw">FROM</span> <span class="tbl">lcs_billing.billing_details</span>
+<span class="kw">WHERE</span> Cour_id = <span class="str">'3028'</span>  <span class="cmt">-- RouteCode directly — NOT LPAD!</span>
+  <span class="kw">AND</span> billing_date <span class="kw">BETWEEN</span> <span class="str">'2026-01-21'</span> <span class="kw">AND</span> <span class="str">'2026-02-20'</span>;
+        </div>
+    </div>
+
+    <!-- Example 3: Grand Total -->
+    <div class="cfe-card green tw-mb-4">
+        <div class="cfe-card-title"><i class="fas fa-rupee-sign tw-mr-1"></i> Misaal 3 — Employee ki Final Commission check karna</div>
+        <div class="cfe-code">
+<span class="cmt">-- hr_commissionprocess mein ek employee ki total commission</span>
+<span class="kw">SELECT</span>
+    cp.Emp_No,
+    epd.NAME,
+    hc.FullName <span class="kw">AS</span> CityName,
+    cp.OVERNIGHT,
+    cp.COD,
+    cp.YB1KG,
+    cp.YB2KG,
+    cp.YB5KG,
+    cp.OLE,
+    cp.RBI,
+    cp.VAS,
+    cp.CASH_Economy_Booking,
+    <span class="cmt">-- Grand Total (sabhi columns ka sum)</span>
+    (cp.OVERNIGHT + cp.COD + cp.YB1KG + cp.YB2KG + cp.YB5KG +
+     cp.YB10KG + cp.YB25KG + cp.OLE + cp.RBI + cp.VAS +
+     cp.CASH_Economy_Booking <span class="cmt">/* + baaki 80+ columns ... */</span>) <span class="kw">AS</span> GrandTotal
+<span class="kw">FROM</span> <span class="tbl">hr_commissionprocess</span> cp
+<span class="kw">JOIN</span> <span class="tbl">hr_city</span> hc <span class="kw">ON</span> hc.Code = cp.CityCode
+<span class="kw">JOIN</span> <span class="tbl">hr_employeepersonaldetail</span> epd <span class="kw">ON</span> epd.EMP_NO = cp.Emp_No
+<span class="kw">WHERE</span> cp.Emp_No = <span class="str">'LHE0001234567890'</span>
+  <span class="kw">AND</span> cp.Year = <span class="str">2026</span>
+  <span class="kw">AND</span> cp.Month = <span class="str">2</span>;
+        </div>
+    </div>
+
+    <!-- Example 4: Missing CN -->
+    <div class="cfe-card red">
+        <div class="cfe-card-title"><i class="fas fa-exclamation-triangle tw-mr-1"></i> Misaal 4 — Missing CNs dhundna (Commission = 0 wale)</div>
+        <div class="cfe-code">
+<span class="cmt">-- Cash CNs jis par commission zero rahi</span>
+<span class="kw">SELECT</span> <span class="str">'Cash'</span> <span class="kw">AS</span> Type, bd.cn_no, bd.billing_date, bd.shipment_type_id
+<span class="kw">FROM</span> <span class="tbl">lcs_billing.billing_details</span> bd
+<span class="kw">JOIN</span> <span class="tbl">hr_city</span> hc <span class="kw">ON</span> hc.station_id = bd.Station_id
+<span class="kw">JOIN</span> <span class="tbl">hr_employeeroutecode</span> erc
+    <span class="kw">ON</span> erc.RouteCode = bd.Cour_id
+   <span class="kw">AND</span> erc.Emp_No = <span class="str">@@empNo</span>
+   <span class="kw">AND</span> erc.citycode = hc.Code
+<span class="kw">WHERE</span> bd.billing_date <span class="kw">BETWEEN</span> <span class="str">@@fromDate</span> <span class="kw">AND</span> <span class="str">@@toDate</span>
+  <span class="kw">AND</span> bd.cn_no <span class="kw">NOT IN</span> (
+    <span class="kw">SELECT</span> CnNumber <span class="kw">FROM</span> <span class="tbl">hr_cash_consignments</span>
+    <span class="kw">WHERE</span> Emp_No = <span class="str">@@empNo</span> <span class="kw">AND</span> Year = <span class="str">@@year</span> <span class="kw">AND</span> Month = <span class="str">@@month</span>
+  )
+
+<span class="kw">UNION ALL</span>
+
+<span class="cmt">-- COD CNs jis par commission zero rahi</span>
+<span class="kw">SELECT</span> <span class="str">'COD'</span> <span class="kw">AS</span> Type, ar.CN_NO, ar.COUR_DATE, NULL
+<span class="kw">FROM</span> <span class="tbl">lcs_db.arival</span> ar
+<span class="kw">JOIN</span> <span class="tbl">hr_employeeroutecode</span> erc
+    <span class="kw">ON</span> erc.RouteCode = ar.Cour_id
+   <span class="kw">AND</span> erc.Emp_No = <span class="str">@@empNo</span>
+<span class="kw">WHERE</span> ar.COUR_DATE <span class="kw">BETWEEN</span> <span class="str">@@fromDate</span> <span class="kw">AND</span> <span class="str">@@toDate</span>
+  <span class="kw">AND</span> ar.CN_NO <span class="kw">NOT IN</span> (
+    <span class="kw">SELECT</span> CnNumber <span class="kw">FROM</span> <span class="tbl">hr_codcommission</span>
+    <span class="kw">WHERE</span> Emp_No = <span class="str">@@empNo</span> <span class="kw">AND</span> Year = <span class="str">@@year</span> <span class="kw">AND</span> Month = <span class="str">@@month</span>
+  );
+        </div>
+        <p class="tw-text-xs tw-text-slate-600 tw-mt-2">Yeh query batati hai ke kaunse CNs billing mein to hain lekin commission mein nahi gaye — isiliye "missing commission" hua.</p>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 8: CRITICAL JOIN RULES                    -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec8" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">8</span> Critical JOIN Rules — Woh Qawaid Jo Kabhi Toote Na
+    </div>
+
+    <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+        <div class="cfe-card red">
+            <div class="cfe-card-title tw-text-red-700"><i class="fas fa-times-circle tw-mr-1"></i> GALAT — Yeh Kabhi Mat Karo</div>
+            <ul class="tw-text-sm tw-text-red-800 tw-space-y-2 tw-pl-4 tw-m-0">
+                <li><code>LPAD(CAST(Station_id AS UNSIGNED), 3, '0')</code><br>
+                <span class="tw-text-xs">'00592' → '592' — '001' se match nahi karega</span></li>
+                <li><code>LPAD(Cour_id, 14, '0') = EMP_NO</code><br>
+                <span class="tw-text-xs">RouteCode '3028' → '00000000003028' — EmpNo format bilkul alag hai</span></li>
+                <li><code>hc.city_name</code> column use karna<br>
+                <span class="tw-text-xs">Yeh column exist nahi karta — sahi column <code>hc.FullName</code> hai</span></li>
+            </ul>
+        </div>
+        <div class="cfe-card green">
+            <div class="cfe-card-title tw-text-green-700"><i class="fas fa-check-circle tw-mr-1"></i> SAHI — Yeh Tarika Use Karo</div>
+            <ul class="tw-text-sm tw-text-green-800 tw-space-y-2 tw-pl-4 tw-m-0">
+                <li>City JOIN:<br>
+                <code>JOIN hr_city hc ON hc.station_id = cc.Station_id</code><br>
+                <span class="tw-text-xs">Phir: <code>erc.citycode = hc.Code</code></span></li>
+                <li>COD employee JOIN:<br>
+                <code>JOIN hr_employeeroutecode erc ON erc.RouteCode = ar.Cour_id AND erc.Emp_No = @@empNo</code></li>
+                <li>City name:<br>
+                <code>hc.FullName</code> — hamesha yahi use karo</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="highlight-box tw-mt-4">
+        <div class="tw-flex tw-items-start tw-gap-3">
+            <i class="fas fa-lightbulb tw-text-yellow-600 tw-text-xl tw-mt-0.5"></i>
+            <div>
+                <strong class="tw-text-slate-800">Yaad Rakhne Ka Rule:</strong>
+                <p class="tw-text-sm tw-text-slate-700 tw-m-0 tw-mt-1">
+                    "Billing ka Station_id aur HR ka City Code numerically unrelated hain. Inhe sirf <code>hr_city</code> table ke zariye join kiya ja sakta hai —
+                    <code>station_id</code> column se. Numerically compare karne ki koshish hamesha wrong results degi."
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 9: EMPLOYEE SETUP REQUIREMENTS            -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec9" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">9</span> Employee Setup Requirements — Naye Employee ki Commission Chalane Ke Liye
+    </div>
+
+    <div class="info-box tw-mb-4">
+        Commission process hone ke liye employee ka data teen jagah properly set hona zaroori hai. Ek jagah bhi missing ho to commission process nahi hogi.
+    </div>
+
+    <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4 tw-mb-5">
+        <div class="cfe-card amber">
+            <div class="cfe-card-title">Server 10 (Main HR)</div>
+            <div class="cfe-step">
+                <div class="cfe-step-num">1</div>
+                <div class="cfe-step-body"><p><strong>hr_employeepersonaldetail</strong> — EMP_NO, naam, status 'A' (Active)</p></div>
+            </div>
+            <div class="cfe-step">
+                <div class="cfe-step-num">2</div>
+                <div class="cfe-step-body"><p><strong>hr_empcommissioneligibility</strong> — <code>IsEligible = 1</code> hona chahiye</p></div>
+            </div>
+            <div class="cfe-step">
+                <div class="cfe-step-num">3</div>
+                <div class="cfe-step-body"><p><strong>hr_employeeattendanceprocess</strong> — Us mahine ka attendance processed hona chahiye</p></div>
+            </div>
+        </div>
+        <div class="cfe-card blue">
+            <div class="cfe-card-title">Server 7 (MIS)</div>
+            <div class="cfe-step">
+                <div class="cfe-step-num">1</div>
+                <div class="cfe-step-body"><p><strong>hr_employeeroutecode</strong> — RouteCode + citycode + Emp_No record</p></div>
+            </div>
+            <div class="cfe-step">
+                <div class="cfe-step-num">2</div>
+                <div class="cfe-step-body"><p><strong>hr_employeelocationdetails</strong> — LocationId assigned hona chahiye</p></div>
+            </div>
+            <div class="cfe-step">
+                <div class="cfe-step-num">3</div>
+                <div class="cfe-step-body"><p><strong>hr_employeepersonaldetail</strong> — Record exist karna chahiye (synced)</p></div>
+            </div>
+        </div>
+        <div class="cfe-card green">
+            <div class="cfe-card-title">Server 6 (Billing)</div>
+            <div class="cfe-step">
+                <div class="cfe-step-num">1</div>
+                <div class="cfe-step-body"><p><strong>hr_employeeroutecode</strong> — Same RouteCode billing mein match kare</p></div>
+            </div>
+            <div class="cfe-step">
+                <div class="cfe-step-num">2</div>
+                <div class="cfe-step-body"><p><strong>hr_city</strong> — station_id correctly mapped to city Code</p></div>
+            </div>
+            <div class="cfe-step">
+                <div class="cfe-step-num">3</div>
+                <div class="cfe-step-body"><p><strong>Billing records</strong> — Employee ke RouteCode se deliveries register honi chahiye</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cfe-card purple">
+        <div class="cfe-card-title"><i class="fas fa-map-marker-alt tw-mr-1"></i> Location Mismatch ka Masla — Kaise Theek Karein</div>
+        <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+            <div>
+                <p class="tw-text-sm tw-text-slate-700 tw-m-0">
+                    <strong>Symptom:</strong> Employee ki commission mein 0 ata hai ya process fail hoti hai.<br><br>
+                    <strong>Check karo:</strong>
+                </p>
+                <div class="cfe-code tw-mt-2">
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tbl">hr_employeeroutecode</span>
+<span class="kw">WHERE</span> Emp_No = <span class="str">'@@empNo'</span>;
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tbl">hr_employeelocationdetails</span>
+<span class="kw">WHERE</span> Emp_No = <span class="str">'@@empNo'</span>;
+                </div>
+            </div>
+            <div>
+                <p class="tw-text-sm tw-text-slate-700 tw-m-0">
+                    <strong>Agar koi record nahi mila:</strong>
+                </p>
+                <ul class="tw-text-sm tw-text-slate-700 tw-space-y-1 tw-pl-4 tw-mt-1">
+                    <li>MIS team se request karo — Server 7 par update karein</li>
+                    <li>Billing team se request karo — Server 6 par RouteCode assign karein</li>
+                    <li>Central HR (18th floor) par — Server 10 mein location add karein</li>
+                    <li>Phir commission reprocess karo</li>
+                </ul>
+                <div class="success-box tw-mt-2 tw-text-xs">
+                    New system mein single employee reprocess possible hai — Commission Verification screen se.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 10: FINAL CONCLUSION                      -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="sec10" class="cfe-section">
+    <div class="cfe-section-header">
+        <span class="badge-num">10</span> Final Conclusion — Akhri Baat
+    </div>
+
+    <div class="highlight-box tw-mb-5">
+        <div class="tw-flex tw-items-start tw-gap-3">
+            <i class="fas fa-star tw-text-yellow-500 tw-text-2xl tw-mt-0.5"></i>
+            <div>
+                <strong class="tw-text-slate-800 tw-text-base">Commission System Ka Khulasa — 5 Lines Mein</strong>
+                <ol class="tw-text-sm tw-text-slate-700 tw-mt-2 tw-space-y-1.5 tw-pl-4">
+                    <li><strong>Teen servers:</strong> Server 6 (Billing) → Server 7 (MIS) → Server 10 (Main HR) — sab milkar kaam karte hain.</li>
+                    <li><strong>City join zaroor karo:</strong> Billing Station_id → hr_city → City Code — seedha match kabhi mat karo.</li>
+                    <li><strong>Route Code = Employee nahi:</strong> Billing mein Cour_id (Route Code) hai, hr_employeeroutecode se Emp_No milta hai.</li>
+                    <li><strong>Sequence follow karo:</strong> Cash → COD → OLE → Return COD → Master Process — order change karna data corrupt kar sakta hai.</li>
+                    <li><strong>Employee setup teens jagah:</strong> Server 6, 7, aur 10 — teeno par location aur route correctly set hona chahiye.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4 tw-mb-5">
+        <div class="cfe-card green">
+            <div class="cfe-card-title tw-text-green-700"><i class="fas fa-check-double tw-mr-1"></i> Jo Kaam Karta Hai</div>
+            <ul class="tw-text-xs tw-text-slate-700 tw-space-y-1 tw-pl-4 tw-m-0">
+                <li>station_id → Code join via hr_city</li>
+                <li>RouteCode → Emp_No via hr_employeeroutecode</li>
+                <li>FullName column for city names</li>
+                <li>Steps 1-5 in order</li>
+                <li>Automation with Hangfire</li>
+                <li>Single employee reprocess</li>
+                <li>Commission Verification screen</li>
+            </ul>
+        </div>
+        <div class="cfe-card red">
+            <div class="cfe-card-title tw-text-red-700"><i class="fas fa-times-circle tw-mr-1"></i> Jo Kaam Nahi Karta</div>
+            <ul class="tw-text-xs tw-text-slate-700 tw-space-y-1 tw-pl-4 tw-m-0">
+                <li>LPAD(Station_id) for city match</li>
+                <li>LPAD(Cour_id, 14) for employee</li>
+                <li>hc.city_name column</li>
+                <li>Steps out of order</li>
+                <li>Missing employee location</li>
+                <li>Missing route code on any server</li>
+            </ul>
+        </div>
+        <div class="cfe-card amber">
+            <div class="cfe-card-title"><i class="fas fa-link tw-mr-1"></i> Related Pages</div>
+            <ul class="tw-text-xs tw-space-y-1.5 tw-pl-0 tw-list-none tw-m-0">
+                <li><a href="/Automation/CommissionGuide" class="tw-text-blue-600 hover:tw-underline"><i class="fas fa-book-open tw-mr-1"></i> Commission Guide (SQL Queries)</a></li>
+                <li><a href="/Automation/Commission" class="tw-text-blue-600 hover:tw-underline"><i class="fas fa-cogs tw-mr-1"></i> Commission Automation</a></li>
+                <li><a href="/Automation/History" class="tw-text-blue-600 hover:tw-underline"><i class="fas fa-history tw-mr-1"></i> Commission History</a></li>
+                <li><a href="/CommissionVerification" class="tw-text-blue-600 hover:tw-underline"><i class="fas fa-search-dollar tw-mr-1"></i> Commission Verification</a></li>
+                <li><a href="/Automation/WorkingFlow" class="tw-text-blue-600 hover:tw-underline"><i class="fas fa-project-diagram tw-mr-1"></i> Working Flow Diagram</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Quick Reference Card -->
+    <div class="cfe-card slate">
+        <div class="cfe-card-title"><i class="fas fa-bookmark tw-mr-1"></i> Quick Reference Card — Jaldi Dekh Ke Kaam Karo</div>
+        <div class="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-3 tw-mt-2">
+            <div class="tw-bg-white tw-rounded-lg tw-p-2.5 tw-border tw-border-slate-200 tw-text-center">
+                <div class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Commission Period</div>
+                <div class="tw-text-sm tw-font-black tw-text-slate-800 tw-mt-1">21 prev → 20 curr</div>
+            </div>
+            <div class="tw-bg-white tw-rounded-lg tw-p-2.5 tw-border tw-border-slate-200 tw-text-center">
+                <div class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Karachi City Code</div>
+                <div class="tw-text-sm tw-font-black tw-text-slate-800 tw-mt-1">Code='001', Station='00592'</div>
+            </div>
+            <div class="tw-bg-white tw-rounded-lg tw-p-2.5 tw-border tw-border-slate-200 tw-text-center">
+                <div class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Cour_id Type</div>
+                <div class="tw-text-sm tw-font-black tw-text-slate-800 tw-mt-1">VARCHAR(5) RouteCode</div>
+            </div>
+            <div class="tw-bg-white tw-rounded-lg tw-p-2.5 tw-border tw-border-slate-200 tw-text-center">
+                <div class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">City Name Column</div>
+                <div class="tw-text-sm tw-font-black tw-text-slate-800 tw-mt-1">hr_city.FullName</div>
+            </div>
+            <div class="tw-bg-white tw-rounded-lg tw-p-2.5 tw-border tw-border-slate-200 tw-text-center">
+                <div class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Final Output</div>
+                <div class="tw-text-sm tw-font-black tw-text-slate-800 tw-mt-1">hr_commissionprocess</div>
+            </div>
+            <div class="tw-bg-white tw-rounded-lg tw-p-2.5 tw-border tw-border-slate-200 tw-text-center">
+                <div class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Attendance Formula</div>
+                <div class="tw-text-sm tw-font-black tw-text-slate-800 tw-mt-1">Days - Sun - Abs + Adj</div>
+            </div>
+            <div class="tw-bg-white tw-rounded-lg tw-p-2.5 tw-border tw-border-slate-200 tw-text-center">
+                <div class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Steps Order</div>
+                <div class="tw-text-sm tw-font-black tw-text-slate-800 tw-mt-1">Cash→COD→OLE→RetCOD→Master</div>
+            </div>
+            <div class="tw-bg-white tw-rounded-lg tw-p-2.5 tw-border tw-border-slate-200 tw-text-center">
+                <div class="tw-text-xs tw-font-bold tw-text-slate-500 tw-uppercase">Servers Count</div>
+                <div class="tw-text-sm tw-font-black tw-text-slate-800 tw-mt-1">3 (6, 7, 10)</div>
+            </div>
+        </div>
+    </div>
+</div>

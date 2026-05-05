@@ -1,0 +1,217 @@
+@model LCS_HR_MVC.Models.TakenLeaveModel
+@{
+    ViewData["Title"] = "Employee Leaves";
+    ViewData["PageTitle"] = "Employee Leaves";
+    var dataList = ViewBag.TakenLeavesList as IEnumerable<LCS_HR_MVC.Models.TakenLeaveModel> ?? new List<LCS_HR_MVC.Models.TakenLeaveModel>();
+    var yearsList = ViewBag.YearsList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    <style>
+        @@keyframes slideUp { from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)} }
+        .animate-main{animation:slideUp .4s ease-out}
+        .f-label{display:block;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+        .f-input{width:100%;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;transition:border-color .15s,box-shadow .15s}
+        .f-input:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .f-input[readonly],.f-input:disabled{background:#f8fafc;color:#94a3b8;cursor:not-allowed}
+        .f-select{width:100%;padding:10px 32px 10px 12px;background:#fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right .75rem top 50%;background-size:.65rem;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;appearance:none;transition:border-color .15s,box-shadow .15s}
+        .f-select:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .btn-p{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#fbbf24,#f97316);color:#1e293b;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(245,197,24,.3);transition:all .15s}
+        .btn-p:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,197,24,.4)}
+        .btn-p:disabled{opacity:.45;cursor:not-allowed}
+        .btn-s{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;color:#475569;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #e2e8f0;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
+        .btn-s:hover:not(:disabled){background:#f8fafc;transform:translateY(-1px)}
+        .btn-s:disabled{opacity:.45;cursor:not-allowed}
+        #dg1 thead th{background:linear-gradient(135deg,#475569,#334155)!important;color:#f1f5f9!important;font-size:.65rem!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.08em!important;padding:.625rem .75rem!important;border:none!important;white-space:nowrap}
+        #dg1 tbody tr:hover td{background:#fffbeb!important}
+        #dg1 tbody td{padding:.5rem .75rem!important;font-size:.8rem;color:#334155;border-bottom:1px solid #f1f5f9!important;border-top:none!important;border-left:none!important;border-right:none!important}
+        .val-err{display:block;margin-top:4px;font-size:.75rem;font-weight:600;color:#dc2626}
+        .ui-autocomplete{border-radius:12px!important;border:1px solid #e2e8f0!important;box-shadow:0 8px 24px rgba(0,0,0,.08)!important;padding:4px!important}
+        .ui-menu-item-wrapper{border-radius:8px!important;font-size:.8rem!important;font-weight:600!important;padding:8px 12px!important}
+        .ui-state-active,.ui-widget-content .ui-state-active{background:#fffbeb!important;color:#92400e!important;border:none!important}
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5"></i><span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-check tw-mt-0.5"></i><span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Page Header -->
+    <div class="tw-mb-8">
+        <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+            <span class="hover:tw-text-amber-500 tw-cursor-pointer tw-transition-colors tw-flex tw-items-center tw-gap-1"><i class="fas fa-umbrella-beach tw-text-[10px] tw-text-slate-300"></i> Leaves</span>
+            <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+            <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Employee Leaves</span>
+        </nav>
+        <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Employee Leaves</h1>
+        <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+        <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-2">Track and manage employee leave history.</p>
+    </div>
+
+    <div class="tw-grid tw-grid-cols-1 xl:tw-grid-cols-[1.1fr_0.9fr] tw-gap-5">
+
+        <!-- Table Card -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-history"></i></div>
+                    Employee Leave History
+                </h3>
+            </div>
+            <div class="tw-p-5">
+                <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-mb-4">
+                    <div class="tw-relative tw-flex-1 tw-min-w-[180px]">
+                        <i class="fas fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none"></i>
+                        <input type="text" id="txtsearch" class="f-input tw-pl-9" placeholder="Search by emp no or name..." />
+                    </div>
+                    <button type="button" class="btn-p" onclick="filterTable()"><i class="fas fa-search tw-text-xs"></i> Search</button>
+                    <button type="button" class="btn-s" onclick="resetSearch()"><i class="fas fa-times tw-text-xs"></i> Clear</button>
+                </div>
+                <div class="tw-overflow-x-auto tw-max-h-[28rem] tw-overflow-y-auto">
+                    <table id="dg1" class="tw-w-full">
+                        <thead>
+                            <tr><th>Emp No</th><th>Year</th><th>Employee</th><th>Leave Date</th><th>Comments</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in dataList)
+                            {
+                                <tr>
+                                    <td><a href="#" class="tw-text-amber-600 tw-font-black hover:tw-underline leave-link"
+                                           data-emp="@item.EmpNo" data-name="@item.EmployeeName" data-year="@item.Year"
+                                           data-date="@(item.LeaveDate?.ToString("yyyy-MM-dd"))" data-comments="@item.Comments">@item.EmpNo</a></td>
+                                    <td>@item.Year</td>
+                                    <td>@item.EmployeeName</td>
+                                    <td>@(item.LeaveDate?.ToString("dd/MM/yyyy"))</td>
+                                    <td>@item.Comments</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-700 tw-to-slate-900">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-edit"></i></div>
+                    Leave Entry Form
+                </h3>
+            </div>
+            <form asp-controller="Leaves" asp-action="EmployeeLeaves" method="post" id="leaveForm" class="tw-p-5">
+                <input type="hidden" name="originalLeaveDateStr" id="originalLeaveDateStr" />
+                <div class="tw-grid tw-gap-4">
+                    <div>
+                        <label class="f-label">Year</label>
+                        <select asp-for="Year" asp-items="yearsList" class="f-select" id="Year"></select>
+                        <span asp-validation-for="Year" class="val-err"></span>
+                    </div>
+                    <div>
+                        <label class="f-label">Code</label>
+                        <input type="text" id="displayCode" value="Auto Generated" class="f-input" disabled />
+                    </div>
+                    <div class="tw-grid tw-grid-cols-[1fr_auto] tw-gap-3">
+                        <div>
+                            <label class="f-label">Employee</label>
+                            <input type="text" asp-for="EmployeeDescription" id="txtEmployeeDescription" class="f-input" placeholder="Use wildcard '%'" />
+                            <span asp-validation-for="EmployeeDescription" class="val-err"></span>
+                        </div>
+                        <div>
+                            <label class="f-label">Emp No</label>
+                            <input type="text" asp-for="EmpNo" id="txtEmployeeCode" class="f-input tw-w-28" readonly />
+                            <span asp-validation-for="EmpNo" class="val-err"></span>
+                        </div>
+                    </div>
+                    <div id="RowNote" class="tw-hidden tw-rounded-xl tw-border tw-border-amber-200 tw-bg-amber-50 tw-p-3 tw-text-sm tw-font-bold tw-text-amber-800 tw-flex tw-items-center tw-gap-2">
+                        <i class="fas fa-exclamation-circle tw-text-amber-500"></i><span id="lblnote">Employee is on Probation</span>
+                    </div>
+                    <div id="RowFromDate">
+                        <label class="f-label" id="spanFromDate">From Date</label>
+                        <input type="date" asp-for="LeaveFromDate" class="f-input" id="LeaveFromDate" />
+                        <span asp-validation-for="LeaveFromDate" class="val-err"></span>
+                    </div>
+                    <div id="RowToDate">
+                        <label class="f-label" id="spanToDate">To Date</label>
+                        <input type="date" asp-for="LeaveToDate" class="f-input" id="LeaveToDate" />
+                        <span asp-validation-for="LeaveToDate" class="val-err"></span>
+                    </div>
+                    <div id="RowComments">
+                        <label class="f-label">Comments</label>
+                        <input asp-for="Comments" class="f-input" maxlength="45" id="Comments" />
+                    </div>
+                </div>
+                <div class="tw-mt-6 tw-flex tw-flex-wrap tw-gap-2">
+                    <button type="submit" name="action" value="Save" class="btn-p" id="btnSave" disabled><i class="fas fa-save tw-text-xs"></i> Save</button>
+                    <button type="submit" name="action" value="Update" class="btn-s" id="btnUpdate" disabled><i class="fas fa-sync tw-text-xs"></i> Update</button>
+                    <button type="submit" name="action" value="Delete" class="btn-s" id="btnDelete" disabled onclick="return confirm('Do you want to delete?');"><i class="fas fa-trash tw-text-xs"></i> Delete</button>
+                    <button type="submit" name="action" value="Reset" class="btn-s" id="btnReset" formnovalidate><i class="fas fa-redo tw-text-xs"></i> Reset</button>
+                    <button type="submit" name="action" value="ActivateProbation" class="btn-s tw-hidden" id="btnActive" formnovalidate><i class="fas fa-user-check tw-text-xs"></i> Activate Probation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            if ($.fn.DataTable) {
+                $('#dg1').DataTable({ "pageLength": 12, "lengthChange": false, "searching": true, "info": true,
+                    "language": { "emptyTable": "No leave records found." } });
+            }
+            function checkProbation(empCode, year) {
+                if (empCode && year && year !== "00") {
+                    $.ajax({ url: '@Url.Action("IsEmployeeOnProbation","Leaves")', type: 'GET', data: { empCode: empCode, year: year },
+                        success: function (data) {
+                            if (data.d === 0) {
+                                $('#RowComments,#RowFromDate,#RowToDate').hide();
+                                $('#btnActive').removeClass('tw-hidden').show(); $('#btnSave').prop("disabled", true); $('#RowNote').removeClass('tw-hidden').show();
+                            } else {
+                                $('#RowComments,#RowFromDate,#RowToDate').show();
+                                $('#RowNote').addClass('tw-hidden').hide(); $('#btnActive').addClass('tw-hidden').hide(); $('#btnSave').prop("disabled", false);
+                            }
+                        }
+                    });
+                }
+            }
+            $("#txtEmployeeDescription").autocomplete({
+                source: function (req, res) { $.ajax({ url: '@Url.Action("SearchActiveEmployees","Setup")', type: "GET", dataType: "json", data: { term: req.term }, success: function (data) { res($.map(data, function (i) { return { label: i.label, value: i.desc, id: i.value }; })); } }); },
+                select: function (e, ui) { $("#txtEmployeeDescription").val(ui.item.value); $("#txtEmployeeCode").val(ui.item.id); checkProbation(ui.item.id, $('#Year').val()); return false; }, minLength: 1
+            });
+            $("#txtEmployeeDescription").keyup(function () { if (!$(this).val()) $("#txtEmployeeCode").val(''); });
+            $('#Year').change(function () { var emp = $('#txtEmployeeCode').val(); if (emp) checkProbation(emp, $(this).val()); });
+            $('.leave-link').click(function (e) {
+                e.preventDefault();
+                $('#displayCode').val($(this).data('emp')); $('#txtEmployeeCode').val($(this).data('emp'));
+                $('#txtEmployeeDescription').val($(this).data('name')); $('#Year').val($(this).data('year'));
+                $('#LeaveFromDate').val($(this).data('date')); $('#LeaveToDate').val($(this).data('date'));
+                $('#originalLeaveDateStr').val($(this).data('date')); $('#Comments').val($(this).data('comments'));
+                $('#spanFromDate').text("Leave Date"); $('#RowToDate').hide();
+                $('#btnSave').prop('disabled', true); $('#btnUpdate,#btnDelete').prop('disabled', false); $('#btnActive').addClass('tw-hidden').hide();
+            });
+        });
+        function filterTable() {
+            var f = document.getElementById("txtsearch").value.toUpperCase();
+            var tr = document.getElementById("dg1").getElementsByTagName("tr");
+            for (var i = 1; i < tr.length; i++) {
+                var t0 = tr[i].getElementsByTagName("td")[0], t2 = tr[i].getElementsByTagName("td")[2];
+                if (t0 || t2) tr[i].style.display = ((t0.textContent||t0.innerText).toUpperCase().indexOf(f)>-1||(t2.textContent||t2.innerText).toUpperCase().indexOf(f)>-1) ? "" : "none";
+            }
+        }
+        function resetSearch() { document.getElementById("txtsearch").value = ""; filterTable(); }
+    </script>
+}

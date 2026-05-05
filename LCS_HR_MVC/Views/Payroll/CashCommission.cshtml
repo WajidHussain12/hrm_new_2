@@ -1,0 +1,134 @@
+@model LCS_HR_MVC.Models.Payroll.CashCommissionViewModel
+@{
+    ViewData["PageTitle"] = "Cash Commission";
+    ViewData["Title"] = "Cash Commission";
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+        .animate-main{animation:slideUp .4s ease-out}
+        .f-label{display:block;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+        .f-select{width:100%;padding:10px 32px 10px 12px;background:#fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right .75rem top 50%;background-size:.65rem;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;appearance:none;transition:border-color .15s,box-shadow .15s}
+        .f-select:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .btn-p{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#fbbf24,#f97316);color:#1e293b;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(245,197,24,.3);transition:all .15s}
+        .btn-p:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,197,24,.4)}
+        .btn-s{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;color:#475569;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #e2e8f0;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
+        .btn-s:hover{background:#f8fafc;transform:translateY(-1px)}
+        #summaryTable thead th{background:linear-gradient(135deg,#475569,#334155)!important;color:#f1f5f9!important;font-size:.65rem!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.08em!important;padding:.625rem .75rem!important;border:none!important}
+        #summaryTable tbody td{padding:.625rem .75rem!important;font-size:.85rem;color:#334155;border-bottom:1px solid #f1f5f9!important;border-top:none!important;border-left:none!important;border-right:none!important;font-weight:700}
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5"></i><span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-check tw-mt-0.5"></i><span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-xl tw-text-amber-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-clock tw-mt-0.5"></i><span>@TempData["WarningMessage"]</span>
+        </div>
+    }
+
+    <div class="tw-mb-8">
+        <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+            <span class="tw-flex tw-items-center tw-gap-1"><i class="fas fa-calendar-check tw-text-[10px] tw-text-slate-300"></i> Payroll</span>
+            <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+            <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Cash Commission</span>
+        </nav>
+        <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Cash Commission</h1>
+        <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+        <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-2">Runs from the 21st of the previous month through the 20th of the selected month.</p>
+    </div>
+
+    <form asp-action="CashCommission" method="post" id="cashCommissionForm"
+          data-cities-url="@Url.Action("GetCashCommissionCities", "Payroll")">
+        @Html.AntiForgeryToken()
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-mb-5">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-coins"></i></div>
+                    Process Parameters
+                </h3>
+            </div>
+            <div class="tw-p-6">
+                <div class="tw-grid sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-5 tw-mb-5">
+                    <div>
+                        <label class="f-label">Year</label>
+                        <select asp-for="Year" asp-items="Model.Years" class="f-select"></select>
+                    </div>
+                    <div>
+                        <label class="f-label">Month</label>
+                        <select asp-for="Month" asp-items="Model.Months" class="f-select"></select>
+                    </div>
+                    <div>
+                        <label class="f-label">Zone</label>
+                        <select asp-for="ZoneId" asp-items="Model.Zones" class="f-select" id="ddlZone"></select>
+                    </div>
+                    <div>
+                        <label class="f-label">City</label>
+                        <select asp-for="CityCode" asp-items="Model.Cities" class="f-select" id="ddlCity"></select>
+                    </div>
+                </div>
+                <label class="tw-flex tw-items-center tw-gap-3 tw-text-sm tw-font-semibold tw-text-slate-700 tw-cursor-pointer tw-mb-5">
+                    <input asp-for="BillingStatus" type="checkbox" class="tw-accent-amber-500 tw-w-4 tw-h-4" />
+                    Billing status is verified
+                </label>
+                <div class="tw-flex tw-gap-3">
+                    <button type="submit" name="action" value="Process" class="btn-p"><i class="fas fa-bolt tw-text-xs"></i> Process Data</button>
+                    <button type="submit" name="action" value="Reset" class="btn-s" formnovalidate><i class="fas fa-times tw-text-xs"></i> Reset</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.FromDate.HasValue || Model.ToDate.HasValue || Model.CashRowsInserted > 0 || Model.VasRowsInserted > 0)
+    {
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-flex tw-items-center tw-justify-between">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-chart-bar"></i></div>
+                    Processing Summary
+                </h3>
+                @if (Model.FromDate.HasValue && Model.ToDate.HasValue)
+                {
+                    <div class="tw-text-xs tw-font-bold tw-text-slate-300">
+                        Window: <span class="tw-text-amber-400">@Model.FromDate.Value.ToString("dd-MMM-yyyy")</span>
+                        &rarr; <span class="tw-text-amber-400">@Model.ToDate.Value.ToString("dd-MMM-yyyy")</span>
+                        &nbsp;&nbsp;Stations: <span class="tw-text-amber-400">@Model.StationCount</span>
+                    </div>
+                }
+            </div>
+            <div class="tw-p-5 tw-overflow-x-auto">
+                <table id="summaryTable" class="tw-w-full">
+                    <thead>
+                        <tr><th>Cash Source Rows</th><th>VAS Source Rows</th><th>Cash Rows Written</th><th>VAS Rows Written</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>@Model.CashSourceRowsRetrieved</td>
+                            <td>@Model.VasSourceRowsRetrieved</td>
+                            <td>@Model.CashRowsInserted</td>
+                            <td>@Model.VasRowsInserted</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/payroll/cash-commission.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,189 @@
+@{
+    ViewData["PageTitle"] = "GL Code Generator";
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Detail Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-cogs tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Setup</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">GL Generator</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Financial Ledger Node</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Automate subsidiary account creation for newly onboarded personnel vectors.</p>
+        </div>
+    </div>
+
+
+    <div class="tw-grid xl:tw-grid-cols-[1fr_0.8fr] tw-gap-6 xl:tw-gap-8 align-top">
+        
+        <!-- Left Side: System Context Grid -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative tw-h-full">
+            <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none z-0"></div>
+
+            <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-4 tw-bg-slate-50/80">
+                <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-gradient-to-br tw-from-slate-900 tw-to-slate-800 tw-flex tw-items-center tw-justify-center tw-shadow-[0_4px_10px_rgba(15,23,42,0.3)]">
+                    <i class="fas fa-file-invoice-dollar tw-text-amber-400 tw-text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="tw-font-black tw-text-base tw-text-slate-800 tw-tracking-tight">Ledger Context</h2>
+                    <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">Active Target Definitions</p>
+                </div>
+            </div>
+
+            <div class="tw-relative tw-z-10 tw-p-8">
+                <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-2xl tw-p-6 tw-mb-8 tw-shadow-inner">
+                    <div class="tw-flex tw-items-start tw-gap-4">
+                        <div class="tw-w-10 tw-h-10 tw-rounded-full tw-bg-white tw-border tw-border-slate-200 tw-flex tw-items-center tw-justify-center tw-shrink-0 tw-shadow-sm">
+                            <i class="fas fa-info-circle tw-text-blue-500"></i>
+                        </div>
+                        <div>
+                            <h3 class="tw-font-bold tw-text-slate-800 tw-text-sm tw-mb-1">Process Evaluation</h3>
+                            <p class="tw-text-sm tw-text-slate-500 tw-leading-relaxed">
+                                This automated utility evaluates the database and generates missing GL subsidiary account codes in the financial ledger for all eligible employees.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-4">
+                    <div class="tw-bg-white tw-border tw-border-slate-100 tw-rounded-2xl tw-p-5 tw-shadow-sm hover:tw-shadow-md tw-transition-all group">
+                         <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-indigo-50 tw-text-indigo-600 tw-flex tw-items-center tw-justify-center tw-mb-3 group-hover:tw-bg-indigo-600 group-hover:tw-text-white tw-transition-colors">
+                             <i class="fas fa-network-wired"></i>
+                         </div>
+                         <p class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mb-1">Parent Account</p>
+                         <p class="tw-font-mono tw-font-bold tw-text-indigo-600 tw-text-lg">5-02-01-0008</p>
+                    </div>
+                    <div class="tw-bg-white tw-border tw-border-slate-100 tw-rounded-2xl tw-p-5 tw-shadow-sm hover:tw-shadow-md tw-transition-all group">
+                         <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-amber-50 tw-text-amber-600 tw-flex tw-items-center tw-justify-center tw-mb-3 group-hover:tw-bg-amber-600 group-hover:tw-text-white tw-transition-colors">
+                             <i class="fas fa-bolt"></i>
+                         </div>
+                         <p class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mb-1">Generation Mode</p>
+                         <p class="tw-font-bold tw-text-slate-700 tw-text-lg">Bulk Auto-Map</p>
+                    </div>
+                </div>
+
+                <div class="tw-mt-8 tw-p-6 tw-bg-amber-50/50 tw-border tw-border-amber-100 tw-rounded-2xl">
+                    <p class="tw-text-xs tw-text-amber-800 tw-font-bold tw-flex tw-items-center tw-gap-2">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Critical Warning
+                    </p>
+                    <p class="tw-text-[11px] tw-text-amber-700/80 tw-mt-2 tw-leading-relaxed">
+                        Execution of this process will modify the chart of accounts structure. Ensure all current employee metadata is verified before running generation.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Action Form -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-sticky tw-top-24 tw-relative">
+            <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-emerald-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none"></div>
+
+            <div class="tw-p-6 tw-bg-gradient-to-r tw-from-emerald-500 tw-to-emerald-600 tw-relative tw-z-10">
+                <h3 class="tw-text-white tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-black/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    Execution Blueprint
+                </h3>
+            </div>
+
+            <form asp-controller="Setup" asp-action="EmpGlCode" method="post" id="genForm" class="tw-p-7 tw-space-y-6 tw-relative tw-z-10">
+                
+                <div class="tw-bg-slate-50 tw-rounded-2xl tw-p-6 tw-border tw-border-slate-200 tw-text-center">
+                    <div class="tw-w-16 tw-h-16 tw-bg-white tw-rounded-full tw-flex tw-items-center tw-justify-center tw-mx-auto tw-mb-4 tw-shadow-sm tw-border tw-border-slate-100">
+                        <i class="fas fa-magic tw-text-amber-500 tw-text-xl"></i>
+                    </div>
+                    <h4 class="tw-text-slate-800 tw-font-black tw-text-sm tw-mb-2">Ready for Generation</h4>
+                    <p class="tw-text-[11px] tw-text-slate-500 tw-leading-relaxed">
+                        Click 'Run Generation' to start the ledger mapping process for the selected parent account.
+                    </p>
+                </div>
+
+                <div class="tw-border-t tw-border-slate-100 tw-pt-3"></div>
+
+                 <!-- Action Controls -->
+                <div class="tw-space-y-3">
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="submit" name="action" value="Generate" id="btnSave" onclick="return confirm('WARNING: This will generate GL codes for ALL employees currently missing one under account 5-02-01-0008. Do you wish to proceed?');"
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all">
+                            <i class="fas fa-bolt tw-text-sm"></i> Run Generation
+                        </button>
+                        <button type="button" disabled
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-slate-900 tw-text-white tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-opacity-40 tw-cursor-not-allowed">
+                            <i class="fas fa-sync-alt tw-text-sm"></i> Update Node
+                        </button>
+                    </div>
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="button" disabled
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-red-500 tw-border tw-border-red-100 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase tw-opacity-40 tw-cursor-not-allowed">
+                            <i class="fas fa-trash-alt"></i> Revoke
+                        </button>
+                        <button type="submit" name="action" value="Reset" id="btnReset" formnovalidate
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                            <i class="fas fa-undo-alt tw-opacity-60"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>

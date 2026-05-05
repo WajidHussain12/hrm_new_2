@@ -1,0 +1,331 @@
+@model LCS_HR_MVC.Models.UserPrivilegeViewModel
+@{
+    ViewData["Title"] = "User Privileges Setup";
+    ViewData["PageTitle"] = "User Privileges Setup";
+    var rolesList = ViewBag.RolesList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+         /* Compact Checkbox for Grids */
+        .grid-checkbox {
+            @@apply tw-w-4 tw-h-4 tw-rounded tw-border-slate-300 tw-text-amber-500 focus:tw-ring-amber-400 tw-transition-all tw-cursor-pointer;
+        }
+
+        /* Detail Scrollbar for Wide Grid */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .sticky-header th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-shield-alt tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Admin Utilities</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Security Matrix</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Role Privilege Map</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Map precise view, insert, update, and deletion permissions against application structural elements.</p>
+        </div>
+    </div>
+
+    <!-- Main Controller Wrap -->
+    <form asp-controller="Admin" asp-action="UserPrivileges" method="post" id="userPrivilegesForm">
+        
+        <div class="tw-grid lg:tw-grid-cols-12 tw-gap-6 xl:tw-gap-8 align-top">
+
+            <!-- Left Panel: Context Filter -->
+            <div class="lg:tw-col-span-4 xl:tw-col-span-3">
+                <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-sticky tw-top-24">
+                     <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-amber-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none z-0"></div>
+
+                     <div class="tw-relative tw-z-10 tw-p-6 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+                        <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                            <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                                <i class="fas fa-users-cog"></i>
+                            </div>
+                            Target Identity
+                        </h3>
+                    </div>
+                
+                    <div class="tw-relative tw-z-10 tw-p-6 tw-space-y-5">
+                       
+                        <!-- Account Role Link -->
+                        <div>
+                            <label asp-for="RoleID" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Load Blueprint Role <span class="tw-text-red-500">*</span></label>
+                            <select asp-for="RoleID" asp-items="rolesList" 
+                                    class="tw-w-full tw-px-4 tw-py-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-indigo-700 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm tw-appearance-none"
+                                    style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 1rem top 50%; background-size: 0.65rem auto;"
+                                    onchange="this.form.submit()"></select>
+                        </div>
+
+                        <div class="tw-pt-3 tw-pb-2 tw-border-t tw-border-slate-100"></div>
+
+                        <!-- Panel Buttons -->
+                        <div class="tw-grid tw-gap-3">
+                             <button type="submit" name="action" value="Update" id="btnUpdate" @(string.IsNullOrEmpty(Model.RoleID) || Model.RoleID == "00" ? "disabled" : null)
+                                    class="tw-flex tw-w-full tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-50 disabled:tw-cursor-not-allowed">
+                                <i class="fas fa-check-circle tw-text-sm"></i> Apply Configuration
+                            </button>
+
+                            <button type="submit" name="action" value="Reset" id="btnReset" formnovalidate
+                                    class="tw-flex tw-w-full tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                                <i class="fas fa-undo-alt tw-opacity-60"></i> Deselect Form
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Data Matrix -->
+             <div class="lg:tw-col-span-8 xl:tw-col-span-9">
+                <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative tw-flex tw-flex-col">
+                    
+                     <!-- Map Table Header Bar -->
+                    <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-bg-slate-50/80">
+                         <div class="tw-flex tw-items-center tw-gap-4">
+                            <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-gradient-to-br tw-from-indigo-500 tw-to-indigo-600 tw-text-white tw-flex tw-items-center tw-justify-center tw-shadow-[0_4px_10px_rgba(99,102,241,0.3)]">
+                                <i class="fas fa-sitemap tw-text-lg"></i>
+                            </div>
+                            <div>
+                                <h2 class="tw-font-black tw-text-base tw-text-slate-800 tw-tracking-tight">Application Topology</h2>
+                                <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">Map capabilities directly below</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Complex Application Feature Grid -->
+                    <div class="tw-flex-1 tw-overflow-x-auto custom-scrollbar tw-relative tw-bg-white" style="max-height: 700px;">
+                        <table class="tw-w-full tw-text-left tw-whitespace-nowrap" id="dg1">
+                            <thead class="tw-bg-slate-100 tw-border-b tw-border-slate-200 sticky-header shadow-sm">
+                                <tr>
+                                    <th class="tw-py-3 tw-px-5 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest tw-bg-slate-100">Breadcrumb Map Location</th>
+                                    <th class="tw-py-3 tw-px-5 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest tw-bg-slate-100">Component Form Node</th>
+                                    
+                                    <!-- Global Checkboxes in Headers -->
+                                    <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-indigo-600 tw-uppercase tw-tracking-widest tw-text-center tw-bg-slate-100">
+                                         <div class="tw-flex tw-flex-col tw-items-center tw-gap-1.5">
+                                            <span>Read</span>
+                                            <input type="checkbox" id="chkHeaderView" class="grid-checkbox" /> 
+                                        </div>
+                                    </th>
+                                    <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-emerald-600 tw-uppercase tw-tracking-widest tw-text-center tw-bg-slate-100">
+                                        <div class="tw-flex tw-flex-col tw-items-center tw-gap-1.5">
+                                            <span>Write</span>
+                                            <input type="checkbox" id="chkHeaderInsert" class="grid-checkbox"/>
+                                        </div>
+                                    </th>
+                                    <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-amber-600 tw-uppercase tw-tracking-widest tw-text-center tw-bg-slate-100">
+                                        <div class="tw-flex tw-flex-col tw-items-center tw-gap-1.5">
+                                            <span>Patch</span>
+                                            <input type="checkbox" id="chkHeaderUpdate" class="grid-checkbox" />
+                                        </div>
+                                    </th>
+                                    <th class="tw-py-3 tw-px-4 tw-text-[10px] tw-font-black tw-text-red-600 tw-uppercase tw-tracking-widest tw-text-center tw-bg-slate-100">
+                                         <div class="tw-flex tw-flex-col tw-items-center tw-gap-1.5">
+                                            <span>Drop</span>
+                                            <input type="checkbox" id="chkHeaderDelete" class="grid-checkbox" />
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="tw-divide-y tw-divide-slate-50">
+                                @if (Model.Privileges == null || Model.Privileges.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="6">
+                                            <div class="tw-p-10 tw-text-center tw-text-slate-400 tw-flex tw-flex-col tw-items-center">
+                                                <i class="far fa-folder-open tw-text-4xl tw-mb-3 tw-opacity-50"></i>
+                                                <p class="tw-text-sm tw-font-medium">No privilege matrix loaded.</p>
+                                                <p class="tw-text-[11px] tw-mt-1">Please select an identity role from the panel to extract maps.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @for (int i = 0; i < Model.Privileges.Count; i++)
+                                    {
+                                        <tr class="hover:tw-bg-amber-50/20 tw-transition-colors group">
+                                            <!-- Setup Sub-directory Breadcrumb -->
+                                            <td class="tw-py-3 tw-px-5 tw-align-middle">
+                                                <div class="tw-inline-flex tw-items-center tw-gap-2 tw-text-xs tw-font-bold tw-text-slate-500 tw-bg-slate-50 tw-border tw-border-slate-200 tw-px-2 tw-py-1 tw-rounded-md">
+                                                    @{
+                                                        var parts = Model.Privileges[i].MenuLocation?.Split(new[] { "->" }, StringSplitOptions.RemoveEmptyEntries);
+                                                        if (parts != null)
+                                                        {
+                                                            for(int p = 0; p < parts.Length; p++)
+                                                            {
+                                                                <span class="tw-text-slate-600">@parts[p].Trim()</span>
+                                                                if(p < parts.Length - 1)
+                                                                {
+                                                                    <i class="fas fa-angle-right tw-text-[9px] tw-text-slate-300"></i>
+                                                                }
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            @Model.Privileges[i].MenuLocation
+                                                        }
+                                                    }
+                                                </div>
+                                                <!-- Ghost Data -->
+                                                <input type="hidden" asp-for="Privileges[i].PrivilegesID" />
+                                                <input type="hidden" asp-for="Privileges[i].ShouldInsert" />
+                                                <input type="hidden" asp-for="Privileges[i].MenuID" />
+                                                <input type="hidden" asp-for="Privileges[i].SubMenuID" />
+                                                <input type="hidden" asp-for="Privileges[i].SubmenudetID" />
+                                                <input type="hidden" asp-for="Privileges[i].MenuLocation" />
+                                                <input type="hidden" asp-for="Privileges[i].FormName" />
+                                            </td>
+
+                                            <!-- Actual Form Reference Name -->
+                                            <td class="tw-py-3 tw-px-5 tw-font-semibold tw-text-slate-800 tw-text-sm group-hover:tw-text-indigo-600 tw-transition-colors tw-align-middle">
+                                                <div class="tw-flex tw-items-center tw-gap-2">
+                                                    <i class="fas fa-layer-group tw-text-slate-300"></i>
+                                                    @Model.Privileges[i].FormName
+                                                </div>
+                                            </td>
+
+                                            <!-- Toggles mapped to the models array booleans -->
+                                            <td class="tw-py-3 tw-px-4 tw-text-center tw-align-middle">
+                                                <div class="tw-bg-indigo-50/50 tw-border tw-border-indigo-100 tw-rounded-lg tw-w-8 tw-h-8 tw-mx-auto tw-flex tw-items-center tw-justify-center tw-shadow-inner group-hover:tw-bg-white tw-transition-colors">
+                                                    <input type="checkbox" asp-for="Privileges[i].CanView" class="chkView grid-checkbox tw-text-indigo-500 focus:tw-ring-indigo-400" title="Grant Reader"/>
+                                                </div>
+                                            </td>
+                                            
+                                            <td class="tw-py-3 tw-px-4 tw-text-center tw-align-middle">
+                                                 <div class="tw-bg-emerald-50/50 tw-border tw-border-emerald-100 tw-rounded-lg tw-w-8 tw-h-8 tw-mx-auto tw-flex tw-items-center tw-justify-center tw-shadow-inner group-hover:tw-bg-white tw-transition-colors">
+                                                    <input type="checkbox" asp-for="Privileges[i].CanInsert" class="chkInsert grid-checkbox tw-text-emerald-500 focus:tw-ring-emerald-400" title="Grant Creator"/>
+                                                </div>
+                                            </td>
+
+                                            <td class="tw-py-3 tw-px-4 tw-text-center tw-align-middle">
+                                                 <div class="tw-bg-amber-50/50 tw-border tw-border-amber-100 tw-rounded-lg tw-w-8 tw-h-8 tw-mx-auto tw-flex tw-items-center tw-justify-center tw-shadow-inner group-hover:tw-bg-white tw-transition-colors">
+                                                    <input type="checkbox" asp-for="Privileges[i].CanUpdate" class="chkUpdate grid-checkbox tw-text-amber-500 focus:tw-ring-amber-400" title="Grant Editor"/>
+                                                </div>
+                                            </td>
+
+                                            <td class="tw-py-3 tw-px-4 tw-text-center tw-align-middle">
+                                                <div class="tw-bg-red-50/50 tw-border tw-border-red-100 tw-rounded-lg tw-w-8 tw-h-8 tw-mx-auto tw-flex tw-items-center tw-justify-center tw-shadow-inner group-hover:tw-bg-white tw-transition-colors">
+                                                    <input type="checkbox" asp-for="Privileges[i].CanDelete" class="chkDelete grid-checkbox tw-text-red-500 focus:tw-ring-red-400" title="Grant Destroyer"/>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+             </div>
+        </div>
+
+    </form>
+</div>
+
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            function updateHeaderCheckbox(chkClass, headerId) {
+                var total = $(chkClass).length;
+                var checked = $(chkClass + ':checked').length;
+                if (total > 0) {
+                    $(headerId).prop('checked', total === checked);
+                } else {
+                     $(headerId).prop('checked', false);
+                }
+            }
+
+            updateHeaderCheckbox('.chkView', '#chkHeaderView');
+            updateHeaderCheckbox('.chkInsert', '#chkHeaderInsert');
+            updateHeaderCheckbox('.chkUpdate', '#chkHeaderUpdate');
+            updateHeaderCheckbox('.chkDelete', '#chkHeaderDelete');
+
+            $('#chkHeaderView').click(function () {
+                $('.chkView').prop('checked', $(this).is(':checked'));
+            });
+            $('.chkView').click(function () {
+                updateHeaderCheckbox('.chkView', '#chkHeaderView');
+            });
+
+            $('#chkHeaderInsert').click(function () {
+                $('.chkInsert').prop('checked', $(this).is(':checked'));
+            });
+            $('.chkInsert').click(function () {
+                updateHeaderCheckbox('.chkInsert', '#chkHeaderInsert');
+            });
+
+            $('#chkHeaderUpdate').click(function () {
+                $('.chkUpdate').prop('checked', $(this).is(':checked'));
+            });
+            $('.chkUpdate').click(function () {
+                updateHeaderCheckbox('.chkUpdate', '#chkHeaderUpdate');
+            });
+
+            $('#chkHeaderDelete').click(function () {
+                $('.chkDelete').prop('checked', $(this).is(':checked'));
+            });
+            $('.chkDelete').click(function () {
+                updateHeaderCheckbox('.chkDelete', '#chkHeaderDelete');
+            });
+        });
+    </script>
+}

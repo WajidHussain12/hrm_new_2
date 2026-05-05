@@ -1,0 +1,668 @@
+@model LCS_HR_MVC.Models.EmployeePersonalDetailModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["PageTitle"] = "Employee Personal Detail";
+    var employeeList = ViewBag.EmployeeList as IEnumerable<LCS_HR_MVC.Models.EmployeeListItemModel> ?? new List<LCS_HR_MVC.Models.EmployeeListItemModel>();
+    var countries = ViewBag.Countries as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var cities = ViewBag.Cities as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var locations = ViewBag.Locations as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var employeeTypes = ViewBag.EmployeeTypes as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var jobTypes = ViewBag.JobTypes as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var thirdParties = ViewBag.ThirdParties as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var divisions = ViewBag.Divisions as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var companies = ViewBag.Companies as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var businessUnits = ViewBag.BusinessUnits as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var parentDepts = ViewBag.ParentDepts as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var designations = ViewBag.Designations as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    bool isNewRecord = string.IsNullOrEmpty(Model.EmpNo) || Model.EmpNo == "Auto Generated";
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    <style>
+        @@keyframes slideUp { from { opacity:0; transform:translateY(15px); } to { opacity:1; transform:translateY(0); } }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+        .field-select { background-image:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat:no-repeat; background-position:right 0.75rem top 50%; background-size:0.65rem auto; }
+        .custom-scrollbar::-webkit-scrollbar { width:8px; } .custom-scrollbar::-webkit-scrollbar-track { background:#f1f5f9; border-radius:4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
+        .ui-autocomplete { background:#fff; border:1px solid #e2e8f0; border-radius:0.75rem; box-shadow:0 10px 25px rgba(0,0,0,0.08); padding:4px 0; z-index:9999 !important; }
+        .ui-menu-item-wrapper { padding:8px 14px; font-size:13px; font-weight:600; color:#334155; border-radius:6px; margin:2px 4px; }
+        .ui-menu-item-wrapper.ui-state-active { background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e293b; }
+        #dg1_wrapper .dataTables_filter { display:none; }
+        #dg1_wrapper .dataTables_paginate .paginate_button { display:inline-flex; align-items:center; justify-content:center; min-width:2rem; height:2rem; padding:0 0.5rem; border-radius:0.5rem; font-size:0.75rem; font-weight:700; color:#475569; margin:0 1px; transition:all 0.15s; }
+        #dg1_wrapper .dataTables_paginate .paginate_button:hover { background:#f1f5f9; color:#0f172a; }
+        #dg1_wrapper .dataTables_paginate .paginate_button.current { background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e293b; box-shadow:0 2px 8px rgba(245,158,11,0.3); }
+        #dg1_wrapper .dataTables_paginate .paginate_button.disabled { opacity:0.35; cursor:default; }
+        #dg1_wrapper .dataTables_info { font-size:0.7rem; color:#94a3b8; font-weight:600; padding-top:0.5rem; }
+        #dg1 thead th { background:linear-gradient(135deg,#475569,#334155) !important; color:#f1f5f9 !important; font-size:0.65rem !important; font-weight:800 !important; text-transform:uppercase !important; letter-spacing:0.08em !important; padding:0.625rem 0.75rem !important; border:none !important; white-space:nowrap; }
+        #dg1 tbody tr:hover td { background:#fffbeb !important; }
+        #dg1 tbody td { padding:0.5rem 0.75rem !important; font-size:0.8rem; color:#334155; border-bottom:1px solid #f1f5f9 !important; border-top:none !important; border-left:none !important; border-right:none !important; }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0"><i class="fas fa-exclamation-triangle tw-text-[10px]"></i></div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0"><i class="fas fa-check tw-text-[10px]"></i></div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-users tw-text-[10px] tw-text-slate-300"></i><span>Employees</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Personal Detail</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Employee Personal Detail</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Manage employee personal, address and organisation information.</p>
+        </div>
+    </div>
+
+    <div class="tw-grid lg:tw-grid-cols-12 tw-gap-6">
+
+        <!-- LEFT: Employee List -->
+        <div class="lg:tw-col-span-5">
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+                <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-700 tw-to-slate-900">
+                    <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                        <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-list"></i></div>
+                        Employee List
+                    </h3>
+                </div>
+                <div class="tw-p-4 tw-border-b tw-border-slate-100">
+                    <div class="tw-relative">
+                        <i class="fas fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none"></i>
+                        <input type="text" id="dtSearch" placeholder="Search employees..."
+                               class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-medium tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                    </div>
+                </div>
+                <div class="tw-p-4 custom-scrollbar">
+                    <table id="dg1" class="tw-w-full">
+                        <thead>
+                            <tr>
+                                <th>Emp No</th>
+                                <th>Name</th>
+                                <th>NIC</th>
+                                <th>City</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in employeeList)
+                            {
+                                <tr>
+                                    <td>
+                                        <a href="@Url.Action("PersonalDetail", "Employee", new { id = item.EmpNo })"
+                                           class="tw-text-amber-600 tw-font-black hover:tw-text-amber-700 tw-transition-colors">@item.EmpNo</a>
+                                    </td>
+                                    <td>@item.Name</td>
+                                    <td>@item.NicNo</td>
+                                    <td>@item.CityName</td>
+                                    <td>
+                                        @if (item.EmpStatus == "A")
+                                        {
+                                            <span class="tw-inline-flex tw-text-[10px] tw-font-black tw-text-emerald-700 tw-bg-emerald-50 tw-border tw-border-emerald-200 tw-rounded-full tw-px-2 tw-py-0.5">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tw-inline-flex tw-text-[10px] tw-font-black tw-text-rose-600 tw-bg-rose-50 tw-border tw-border-rose-200 tw-rounded-full tw-px-2 tw-py-0.5">Inactive</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Form -->
+        <div class="lg:tw-col-span-7">
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+                <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none" style="z-index:0"></div>
+                <div class="tw-p-5 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-relative tw-z-10">
+                    <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                        <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-user-edit"></i></div>
+                        @if (isNewRecord) { <text>New Employee</text> } else { <text>Edit: @Model.EmpNo</text> }
+                    </h3>
+                    <p class="tw-text-slate-400 tw-text-xs tw-font-medium tw-mt-1">Personal, address and organisation details.</p>
+                </div>
+
+                <form asp-controller="Employee" asp-action="PersonalDetail" method="post" id="empForm" enctype="multipart/form-data" class="tw-p-6 tw-space-y-5 tw-relative tw-z-10">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="EmpNo" />
+                    <input type="hidden" asp-for="DualJobApprove" />
+                    <input type="hidden" asp-for="EmpStatus" />
+
+                    <!-- Section: Personal Information -->
+                    <div>
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-3">
+                            <div class="tw-h-px tw-flex-1 tw-bg-slate-100"></div>
+                            <span class="tw-text-[10px] tw-font-black tw-text-amber-600 tw-uppercase tw-tracking-widest tw-bg-amber-50 tw-border tw-border-amber-200 tw-px-3 tw-py-1 tw-rounded-full tw-flex tw-items-center tw-gap-1.5">
+                                <i class="fas fa-id-card"></i> Personal Information
+                            </span>
+                            <div class="tw-h-px tw-flex-1 tw-bg-slate-100"></div>
+                        </div>
+                        <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Emp No</label>
+                                <input type="text" value="@Model.EmpNo" disabled class="tw-w-full tw-px-3 tw-py-2.5 tw-bg-slate-100 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-500 tw-cursor-not-allowed" />
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Status</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-circle-notch tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="ProbationStatus" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="N">Probation</option>
+                                        <option value="Y">Confirmed</option>
+                                        <option value="T">Temporary</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Name <span class="tw-text-red-500">*</span></label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-user tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="Name" placeholder="Full name" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                                <span asp-validation-for="Name" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-0.5 tw-block"></span>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Father Name <span class="tw-text-red-500">*</span></label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-user-friends tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="FatherName" placeholder="Father's name" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                                <span asp-validation-for="FatherName" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-0.5 tw-block"></span>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Appoint Date <span class="tw-text-red-500">*</span></label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-calendar-check tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="date" asp-for="AppointDate" value="@(Model.AppointDate?.ToString("yyyy-MM-dd"))" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                                <span asp-validation-for="AppointDate" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-0.5 tw-block"></span>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Left Date</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-calendar-times tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="date" asp-for="LeftDate" value="@(Model.LeftDate?.ToString("yyyy-MM-dd"))" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Gender</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-venus-mars tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="Gender" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="M">Male</option>
+                                        <option value="F">Female</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Marital Status</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-ring tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="MaritalStatus" id="ddlMaritalStatus" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="S">Single</option>
+                                        <option value="M">Married</option>
+                                        <option value="D">Divorced</option>
+                                        <option value="W">Widowed</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">NIC No</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-id-badge tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="NicNo" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Blood Group</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-tint tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-red-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="BloodGroup" placeholder="e.g. O+" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Birth Date</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-birthday-cake tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="date" asp-for="BirthDate" value="@(Model.BirthDate?.ToString("yyyy-MM-dd"))" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div id="marriageDateRow">
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Marriage Date</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-heart tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-pink-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="date" asp-for="MarriageDate" id="txtMarriageDate" value="@(Model.MarriageDate?.ToString("yyyy-MM-dd"))" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">CNIC / NTN</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-file-invoice tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="NtnNo" placeholder="NTN No" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">EOBI No</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-file-alt tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="EobiNo" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Passport No</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-passport tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="PassportNo" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Mark of ID</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-fingerprint tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="MarkOfId" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Religion</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-pray tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="Religion" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Nationality</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-flag tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="Nationality" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Mother Tongue</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-language tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="MotherTongue" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Email</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-envelope tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="EmailAddress" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Cell 1</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-mobile-alt tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="CellContact1" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Cell 2</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-phone tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="CellContact2" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Emergency Contact 1</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-phone-volume tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-red-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="EmergencyContact1" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Emergency Contact 2</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-phone-volume tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-red-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="EmergencyContact2" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Attendance Code</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-clock tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="AttendanceCode" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Wallet No</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-wallet tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="WalletNumber" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Address & Location -->
+                    <div>
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-3">
+                            <div class="tw-h-px tw-flex-1 tw-bg-slate-100"></div>
+                            <span class="tw-text-[10px] tw-font-black tw-text-amber-600 tw-uppercase tw-tracking-widest tw-bg-amber-50 tw-border tw-border-amber-200 tw-px-3 tw-py-1 tw-rounded-full tw-flex tw-items-center tw-gap-1.5">
+                                <i class="fas fa-map-marked-alt"></i> Address &amp; Location
+                            </span>
+                            <div class="tw-h-px tw-flex-1 tw-bg-slate-100"></div>
+                        </div>
+                        <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Country</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-globe tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="PCountryCode" id="ddlCountry" asp-items="@(new SelectList(countries, "Value", "Text", Model.PCountryCode))" onchange="loadCities(this.value)" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="00">-- Select Country --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">City</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-city tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="PCityCode" id="ddlCity" asp-items="@(new SelectList(cities, "Value", "Text", Model.PCityCode))" onchange="loadLocations(this.value)" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="00">-- Select City --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Location</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-map-pin tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="LocationId" id="ddlLocation" asp-items="@(new SelectList(locations, "Value", "Text", Model.LocationId.ToString()))" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="0">-- Select Location --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Permanent Address</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-home tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="PermanentAddress" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Temp Address 1</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-building tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="TemporaryAddress1" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Temp Address 2</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-building tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="TemporaryAddress2" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Organisation -->
+                    <div>
+                        <div class="tw-flex tw-items-center tw-gap-2 tw-mb-3">
+                            <div class="tw-h-px tw-flex-1 tw-bg-slate-100"></div>
+                            <span class="tw-text-[10px] tw-font-black tw-text-amber-600 tw-uppercase tw-tracking-widest tw-bg-amber-50 tw-border tw-border-amber-200 tw-px-3 tw-py-1 tw-rounded-full tw-flex tw-items-center tw-gap-1.5">
+                                <i class="fas fa-sitemap"></i> Organisation
+                            </span>
+                            <div class="tw-h-px tw-flex-1 tw-bg-slate-100"></div>
+                        </div>
+                        <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Company</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-briefcase tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="CompanyId" asp-items="@(new SelectList(companies, "Value", "Text", Model.CompanyId))" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="0">-- Select --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Business Unit</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-layer-group tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="BusinessUnitId" asp-items="@(new SelectList(businessUnits, "Value", "Text", Model.BusinessUnitId))" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="0">-- Select --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Division</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-code-branch tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="DivisionId" asp-items="@(new SelectList(divisions, "Value", "Text", Model.DivisionId))" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="0">-- Select --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Department</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-users-cog tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="DepartmentCode" id="ddlDept" asp-items="@(new SelectList(parentDepts, "Value", "Text", Model.DepartmentCode))" onchange="loadDesignations(this.value)" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="0">-- Select --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Designation</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-user-tie tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="DesignationCode" id="ddlDesignation" asp-items="@(new SelectList(designations, "Value", "Text", Model.DesignationCode))" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="0">-- Select --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Employee Type</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-id-card-alt tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="EmployeeType" asp-items="@(new SelectList(employeeTypes, "Value", "Text", Model.EmployeeType))" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="00">-- Select --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Job Mode</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-tasks tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="JobTypeId" asp-items="@(new SelectList(jobTypes, "Value", "Text", Model.JobTypeId))" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="0">-- Select --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Third Party</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-handshake tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="ThirdPartyId" asp-items="@(new SelectList(thirdParties, "Value", "Text", Model.ThirdPartyId))" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="">-- None --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Generate Salary</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-money-check-alt tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <select asp-for="GenerateSalary" class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                        <option value="Y">Yes</option>
+                                        <option value="N">No</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="tw-flex tw-items-center tw-gap-3 tw-pt-4">
+                                <input type="checkbox" asp-for="IsExecutive" class="tw-w-4 tw-h-4 tw-accent-amber-500" />
+                                <label class="tw-text-sm tw-font-bold tw-text-slate-700">Is Executive</label>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Replacement Employee</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-user-plus tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="ReplacementEmpName" id="txtReplacementName" placeholder="Search name or emp no" autocomplete="off" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                    <input type="hidden" asp-for="ReplacementEmpNo" id="txtReplacementEmpNo" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Report To</label>
+                                <div class="tw-relative">
+                                    <i class="fas fa-user-check tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                    <input type="text" asp-for="ReportToEmpName" id="txtReportToName" placeholder="Search name or emp no" autocomplete="off" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none" />
+                                    <input type="hidden" asp-for="ReportToEmpNo" id="txtReportToEmpNo" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tw-mt-3">
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Comments</label>
+                            <div class="tw-relative">
+                                <i class="fas fa-comment-alt tw-absolute tw-left-3 tw-top-3.5 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                                <textarea asp-for="Comments" rows="3" class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none custom-scrollbar"></textarea>
+                            </div>
+                        </div>
+                        <div class="tw-mt-3">
+                            <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1">Photo</label>
+                            <div class="tw-flex tw-items-center tw-gap-3 tw-p-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl">
+                                <i class="fas fa-camera tw-text-slate-400 tw-text-sm"></i>
+                                <input type="file" asp-for="PhotoFile" id="photoFile" accept="image/*" class="tw-text-sm tw-text-slate-600 tw-font-medium" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="tw-pt-2 tw-border-t tw-border-slate-100"></div>
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        @if (isNewRecord)
+                        {
+                            <button type="submit" name="action" value="Save"
+                                    class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all">
+                                <i class="fas fa-save tw-text-sm"></i> Save
+                            </button>
+                            <button type="submit" name="action" value="Reset" formnovalidate
+                                    class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                                <i class="fas fa-undo-alt tw-opacity-60"></i> Reset
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" name="action" value="Update"
+                                    class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-slate-900 tw-text-white tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-800 hover:tw--translate-y-0.5 tw-transition-all tw-shadow-md">
+                                <i class="fas fa-sync tw-text-sm"></i> Update
+                            </button>
+                            <button type="submit" name="action" value="Delete"
+                                    onclick="return confirm('Delete this employee record?');"
+                                    class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-white tw-text-red-600 tw-border tw-border-red-300 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-red-50 hover:tw--translate-y-0.5 tw-transition-all tw-shadow-sm">
+                                <i class="fas fa-trash-alt tw-text-sm"></i> Delete
+                            </button>
+                            <button type="submit" name="action" value="Reset" formnovalidate
+                                    class="tw-col-span-2 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                                <i class="fas fa-undo-alt tw-opacity-60"></i> Reset
+                            </button>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var table = $('#dg1').DataTable({
+                "pageLength": 12,
+                "lengthChange": false,
+                "searching": true,
+                "info": true,
+                "dom": '<"tw-flex tw-items-center tw-justify-between tw-mb-2"i>t<"tw-flex tw-items-center tw-justify-end tw-mt-3"p>'
+            });
+            $('#dtSearch').on('keyup', function () { table.search(this.value).draw(); });
+
+            $('#txtReplacementName').autocomplete({
+                source: function (request, response) {
+                    $.getJSON('@Url.Action("SearchActiveEmployees", "Setup")', { term: request.term }, function (data) {
+                        response($.map(data, function (item) {
+                            return { label: item.text, value: item.text, empNo: item.value };
+                        }));
+                    });
+                },
+                minLength: 2,
+                select: function (event, ui) { $('#txtReplacementEmpNo').val(ui.item.empNo); }
+            });
+
+            $('#txtReportToName').autocomplete({
+                source: function (request, response) {
+                    $.getJSON('@Url.Action("SearchActiveEmployees", "Setup")', { term: request.term }, function (data) {
+                        response($.map(data, function (item) {
+                            return { label: item.text, value: item.text, empNo: item.value };
+                        }));
+                    });
+                },
+                minLength: 2,
+                select: function (event, ui) { $('#txtReportToEmpNo').val(ui.item.empNo); }
+            });
+
+            $('#ddlMaritalStatus').change(function () {
+                $('#marriageDateRow').toggle($(this).val() === 'M');
+            });
+            $('#ddlMaritalStatus').trigger('change');
+        });
+
+        function loadCities(countryCode) {
+            if (!countryCode || countryCode === '00') {
+                $('#ddlCity').html('<option value="00">-- Select City --</option>');
+                $('#ddlLocation').html('<option value="0">-- Select Location --</option>');
+                return;
+            }
+            $.getJSON('@Url.Action("GetCitiesByCountry", "Employee")', { countryCode: countryCode }, function (data) {
+                var opts = '<option value="00">-- Select City --</option>';
+                $.each(data, function (i, item) { opts += '<option value="' + item.value + '">' + item.text + '</option>'; });
+                $('#ddlCity').html(opts);
+                $('#ddlLocation').html('<option value="0">-- Select Location --</option>');
+            });
+        }
+
+        function loadLocations(cityCode) {
+            if (!cityCode || cityCode === '00') {
+                $('#ddlLocation').html('<option value="0">-- Select Location --</option>');
+                return;
+            }
+            $.getJSON('@Url.Action("GetLocationsByCity", "Employee")', { cityCode: cityCode }, function (data) {
+                var opts = '<option value="0">-- Select Location --</option>';
+                $.each(data, function (i, item) { opts += '<option value="' + item.value + '">' + item.text + '</option>'; });
+                $('#ddlLocation').html(opts);
+            });
+        }
+
+        function loadDesignations(deptId) {
+            if (!deptId || deptId === '0') {
+                $('#ddlDesignation').html('<option value="0">-- Select --</option>');
+                return;
+            }
+            $.getJSON('@Url.Action("GetDesignationsByDept", "Employee")', { deptId: deptId }, function (data) {
+                var opts = '<option value="0">-- Select --</option>';
+                $.each(data, function (i, item) { opts += '<option value="' + item.value + '">' + item.text + '</option>'; });
+                $('#ddlDesignation').html(opts);
+            });
+        }
+    </script>
+}

@@ -1,0 +1,290 @@
+@model LCS_HR_MVC.Models.EmployeeSalaryListViewModel
+@{
+    ViewData["PageTitle"] = "Employee Salary Details";
+    var allowancesList = ViewBag.AllowancesList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    
+}
+
+<div class="w-full p-6 bg-white">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="text-red-700 bg-red-100 border border-red-400 p-3 rounded mb-4 shadow-sm"><div class="font-medium"><strong>Error! </strong>@TempData["ErrorMessage"]</div></div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="text-green-700 bg-green-100 border border-green-400 p-3 rounded mb-4 shadow-sm"><div class="font-medium"><strong>Success! </strong>@TempData["SuccessMessage"]</div></div>
+    }
+
+    <div style="margin-bottom: 20px;"></div>
+    
+    <div class="w-full max-w-7xl mx-auto">
+        <table class="w-full shadow-lg bg-white rounded-lg border border-gray-200" style="width:100%;">
+            <tr>
+                <td colspan="2">
+                    <div class="p-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+                        <table width="750px" border="0" cellpadding="0" cellspacing="0">
+                            <tbody>
+                                <tr>
+                                    <td><span class="text-sm font-semibold text-gray-700">Search</span></td>
+                                    <td><input type="text" id="txtsearch" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Enter keyword to search" style="width:200px;" /></td>
+                                    <td>
+                                        <button type="button" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onclick="filterTable()">Search</button>
+                                        <button type="button" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onclick="resetSearch()">Clear Search</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td valign="top" width="70%" style="padding-right: 10px;">
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table id="dg1" class="tablesorter w-full border-collapse border border-gray-300 text-sm bg-white shadow-sm rounded-lg overflow-hidden" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Employee No</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Allowance</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Amount</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Comments</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Is Active</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">User</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.SalaryDetails)
+                                {
+                                    <tr class="gridRow hover:bg-gray-100 border-b border-gray-200 transition-colors">
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@item.EmpNo</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@item.ADName</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@item.Amount</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@item.Comments</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@(item.IsActive ? "True" : "False")</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">@item.CreatedBy</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <form asp-action="EmployeeSalaryDetails" method="post" id="addIndividualForm">
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">
+                                            <input type="text" asp-for="NewSalaryDetail.EmpNo" id="GridEmpNo" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:80px;" readonly="readonly" />
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">
+                                            <select asp-for="NewSalaryDetail.ADCode" asp-items="allowancesList" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:120px;">
+                                                <option value="0">Select Allowance</option>
+                                            </select>
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">
+                                            <input type="number" asp-for="NewSalaryDetail.Amount" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:80px;" />
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">
+                                            <input type="text" asp-for="NewSalaryDetail.Comments" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:120px;" />
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">
+                                            <input type="checkbox" asp-for="NewSalaryDetail.IsActive" checked /> Is Active
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800 border border-gray-300 p-2 text-gray-800">
+                                            <button type="submit" name="action" value="Add" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">ADD</button>
+                                        </td>
+                                    </form>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </td>
+
+                <td style="vertical-align: baseline;">
+                    <form asp-controller="Transaction" asp-action="EmployeeSalaryDetails" method="post" id="salaryForm">
+                        <fieldset class="border border-gray-300 p-5 rounded-md mb-4 bg-gray-50 shadow-sm">
+                            <legend class="text-sm font-semibold text-gray-800 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm">Entry</legend>
+                            <table class="w-full border-spacing-y-2 border-separate" width="100%" border="0" cellpadding="0" cellspacing="5">
+                                <tbody>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2" width="100">
+                                            <span class="text-sm font-semibold text-gray-700">Code</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" value="Auto Generated" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" disabled="disabled" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Employee</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" asp-for="NewSalaryDetail.EmployeeDescription" id="txtEmployeeDescription" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:270px;" placeholder="Use wildcard '%'" />
+                                            <input type="hidden" asp-for="NewSalaryDetail.EmpNo" id="txtEmployeeCode" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                            <span asp-validation-for="NewSalaryDetail.EmpNo" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Employee Salary</span>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="FixBasicSalary" id="txtFixBasicSalary" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:190px;" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Basic Salary</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" id="txtbasicsalary" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:150px;" disabled="disabled" value="0" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">House Rent</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" id="txtHouseRent" style="width:150px;" disabled="disabled" value="0" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Medical</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" id="txtMedical" style="width:150px;" disabled="disabled" value="0" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Utility</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" id="txtUtility" style="width:150px;" disabled="disabled" value="0" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2">
+                                            <span class="text-sm font-semibold text-gray-700">Gross Salary</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" id="txtGrossSalary" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:150px;" disabled="disabled" value="0" />
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </fieldset>
+
+                        <div class="buttonWrapper" style="margin-top:10px;">
+                            <button type="submit" name="action" value="Save" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnSave">Save Standard Breakup</button>
+                            <button type="submit" name="action" value="Reset" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnReset" formnovalidate>Reset</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            
+            // Search Active Employees via existing AJAX Setup endpoint
+            $("#txtEmployeeDescription").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("SearchActiveEmployees", "Setup")',
+                        type: "GET",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.label, value: item.desc, id: item.value };
+                            }))
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    $("#txtEmployeeDescription").val(ui.item.value);
+                    $("#txtEmployeeCode").val(ui.item.id);
+                    $("#GridEmpNo").val(ui.item.id); // For the footer Add form
+                    return false;
+                },
+                minLength: 1
+            });
+            
+            $("#txtEmployeeDescription").keyup(function() {
+                if (!$(this).val()) {
+                    $("#txtEmployeeCode").val('');
+                    $("#GridEmpNo").val('');
+                }
+            });
+
+            // Replicate logic for basic salary calculation exactly
+            $('#txtFixBasicSalary').keyup(function () {
+                var amt = $(this).val();
+                if (amt && amt != "0" && !isNaN(amt)) {
+                    amt = parseInt(amt);
+
+                    if (amt >= 40000) {
+                        var basicsalary = ((amt * 65) / 100);
+                        var allownceAmount = amt - basicsalary;
+                        var houseRent = ((basicsalary * 30) / 100);
+                        var medical = ((basicsalary * 10) / 100);
+                        var utility = allownceAmount - (houseRent + medical);
+                        var grossTotal = basicsalary + houseRent + medical + utility;
+
+                        $('#txtbasicsalary').val(basicsalary);
+                        $('#txtHouseRent').val(houseRent);
+                        $('#txtMedical').val(medical);
+                        $('#txtUtility').val(utility);
+                        $('#txtGrossSalary').val(grossTotal);
+                    }
+                    else {
+                        $('#txtbasicsalary').val(amt);
+                        $('#txtHouseRent').val('0');
+                        $('#txtMedical').val('0');
+                        $('#txtUtility').val('0');
+                        $('#txtGrossSalary').val(amt);
+                    }
+                }
+                else {
+                    $('#txtbasicsalary').val('0');
+                    $('#txtHouseRent').val('0');
+                    $('#txtMedical').val('0');
+                    $('#txtUtility').val('0');
+                    $('#txtGrossSalary').val('0');
+                }
+            });
+
+        });
+
+        function filterTable() {
+            var input = document.getElementById("txtsearch");
+            var filter = input.value.toUpperCase();
+            var table = document.getElementById("dg1");
+            var tr = table.getElementsByTagName("tr");
+
+            for (var i = 1; i < tr.length - 1; i++) { // skipping header and footer
+                var tdEmpNo = tr[i].getElementsByTagName("td")[0];
+                var tdName = tr[i].getElementsByTagName("td")[1];
+                if (tdEmpNo || tdName) {
+                    var txtValueEmpNo = tdEmpNo.textContent || tdEmpNo.innerText;
+                    var txtValueName = tdName.textContent || tdName.innerText;
+                    if (txtValueEmpNo.toUpperCase().indexOf(filter) > -1 || txtValueName.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }       
+            }
+        }
+
+        function resetSearch() {
+            document.getElementById("txtsearch").value = "";
+            filterTable();
+        }
+    </script>
+}

@@ -1,0 +1,351 @@
+@model LCS_HR_MVC.Models.Settlement.AdvanceSalaryApprovalViewModel
+@{
+    ViewData["Title"] = "Advance Salary Workflow";
+    ViewData["PageTitle"] = "Advance Salary Workflow";
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+         /* Detail Scrollbar for Wide Grid */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .sticky-header th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Animated Highlight Checkbox */
+        .grid-checkbox {
+            @@apply tw-w-4 tw-h-4 tw-rounded tw-border-slate-300 tw-text-indigo-600 focus:tw-ring-indigo-500 tw-transition-all tw-cursor-pointer;
+        }
+        .table-row-selected {
+            @@apply tw-bg-indigo-50/50 !tw-border-l-4 !tw-border-indigo-500;
+        }
+
+        /* Custom Radio Buttons */
+        .custom-radio {
+            @@apply tw-w-4 tw-h-4 tw-text-amber-500 tw-border-slate-300 focus:tw-ring-amber-400 tw-cursor-pointer;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-money-check-alt tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Settlements</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Advance Salary</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Approval Workflow Pipeline</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Review, filter, and process employee advance salary requests simultaneously.</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <form asp-controller="AdvanceSalary" asp-action="AdvanceSalaryApprove" method="post" id="approvalForm">
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+            <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none z-0"></div>
+
+            <!-- Toolbar Area -->
+            <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-bg-slate-50/80">
+                <div class="tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-justify-between tw-gap-6">
+                    
+                    <!-- Left: Processing Engine -->
+                    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-4">
+                        <div class="tw-w-10 tw-h-10 tw-hidden sm:tw-flex tw-rounded-xl tw-bg-gradient-to-br tw-from-indigo-600 tw-to-indigo-700 tw-flex tw-items-center tw-justify-center tw-shadow-[0_4px_10px_rgba(79,70,229,0.3)] tw-text-white">
+                            <i class="fas fa-layer-group tw-text-lg"></i>
+                        </div>
+                        
+                        <div class="tw-flex tw-items-center tw-gap-3 tw-bg-white tw-p-1.5 tw-pl-4 tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm">
+                            <span class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest">Execute Phase:</span>
+                            
+                            <select asp-for="ApprovalStatus" id="ddlApprove" 
+                                    class="tw-w-36 tw-px-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-100 tw-rounded-xl tw-text-sm tw-font-bold tw-text-indigo-700 focus:tw-bg-white focus:tw-border-indigo-400 focus:tw-ring-2 focus:tw-ring-indigo-400/20 tw-outline-none tw-transition-all tw-appearance-none"
+                                    style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                                <option value="A" class="tw-text-emerald-600">Approve</option>
+                                <option value="P" selected="selected" class="tw-text-amber-500">Pending</option>
+                                <option value="R" class="tw-text-red-500">Reject</option>
+                            </select>
+
+                            <button type="submit" name="action" value="Process" id="btnProcess" 
+                                    class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-2.5 tw-px-6 tw-bg-slate-900 tw-text-indigo-400 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-800 tw-transition-colors">
+                                <i class="fas fa-play tw-text-xs"></i> Batch Let
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Search & Meta Filters -->
+                    <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-gap-5">
+                       
+                        <!-- Sort Vectors -->
+                        <div class="tw-flex tw-items-center tw-gap-3 tw-bg-white tw-px-4 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200">
+                             <i class="fas fa-sort-amount-down tw-text-slate-400 tw-text-xs"></i>
+                             <div class="tw-flex tw-gap-4">
+                                  <label class="tw-inline-flex tw-items-center tw-gap-1.5 tw-cursor-pointer group">
+                                     <input type="radio" asp-for="SortBy" value="Code" onchange="this.form.submit();" class="custom-radio" /> 
+                                     <span class="tw-text-[11px] tw-font-bold tw-text-slate-600 group-hover:tw-text-slate-900">Sequence</span>
+                                 </label>
+                                 <div class="tw-w-px tw-h-4 tw-bg-slate-200 tw-my-auto"></div>
+                                 <label class="tw-inline-flex tw-items-center tw-gap-1.5 tw-cursor-pointer group">
+                                     <input type="radio" asp-for="SortBy" value="Status" onchange="this.form.submit();" class="custom-radio" /> 
+                                     <span class="tw-text-[11px] tw-font-bold tw-text-slate-600 group-hover:tw-text-slate-900">Current Phase</span>
+                                 </label>
+                             </div>
+                             <input type="hidden" name="action" value="Sort" id="hdnSortAction" disabled="disabled" />
+                        </div>
+
+                         <!-- Live Filter -->
+                         <div class="tw-flex tw-items-center tw-w-full sm:tw-w-auto">
+                            <div class="tw-relative tw-w-full sm:tw-w-64">
+                                <i class="fas fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                                <input type="text" id="txtsearch" onkeyup="filterTable()" placeholder="Find employee..." 
+                                       class="tw-w-full tw-pl-8 tw-pr-10 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-font-medium tw-text-slate-800 focus:tw-border-indigo-400 focus:tw-ring-2 focus:tw-ring-indigo-400/20 tw-outline-none tw-transition-all" />
+                                <button type="button" onclick="resetSearch()" class="tw-absolute tw-right-2 tw-top-1/2 tw--translate-y-1/2 tw-w-6 tw-h-6 tw-rounded-lg tw-bg-slate-100 hover:tw-bg-slate-200 tw-text-slate-500 tw-flex tw-items-center tw-justify-center tw-transition-colors">
+                                    <i class="fas fa-times tw-text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Area -->
+            <div class="tw-relative tw-z-10 tw-p-0">
+                <div class="tw-overflow-x-auto custom-scrollbar" style="max-height: 650px;">
+                    <table class="tw-w-full tw-text-left tw-whitespace-nowrap" id="dg1">
+                        <thead class="tw-bg-slate-100/80 tw-border-b tw-border-slate-200 sticky-header tw-backdrop-blur-md">
+                            <tr>
+                                <th class="tw-py-3 tw-px-5 tw-w-16 tw-bg-slate-100">
+                                    <label class="tw-inline-flex tw-items-center tw-gap-3 tw-cursor-pointer tw-bg-white tw-border tw-border-slate-200 tw-shadow-sm tw-px-2 tw-py-1 tw-rounded-md">
+                                        <input type="checkbox" id="chkheader" title="Select All Nodes in Matrix" class="grid-checkbox" />
+                                        <span class="tw-text-[10px] tw-font-black tw-text-slate-600 tw-uppercase tw-tracking-widest">Select Maps</span>
+                                    </label>
+                                </th>
+                                <th class="tw-py-3 tw-px-5 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest tw-bg-slate-100 tw-w-24">Req ID</th>
+                                <th class="tw-py-3 tw-px-5 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest tw-bg-slate-100">Identity Target</th>
+                                <th class="tw-py-3 tw-px-5 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest tw-bg-slate-100 tw-w-32 tw-text-center">Payroll Pivot</th>
+                                <th class="tw-py-3 tw-px-5 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest tw-bg-slate-100 tw-text-right">Withdrawal Vol</th>
+                                <th class="tw-py-3 tw-px-5 tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest tw-bg-slate-100 tw-w-32 tw-text-center">Live State</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-50 tw-bg-white" id="mainGridBody">
+                            @if (Model.Requests == null || !Model.Requests.Any())
+                            {
+                                <tr>
+                                    <td colspan="6">
+                                         <div class="tw-p-16 tw-text-center tw-text-slate-400 tw-flex tw-flex-col tw-items-center">
+                                            <i class="far fa-folder-open tw-text-5xl tw-mb-4 tw-text-slate-200"></i>
+                                            <p class="tw-text-base tw-font-bold tw-text-slate-600">No pipelines detected.</p>
+                                            <p class="tw-text-xs tw-mt-1.5 tw-max-w-xs tw-leading-relaxed">There are currently zero advance salary nodes matching your search queue filter map.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in Model.Requests)
+                                {
+                                    <tr class="hover:tw-bg-indigo-50/20 tw-transition-all tw-border-l-4 tw-border-transparent grid-row-item">
+                                        <td class="tw-py-4 tw-px-5 tw-align-middle">
+                                             <div class="tw-flex tw-items-center tw-justify-center">
+                                                 <input type="checkbox" name="SelectedCodes" value="@item.Code" class="chkvid grid-checkbox tw-scale-110" />
+                                             </div>
+                                        </td>
+                                        <td class="tw-py-4 tw-px-5 tw-align-middle">
+                                            <span class="tw-px-2 tw-py-1 tw-bg-slate-100 tw-border tw-border-slate-200 tw-rounded-md tw-font-mono tw-font-bold tw-text-slate-600 tw-text-[11px]">@item.Code</span>
+                                        </td>
+                                        <td class="tw-py-4 tw-px-5 tw-align-middle employee-cell">
+                                            <div class="tw-flex tw-items-center tw-gap-3">
+                                                 <div class="tw-w-8 tw-h-8 tw-rounded-full tw-bg-gradient-to-br tw-from-slate-100 tw-to-slate-200 tw-border tw-border-slate-300 tw-flex tw-items-center tw-justify-center">
+                                                    <i class="fas fa-user-tie tw-text-slate-400 tw-text-xs"></i>
+                                                </div>
+                                                <span class="tw-font-bold tw-text-sm tw-text-slate-800">@item.EmployeeName</span>
+                                            </div>
+                                        </td>
+                                        <td class="tw-py-4 tw-px-5 tw-align-middle tw-text-center">
+                                            <span class="tw-text-xs tw-font-black tw-text-indigo-600 tw-bg-indigo-50 tw-border tw-border-indigo-100 tw-px-2 tw-py-1 tw-rounded-md">@item.Month / @item.Year</span>
+                                        </td>
+                                        <td class="tw-py-4 tw-px-5 tw-align-middle tw-text-right">
+                                            <span class="tw-text-sm tw-font-mono tw-font-black tw-text-slate-700">@item.Amount</span>
+                                        </td>
+                                        <td class="tw-py-4 tw-px-5 tw-align-middle tw-text-center">
+                                            @{
+                                                var stateColor = "tw-bg-slate-100 tw-text-slate-600";
+                                                var dotColor = "tw-bg-slate-400";
+                                                if(item.Status.IndexOf("Pending", StringComparison.OrdinalIgnoreCase) >= 0)
+                                                {
+                                                    stateColor = "tw-bg-amber-50 tw-text-amber-700 tw-border-amber-200";
+                                                    dotColor = "tw-bg-amber-500";
+                                                }
+                                                else if(item.Status.IndexOf("Approve", StringComparison.OrdinalIgnoreCase) >= 0)
+                                                {
+                                                    stateColor = "tw-bg-emerald-50 tw-text-emerald-700 tw-border-emerald-200";
+                                                    dotColor = "tw-bg-emerald-500";
+                                                }
+                                                 else if(item.Status.IndexOf("Reject", StringComparison.OrdinalIgnoreCase) >= 0)
+                                                {
+                                                    stateColor = "tw-bg-red-50 tw-text-red-700 tw-border-red-200";
+                                                    dotColor = "tw-bg-red-500";
+                                                }
+                                            }
+                                            <div class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2 tw-py-1 tw-rounded-md tw-border @stateColor tw-text-[10px] tw-font-black tw-uppercase tw-tracking-widest tw-shadow-sm">
+                                                <div class="tw-w-1.5 tw-h-1.5 tw-rounded-full @dotColor tw-animate-pulse"></div>
+                                                @item.Status
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            // Sort Radio override hook
+            $('input[type=radio][name=SortBy]').change(function () {
+                $('#hdnSortAction').prop('disabled', false);
+            });
+
+            function checkHeaderStatus() {
+                var total = $('.chkvid').length;
+                var checked = $('.chkvid:checked').length;
+                $('#chkheader').prop('checked', total === checked && total > 0);
+            }
+
+            // Highlighting rows script
+            function toggleRowHighlight(checkbox) {
+                var tr = $(checkbox).closest('tr');
+                if ($(checkbox).is(':checked')) {
+                    tr.addClass('table-row-selected');
+                } else {
+                    tr.removeClass('table-row-selected');
+                }
+            }
+
+            $('#chkheader').click(function () {
+                var isChecked = $(this).is(':checked');
+                $('.chkvid').filter(':visible').prop('checked', isChecked).each(function() {
+                     toggleRowHighlight(this);
+                });
+            });
+
+            $(document).on('change', '.chkvid', function () {
+                checkHeaderStatus();
+                toggleRowHighlight(this);
+            });
+
+            // Ensure reload states retain highlights
+            $('.chkvid:checked').each(function() {
+                 toggleRowHighlight(this);
+            });
+
+            $('#btnProcess').click(function (e) {
+                var checkedNodes = $('.chkvid:checked').length;
+                if(checkedNodes === 0) {
+                    alert('You must select at least one pipeline node to process.');
+                    e.preventDefault();
+                    return false;
+                }
+
+                var selectedStatusText = $("#ddlApprove option:selected").text();
+                var msg = "You are about to modify " + checkedNodes + " map(s). Change state batch to " + selectedStatusText.toUpperCase() + "?";
+                if (!confirm(msg)) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        });
+
+        function filterTable() {
+            var input = document.getElementById("txtsearch");
+            var filter = input.value.toUpperCase();
+            var trs = document.querySelectorAll("#mainGridBody tr.grid-row-item");
+
+            trs.forEach(function(tr) {
+                // employee name is in the third td column (index 2)
+                var tdEmp = tr.querySelector(".employee-cell");
+                if (tdEmp) {
+                    var txtEmp = tdEmp.textContent || tdEmp.innerText;
+                    if (txtEmp.toUpperCase().indexOf(filter) > -1) {
+                         tr.style.display = "";
+                    } else {
+                         tr.style.display = "none";
+                         // Also uncheck it safely to prevent invisible batch execution
+                         var chk = tr.querySelector('.chkvid');
+                         if(chk && chk.checked) {
+                             chk.checked = false;
+                             tr.classList.remove('table-row-selected');
+                         }
+                    }
+                }
+            });
+            // Re-trigger header logic
+            var total = $('.chkvid:visible').length;
+            var checked = $('.chkvid:visible:checked').length;
+            $('#chkheader').prop('checked', total === checked && total > 0);
+        }
+
+        function resetSearch() {
+            document.getElementById("txtsearch").value = "";
+            filterTable();
+            $('#txtsearch').focus();
+        }
+    </script>
+}

@@ -1,0 +1,540 @@
+@model LCS_HR_MVC.Models.Report.ReportViewModel
+@{
+    ViewData["Title"] = "Reports Viewer";
+    ViewData["PageTitle"] = "Reports Viewer";
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Detail Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Modern UI Autocomplete Override */
+        .ui-autocomplete {
+            @@apply tw-max-h-60 tw-overflow-y-auto tw-rounded-xl tw-border-slate-200 tw-shadow-xl tw-text-sm tw-font-medium tw-font-sans tw-bg-white !important;
+            z-index: 1000 !important;
+        }
+        .ui-menu-item-wrapper {
+            @@apply tw-py-2 tw-px-3 tw-transition-colors tw-text-slate-700 !important;
+        }
+        .ui-menu-item-wrapper.ui-state-active {
+            @@apply tw-bg-amber-400 tw-text-slate-900 tw-border-transparent tw-rounded-md tw-font-bold !important;
+            margin: 0 !important;
+        }
+        
+        /* DataTable Overrides - Modern & Balanced */
+        .dataTables_wrapper .dataTables_filter {
+            @@apply tw-relative tw-mb-5;
+        }
+        .dataTables_wrapper .dataTables_filter label {
+            @@apply tw-w-full sm:tw-w-auto;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            @@apply tw-w-full sm:tw-w-[300px] tw-border-2 tw-border-slate-100 tw-rounded-2xl tw-px-5 tw-py-2.5 tw-text-sm tw-outline-none tw-bg-slate-50 focus:tw-bg-white tw-text-slate-700 tw-shadow-inner tw-font-medium;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus { 
+            @@apply tw-border-amber-400 tw-ring-4 tw-ring-amber-400/20 tw-shadow-lg; 
+        }
+        
+        table.dataTable {
+            @@apply tw-border-collapse;
+        }
+        table.dataTable thead th {
+            @@apply tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-[0.15em] tw-py-4 tw-px-5 tw-border-b-2 tw-border-slate-100 tw-whitespace-nowrap !important;
+        }
+        
+        table.dataTable tbody tr {
+            @@apply tw-border-b tw-border-slate-50 tw-transition-colors hover:tw-bg-amber-50/30;
+        }
+        table.dataTable tbody td {
+            @@apply tw-py-4 tw-px-5 tw-align-middle tw-whitespace-nowrap;
+        }
+        
+        .dataTables_info {
+            @@apply tw-text-xs tw-font-semibold tw-text-slate-500 tw-mt-5;
+        }
+        
+        /* Modern Pagination */
+        .dataTables_wrapper .dataTables_paginate {
+            @@apply tw-flex tw-items-center tw-gap-1 tw-mt-5;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            @@apply tw-min-w-[32px] tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded-lg tw-text-xs tw-font-bold tw-text-slate-500 tw-border tw-border-slate-200 tw-bg-white tw-cursor-pointer tw-transition-all !important;
+            padding: 0 0.5rem !important;
+            margin: 0 !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            @@apply tw-bg-slate-100 tw-text-slate-800 tw-border-slate-300 !important;
+            background: none !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            @@apply tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-border-transparent tw-shadow-md tw-cursor-default !important;
+            background: none !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+            @@apply tw-opacity-50 tw-cursor-not-allowed hover:tw-bg-white hover:tw-text-slate-500 hover:tw-border-slate-200 !important;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-chart-line tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Intelligence</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Reports</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Reports Viewer</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Generate analytical views and export operations across payroll and HR datasets.</p>
+        </div>
+    </div>
+
+    <!-- Parameter Config Form -->
+    <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative tw-mb-8">
+        <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-indigo-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none"></div>
+
+        <div class="tw-p-6 tw-bg-gradient-to-r tw-from-indigo-600 tw-to-indigo-700 tw-relative tw-z-10">
+            <h3 class="tw-text-white tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                <div class="tw-w-6 tw-h-6 tw-bg-black/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                    <i class="fas fa-sliders-h"></i>
+                </div>
+                Report Parameters
+            </h3>
+        </div>
+
+        <form asp-controller="Report" asp-action="Index" method="post" id="reportForm" class="tw-p-7 tw-space-y-6 tw-relative tw-z-10">
+            
+            <div class="tw-grid xl:tw-grid-cols-2 tw-gap-6">
+                <!-- Report Type -->
+                <div class="tw-col-span-full">
+                    <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Report Type <span class="tw-text-red-500">*</span></label>
+                    <div class="tw-relative">
+                        <i class="fas fa-file-invoice tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-indigo-500 tw-text-sm"></i>
+                        <select asp-for="ReportType" class="tw-w-full tw-pl-10 tw-pr-3 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm tw-appearance-none"
+                                style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 1rem top 50%; background-size: 0.65rem auto;">
+                            <optgroup label="-- Payroll Reports --">
+                                <option value="PaySlips">Pay Slips</option>
+                                <option value="SalariesDetails">Salaries Details</option>
+                                <option value="SalaryBreakup">Salary Breakup</option>
+                                <option value="CommissionBreakup">Commission Breakup</option>
+                                <option value="SalariesInBank">Salaries In Bank</option>
+                                <option value="SalariesInChequeWallet">Salaries In Cheque / Wallet</option>
+                                <option value="DeductionDetail">Deduction Detail</option>
+                                <option value="SalarySummary">Salary Summary</option>
+                                <option value="AdvanceSalaryDetail">Advance Salary Detail</option>
+                                <option value="AdvanceSalaryVoucher">Advance Salary Vouchers</option>
+                                <option value="SalaryTracking">Salary Tracking</option>
+                                <option value="SalariesSummaryAccounts">Salaries Summary Accounts</option>
+                                <option value="CommissionDetail">Commission Detail</option>
+                                <option value="LoanDetail">Loan Detail</option>
+                                <option value="GratuityReport">Gratuity Report</option>
+                                <option value="RBICNWiseDetail">RBI CN Wise Detail</option>
+                                <option value="RBIDeductionCNWiseDetail">RBI Deduction CN Wise Detail</option>
+                                <option value="CashCNWiseDetail">Cash CN Wise Detail</option>
+                                <option value="CODReturnCNWiseDetail">COD Return CN Wise Detail</option>
+                                <option value="VASCNWiseDetail">VAS CN Wise Detail</option>
+                                <option value="CODPickupCNWiseDetail">COD Pickup CN Wise Detail</option>
+                            </optgroup>
+                            <optgroup label="-- HR Reports --">
+                                <option value="EmployeesList">Employees List</option>
+                                <option value="TerminationReport">Termination Report</option>
+                                <option value="AttendanceReport">Attendance Report</option>
+                                <option value="AttendanceSummary">Attendance Summary</option>
+                                <option value="AttendanceSummaryChart">Attendance Summary Chart</option>
+                                <option value="TrainingReport">Training Report</option>
+                                <option value="NewJoiningDetails">New Joining Details</option>
+                                <option value="LeaveStatusReport">Leave Status Report</option>
+                                <option value="EmployeePersonalInfo">Employee Personal Info</option>
+                                <option value="EmpPerInfoSummary">Emp Info Summary</option>
+                                <option value="WarningInfo">Warning Info</option>
+                                <option value="RouteDetails">Route Details</option>
+                                <option value="AttendanceTimeSpan">Attendance Time Span</option>
+                                <option value="DeductionReport">Deduction Report</option>
+                                <option value="ExtrasReport">Extras Report</option>
+                                <option value="HLAttendanceRatio">HUM Leop Attendance Ratio</option>
+                                <option value="HumLeopardAttendance">HUM Leop Attendance Report</option>
+                                <option value="EmployeeFuelDetail">Employee Fuel Detail</option>
+                                <option value="FuelCardTransaction">Fuel Card Transaction</option>
+                                <option value="EmpPayDetails">Employee Pay Details</option>
+                                <option value="VoiceOfEmployee">Voice of Employee</option>
+                                <option value="EmpLoanDetails">Employee Loan Details</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="rowMonthYear" class="tw-grid tw-grid-cols-2 tw-gap-4">
+                    <div>
+                         <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Fiscal Year</label>
+                         <div class="tw-relative">
+                             <select asp-for="Year" class="tw-w-full tw-px-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none tw-shadow-sm"
+                                     style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                                 @for (int i = DateTime.Now.Year - 5; i <= DateTime.Now.Year + 1; i++) { <option value="@i">@i</option> }
+                             </select>
+                         </div>
+                    </div>
+                    <div>
+                         <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Month Target</label>
+                         <div class="tw-relative">
+                             <select asp-for="Month" id="ddlMonth" class="tw-w-full tw-px-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none tw-shadow-sm"
+                                   style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                                 <option value="0">-- All --</option>
+                                 <option value="1">January</option>
+                                 <option value="2">February</option>
+                                 <option value="3">March</option>
+                                 <option value="4">April</option>
+                                 <option value="5">May</option>
+                                 <option value="6">June</option>
+                                 <option value="7">July</option>
+                                 <option value="8">August</option>
+                                 <option value="9">September</option>
+                                 <option value="10">October</option>
+                                 <option value="11">November</option>
+                                 <option value="12">December</option>
+                             </select>
+                         </div>
+                    </div>
+                </div>
+
+                <div id="rowZoneCity" class="tw-grid tw-grid-cols-2 tw-gap-4">
+                    <div>
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Zone</label>
+                        <div class="tw-relative">
+                            <select asp-for="ZoneCode" asp-items="ViewBag.Zones" id="ddlZone"
+                                    class="tw-w-full tw-px-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none tw-shadow-sm"
+                                    style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                                <option value="00">All Zones</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">City</label>
+                        <div class="tw-relative">
+                            <select asp-for="CityCode" asp-items="ViewBag.Cities" id="ddlCity"
+                                    class="tw-w-full tw-px-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none tw-shadow-sm"
+                                    style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                                <option value="00">All Cities</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="rowDateRange" class="tw-grid tw-grid-cols-2 tw-gap-4">
+                    <div>
+                         <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">From Date</label>
+                         <div class="tw-relative">
+                             <i class="fas fa-calendar-alt tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                             <input type="date" asp-for="FromDate" 
+                                    class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" />
+                         </div>
+                    </div>
+                    <div>
+                         <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">To Date</label>
+                         <div class="tw-relative">
+                             <i class="fas fa-calendar-check tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                             <input type="date" asp-for="ToDate" 
+                                    class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" />
+                         </div>
+                    </div>
+                </div>
+
+                <div id="rowDepartment">
+                    <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Department</label>
+                    <div class="tw-relative">
+                        <i class="fas fa-sitemap tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-sm"></i>
+                        <select asp-for="DepartmentId" asp-items="ViewBag.DepartmentsList"
+                                class="tw-w-full tw-pl-10 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none tw-shadow-sm"
+                                style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="rowEmployee">
+                    <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Personnel</label>
+                    <div class="tw-relative">
+                        <i class="fas fa-user tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-sm"></i>
+                        <input type="text" asp-for="EmployeeDescription" id="txtEmployeeDescription" placeholder="Leave empty for all employees" 
+                               class="tw-w-full tw-pl-10 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm" />
+                        <input type="hidden" asp-for="EmpNo" id="txtEmployeeCode" />
+                    </div>
+                </div>
+
+                <div id="rowBankName">
+                    <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Bank Name</label>
+                    <div class="tw-relative">
+                        <i class="fas fa-university tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-sm"></i>
+                        <input type="text" asp-for="BankName" placeholder="e.g. HBL, MCB, UBL" 
+                               class="tw-w-full tw-pl-10 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" />
+                    </div>
+                </div>
+
+                <div id="rowReportMode">
+                    <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Mode</label>
+                    <div class="tw-relative">
+                        <select asp-for="ReportMode" id="ddlReportMode"
+                                class="tw-w-full tw-px-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none tw-shadow-sm"
+                                style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                            <option value="Cheque">Cheque</option>
+                            <option value="Cash">Cash / Wallet</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tw-border-t tw-border-slate-100 tw-pt-3 tw-mt-2"></div>
+
+            <div class="tw-flex tw-flex-col sm:tw-flex-row tw-gap-4">
+                <button type="submit" name="action" value="Generate" 
+                        class="tw-flex-1 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all">
+                    <i class="fas fa-magic tw-text-sm"></i> Generate View
+                </button>
+                <button type="submit" name="action" value="ExportExcel" 
+                        class="tw-flex-1 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-emerald-600 tw-text-white tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-emerald-700 hover:tw-shadow-[0_8px_20px_rgba(16,185,129,0.2)] hover:tw--translate-y-0.5 tw-transition-all">
+                    <i class="fas fa-file-excel tw-text-sm"></i> Export to Excel
+                </button>
+            </div>
+        </form>
+    </div>
+
+    @if (Model.ReportData != null && Model.ReportData.Any())
+    {
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+            <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-4 tw-bg-slate-50/80">
+                <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-gradient-to-br tw-from-slate-900 tw-to-slate-800 tw-flex tw-items-center tw-justify-center tw-shadow-[0_4px_10px_rgba(15,23,42,0.3)]">
+                    <i class="fas fa-table tw-text-amber-400 tw-text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="tw-font-black tw-text-base tw-text-slate-800 tw-tracking-tight">Generated Output</h2>
+                    <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">Data Matrix</p>
+                </div>
+            </div>
+
+            <div class="tw-relative tw-z-10 tw-p-6">
+                <div class="tw-overflow-x-auto custom-scrollbar">
+                    <table class="tw-w-full dataTable tw-text-xs" id="dg1">
+                        <thead>
+                            <tr>
+                                @foreach (var col in Model.Columns)
+                                {
+                                    <th>@col</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-100">
+                            @foreach (var row in Model.ReportData)
+                            {
+                                <tr class="hover:tw-bg-slate-50 tw-transition-colors group tw-text-sm">
+                                    @foreach (var col in Model.Columns)
+                                    {
+                                        <td class="tw-py-4">
+                                            @{
+                                                var val = row[col];
+                                                if (val is DateTime dt)
+                                                {
+                                                    <span class="tw-text-xs tw-font-black tw-text-slate-500 tw-bg-slate-50 tw-border tw-border-slate-200 tw-px-2 tw-py-1 tw-rounded-md">@dt.ToString("dd/MM/yyyy")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="tw-font-medium tw-text-slate-700">@val</span>
+                                                }
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if ($.fn.DataTable && $('#dg1 tbody tr').length > 0) {
+                $('#dg1').DataTable({
+                    "pageLength": 50,
+                    "lengthChange": true,
+                    "dom": '<"tw-flex tw-flex-col sm:tw-flex-row tw-justify-between tw-items-center tw-mb-2"f>rt<"tw-flex tw-flex-col sm:tw-flex-row tw-justify-between tw-items-center"ip>',
+                    "language": { 
+                        "search": "", 
+                        "searchPlaceholder": "Search report...",
+                        "paginate": {
+                            "previous": "<i class='fas fa-chevron-left tw-text-[10px]'></i>",
+                            "next": "<i class='fas fa-chevron-right tw-text-[10px]'></i>"
+                        }
+                    },
+                    "scrollX": false
+                });
+
+                $('.dataTables_filter label').addClass('tw-relative tw-block tw-w-full');
+                $('.dataTables_filter input').addClass('tw-pl-10');
+                $('.dataTables_filter label').append('<i class="fas fa-search tw-absolute tw-left-4 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400"></i>');
+            }
+
+            // Employee Autocomplete
+            $("#txtEmployeeDescription").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("SearchActiveEmployees", "Setup")',
+                        type: "GET",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.label, value: item.desc, id: item.value };
+                            }))
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    $("#txtEmployeeDescription").val(ui.item.value);
+                    $("#txtEmployeeCode").val(ui.item.id);
+                    return false;
+                },
+                minLength: 1
+            });
+            
+            $("#txtEmployeeDescription").keyup(function() {
+                if (!$(this).val()) {
+                    $("#txtEmployeeCode").val('');
+                }
+            });
+            
+            // Dynamic form adjustment based on report type
+            var reportsConfig = {
+                'PaySlips':                { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: true,  bankName: false, reportMode: false },
+                'SalariesDetails':         { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: true,  bankName: false, reportMode: false },
+                'SalaryBreakup':           { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: true,  bankName: false, reportMode: false },
+                'CommissionBreakup':       { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: true,  bankName: false, reportMode: false },
+                'SalariesInBank':          { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: true,  reportMode: false },
+                'SalariesInChequeWallet':  { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: true  },
+                'DeductionDetail':         { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'SalarySummary':           { monthYear: true,  dateRange: false, dept: true,  zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'AdvanceSalaryDetail':     { monthYear: true,  dateRange: false, dept: true,  zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'EmployeesList':           { monthYear: false, dateRange: false, dept: true,  zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'TerminationReport':       { monthYear: false, dateRange: false, dept: false, zonecity: false, emp: false, bankName: false, reportMode: false },
+                'AttendanceReport':        { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'AttendanceSummary':       { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'AttendanceSummaryChart':  { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'TrainingReport':          { monthYear: false, dateRange: false, dept: false, zonecity: false, emp: false, bankName: false, reportMode: false },
+                'NewJoiningDetails':       { monthYear: false, dateRange: true,  dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'LeaveStatusReport':       { monthYear: true,  dateRange: false, dept: true,  zonecity: false, emp: false, bankName: false, reportMode: false },
+                'EmployeePersonalInfo':    { monthYear: false, dateRange: false, dept: true,  zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'EmpPerInfoSummary':       { monthYear: false, dateRange: false, dept: true,  zonecity: true,  emp: true,  bankName: false, reportMode: false },
+                'WarningInfo':             { monthYear: false, dateRange: false, dept: false, zonecity: false, emp: false, bankName: false, reportMode: false },
+                'RouteDetails':            { monthYear: false, dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'AttendanceTimeSpan':      { monthYear: false, dateRange: true,  dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'DeductionReport':         { monthYear: true,  dateRange: false, dept: true,  zonecity: true,  emp: true,  bankName: false, reportMode: false },
+                'ExtrasReport':            { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'HLAttendanceRatio':       { monthYear: false, dateRange: true,  dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'HumLeopardAttendance':    { monthYear: false, dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'EmployeeFuelDetail':      { monthYear: false, dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'FuelCardTransaction':     { monthYear: false, dateRange: true,  dept: false, zonecity: true,  emp: false, bankName: false, reportMode: true  },
+                'EmpPayDetails':           { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: true  },
+                'VoiceOfEmployee':         { monthYear: false, dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'EmpLoanDetails':          { monthYear: false, dateRange: false, dept: false, zonecity: true,  emp: true,  bankName: false, reportMode: false },
+                'RBICNWiseDetail':          { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'RBIDeductionCNWiseDetail': { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'CashCNWiseDetail':         { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'CODReturnCNWiseDetail':    { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'VASCNWiseDetail':          { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'CODPickupCNWiseDetail':    { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'AdvanceSalaryVoucher':     { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'SalaryTracking':           { monthYear: false, dateRange: false, dept: false, zonecity: false, emp: true,  bankName: false, reportMode: false },
+                'SalariesSummaryAccounts':  { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false },
+                'CommissionDetail':         { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: true  },
+                'LoanDetail':               { monthYear: true,  dateRange: false, dept: false, zonecity: true,  emp: true,  bankName: false, reportMode: false },
+                'GratuityReport':           { monthYear: false, dateRange: false, dept: false, zonecity: true,  emp: false, bankName: false, reportMode: false }
+            };
+
+            var reportModeOptions = {
+                'SalariesInChequeWallet': [{ v: 'Cheque', t: 'Cheque' }, { v: 'Cash', t: 'Cash / Wallet' }],
+                'FuelCardTransaction':    [{ v: 'Summary', t: 'Summary' }, { v: 'Detail', t: 'Detailed' }],
+                'EmpPayDetails':          [{ v: 'NonExecutive', t: 'Non-Executive' }, { v: 'Executive', t: 'Executive' }],
+                'CommissionDetail':       [{ v: 'NonExecutive', t: 'Non-Executive' }, { v: 'Executive', t: 'Executive' }]
+            };
+
+            $("#ReportType").change(function() {
+                var type = $(this).val();
+                var cfg = reportsConfig[type] || { monthYear: true, dateRange: false, dept: false, zonecity: true, emp: true, bankName: false, reportMode: false };
+                
+                if (cfg.monthYear) $("#rowMonthYear").show(); else $("#rowMonthYear").hide();
+                if (cfg.dateRange) $("#rowDateRange").show(); else $("#rowDateRange").hide();
+                if (cfg.dept) $("#rowDepartment").show(); else $("#rowDepartment").hide();
+                if (cfg.zonecity) $("#rowZoneCity").show(); else $("#rowZoneCity").hide();
+                if (cfg.emp) $("#rowEmployee").show(); else $("#rowEmployee").hide();
+                if (cfg.bankName) $("#rowBankName").show(); else $("#rowBankName").hide();
+                if (cfg.reportMode) $("#rowReportMode").show(); else $("#rowReportMode").hide();
+                
+                if (cfg.reportMode && reportModeOptions[type]) {
+                    var $ddl = $("#ddlReportMode");
+                    $ddl.empty();
+                    $.each(reportModeOptions[type], function(i, opt) {
+                        $ddl.append($('<option>').val(opt.v).text(opt.t));
+                    });
+                }
+            });
+
+            $("#ReportType").trigger("change");
+        });
+    </script>
+}

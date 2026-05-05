@@ -1,0 +1,220 @@
+@model LCS_HR_MVC.Models.LoanDeductionModel
+@{
+    ViewData["Title"] = "Loan Deduction";
+    ViewData["PageTitle"] = "Loan Deduction";
+    var dataList = ViewBag.LoanDeductionList as IEnumerable<LCS_HR_MVC.Models.LoanDeductionModel> ?? new List<LCS_HR_MVC.Models.LoanDeductionModel>();
+    var isNewRecord = Model.Code == "Auto Generated";
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+        .animate-main{animation:slideUp .4s ease-out}
+        .f-label{display:block;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+        .f-input{width:100%;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;transition:border-color .15s,box-shadow .15s}
+        .f-input:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .f-input[readonly],.f-input:disabled{background:#f8fafc;color:#94a3b8;cursor:not-allowed}
+        .btn-p{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#fbbf24,#f97316);color:#1e293b;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(245,197,24,.3);transition:all .15s}
+        .btn-p:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,197,24,.4)}
+        .btn-p:disabled{opacity:.45;cursor:not-allowed}
+        .btn-s{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;color:#475569;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #e2e8f0;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
+        .btn-s:hover:not(:disabled){background:#f8fafc;transform:translateY(-1px)}
+        .btn-s:disabled{opacity:.45;cursor:not-allowed}
+        #dg1 thead th{background:linear-gradient(135deg,#475569,#334155)!important;color:#f1f5f9!important;font-size:.65rem!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.08em!important;padding:.625rem .75rem!important;border:none!important;white-space:nowrap}
+        #dg1 tbody tr:hover td{background:#fffbeb!important}
+        #dg1 tbody td{padding:.5rem .75rem!important;font-size:.8rem;color:#334155;border-bottom:1px solid #f1f5f9!important;border-top:none!important;border-left:none!important;border-right:none!important}
+        .val-err{display:block;margin-top:4px;font-size:.75rem;font-weight:600;color:#dc2626}
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5"></i><span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-check tw-mt-0.5"></i><span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <div class="tw-mb-8">
+        <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+            <span class="hover:tw-text-amber-500 tw-cursor-pointer tw-transition-colors tw-flex tw-items-center tw-gap-1"><i class="fas fa-hand-holding-usd tw-text-[10px] tw-text-slate-300"></i> Loans</span>
+            <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+            <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Loan Deduction</span>
+        </nav>
+        <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Loan Deduction</h1>
+        <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+        <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-2">Record and manage loan deduction transactions.</p>
+    </div>
+
+    <div class="tw-grid tw-grid-cols-1 xl:tw-grid-cols-[1.15fr_0.85fr] tw-gap-5">
+
+        <!-- Table Card -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-list"></i></div>
+                    Existing Loan Deductions
+                </h3>
+            </div>
+            <div class="tw-p-5">
+                <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-mb-4">
+                    <div class="tw-relative tw-flex-1 tw-min-w-[180px]">
+                        <i class="fas fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none"></i>
+                        <input type="text" id="txtsearch" class="f-input tw-pl-9" placeholder="Search by employee name..." />
+                    </div>
+                    <button type="button" class="btn-p" onclick="filterTable()"><i class="fas fa-search tw-text-xs"></i> Search</button>
+                    <button type="button" class="btn-s" onclick="resetSearch()"><i class="fas fa-times tw-text-xs"></i> Clear</button>
+                </div>
+                <div class="tw-overflow-x-auto tw-max-h-[28rem] tw-overflow-y-auto">
+                    <table id="dg1" class="tw-w-full">
+                        <thead>
+                            <tr><th>Code</th><th>Employee</th><th>Loan Name</th><th>Deduction Date</th><th>Amount</th><th>Balance</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in dataList)
+                            {
+                                <tr>
+                                    <td><a href="@Url.Action("LoanDeduction","Loans",new{code=item.Code})" class="tw-text-amber-600 tw-font-black hover:tw-underline">@item.Code</a></td>
+                                    <td>@item.EmployeeName</td><td>@item.LoanName</td>
+                                    <td>@(item.DeductionDate?.ToString("dd/MM/yyyy"))</td>
+                                    <td>@item.DeductionAmount</td><td>@item.Balance</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-700 tw-to-slate-900">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-edit"></i></div>
+                    Loan Deduction Form
+                </h3>
+            </div>
+            <form asp-controller="Loans" asp-action="LoanDeduction" method="post" id="loanForm" enctype="multipart/form-data" class="tw-p-5">
+                <div class="tw-grid tw-gap-4">
+                    <div>
+                        <label class="f-label">Code</label>
+                        <input type="text" value="@Model.Code" class="f-input" disabled />
+                        <input type="hidden" asp-for="Code" id="Code" />
+                    </div>
+                    <div>
+                        <label class="f-label">Loan Disbursed</label>
+                        <input type="text" id="txtLoanDisbursedSearch" class="f-input" placeholder="Search by LD_No or Emp Name"
+                               value="@(string.IsNullOrEmpty(Model.LoanDisbursedCode) ? "" : Model.LoanDisbursedCode + " - " + Model.EmployeeName)" />
+                        <input type="hidden" asp-for="LoanDisbursedCode" id="txtLoanDisbursedCode" />
+                        <span asp-validation-for="LoanDisbursedCode" class="val-err"></span>
+                    </div>
+                    <div>
+                        <label class="f-label">Employee</label>
+                        <input type="text" asp-for="EmployeeDescription" id="txtEmployeeDescription" class="f-input" readonly />
+                        <input type="hidden" asp-for="EmpNo" id="txtEmployeeCode" />
+                        <span asp-validation-for="EmpNo" class="val-err"></span>
+                    </div>
+                    <div>
+                        <label class="f-label">Loan Type</label>
+                        <input type="text" asp-for="LoanDescription" id="txtLoanDescription" class="f-input" readonly />
+                        <input type="hidden" asp-for="LoanCode" id="txtLoanCode" />
+                    </div>
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <div>
+                            <label class="f-label">Disbursed Amount</label>
+                            <input type="number" step="0.01" asp-for="DisbursedAmount" class="f-input" id="DisbursedAmount" readonly />
+                        </div>
+                        <div>
+                            <label class="f-label">Balance</label>
+                            <input type="number" step="0.01" asp-for="Balance" class="f-input" id="Balance" readonly />
+                        </div>
+                    </div>
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <div>
+                            <label class="f-label">Deduction Amount</label>
+                            <input type="number" step="0.01" asp-for="DeductionAmount" class="f-input" id="DeductionAmount" />
+                            <span asp-validation-for="DeductionAmount" class="val-err"></span>
+                        </div>
+                        <div>
+                            <label class="f-label">Deduction Date</label>
+                            <input type="date" asp-for="DeductionDate" class="f-input" id="DeductionDate" />
+                            <span asp-validation-for="DeductionDate" class="val-err"></span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="f-label">Comments</label>
+                        <input asp-for="Comments" class="f-input" maxlength="45" id="Comments" />
+                    </div>
+                    @if (isNewRecord)
+                    {
+                        <div class="tw-rounded-2xl tw-border tw-border-dashed tw-border-slate-300 tw-bg-slate-50 tw-p-4">
+                            <label class="f-label">Bulk Upload (.xlsx)</label>
+                            <div class="tw-flex tw-items-center tw-gap-3 tw-mt-1">
+                                <input type="file" asp-for="BulkUploadFile" accept=".xlsx" class="f-input tw-p-2 tw-flex-1" />
+                                <button type="submit" name="action" value="BulkUpload" class="btn-s" formnovalidate><i class="fas fa-upload tw-text-xs"></i> Insert</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="tw-mt-6 tw-flex tw-flex-wrap tw-gap-2">
+                    <button type="submit" name="action" value="Save" class="btn-p" id="btnSave" @(!isNewRecord ? "disabled" : null) onclick="return validateBalance();"><i class="fas fa-save tw-text-xs"></i> Save</button>
+                    <button type="submit" name="action" value="Update" class="btn-s" id="btnUpdate" @(isNewRecord ? "disabled" : null) onclick="return validateBalance();"><i class="fas fa-sync tw-text-xs"></i> Update</button>
+                    <button type="submit" name="action" value="Delete" class="btn-s" id="btnDelete" @(isNewRecord ? "disabled" : null) onclick="return confirm('Do you want to delete?');"><i class="fas fa-trash tw-text-xs"></i> Delete</button>
+                    <button type="submit" name="action" value="Reset" class="btn-s" formnovalidate><i class="fas fa-redo tw-text-xs"></i> Reset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        var initialBalance = 0;
+        $(document).ready(function () {
+            if ($.fn.DataTable) { $('#dg1').DataTable({ "pageLength": 12, "lengthChange": false, "searching": true, "info": true, "language": { "emptyTable": "No loan deductions found." } }); }
+            $("#txtLoanDisbursedSearch").blur(function () {
+                var val = $(this).val();
+                if (val && val.includes('-')) fetchLoanDisbursedData(val.split('-')[0].trim());
+                else if (val) fetchLoanDisbursedData(val);
+            });
+            function fetchLoanDisbursedData(ldNo) {
+                $.ajax({ url: '@Url.Action("GetLoanDisbursedData","Loans")', type: "GET", data: { ldNo: ldNo },
+                    success: function (res) {
+                        if (res && res.success) {
+                            $("#txtLoanDisbursedCode").val(res.ldNo); $("#txtLoanDisbursedSearch").val(res.ldNo + ' - ' + res.empName);
+                            $("#txtEmployeeCode").val(res.empNo); $("#txtEmployeeDescription").val(res.empName);
+                            $("#txtLoanCode").val(res.loanCode); $("#txtLoanDescription").val(res.loanName);
+                            $("#DisbursedAmount").val(res.disbursedAmount); $("#Balance").val(res.balance); initialBalance = res.balance;
+                        } else { alert(res.error || "Loan Disbursed not found or no pending balance."); cleanup(); }
+                    }
+                });
+            }
+            function cleanup() {
+                ["#txtLoanDisbursedCode","#txtLoanDisbursedSearch","#txtEmployeeCode","#txtEmployeeDescription","#txtLoanCode","#txtLoanDescription","#DisbursedAmount","#Balance","#DeductionAmount"].forEach(function(s){$(s).val('');});
+                initialBalance = 0;
+            }
+            if ($('#Code').val() !== "Auto Generated" && $('#Balance').val()) {
+                initialBalance = parseFloat($('#Balance').val()) + parseFloat($('#DeductionAmount').val() || 0);
+            }
+        });
+        function validateBalance() {
+            var ded = parseFloat($("#DeductionAmount").val() || 0), bal = parseFloat($("#Balance").val() || 0);
+            if ($('#Code').val() === "Auto Generated") { if (ded > bal) { alert("Deduction amount cannot exceed Balance."); return false; } }
+            else if (ded > initialBalance) { alert("Deduction amount cannot exceed original Balance."); return false; }
+            return true;
+        }
+        function filterTable() {
+            var f = document.getElementById("txtsearch").value.toUpperCase();
+            var tr = document.getElementById("dg1").getElementsByTagName("tr");
+            for (var i = 1; i < tr.length; i++) { var td = tr[i].getElementsByTagName("td")[1]; if (td) tr[i].style.display = (td.textContent || td.innerText).toUpperCase().indexOf(f) > -1 ? "" : "none"; }
+        }
+        function resetSearch() { document.getElementById("txtsearch").value = ""; filterTable(); }
+    </script>
+}

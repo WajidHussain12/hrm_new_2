@@ -1,0 +1,230 @@
+@model LCS_HR_MVC.Models.Settlement.FinalSettlementModel
+@{
+    ViewData["Title"] = "Final Settlement (Salary Check)";
+    ViewData["PageTitle"] = "Final Settlement (Salary Check)";
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Modern UI Autocomplete Override */
+        .ui-autocomplete {
+            @@apply tw-max-h-60 tw-overflow-y-auto tw-rounded-xl tw-border-slate-200 tw-shadow-xl tw-text-sm tw-font-medium tw-font-sans tw-bg-white !important;
+            z-index: 1000 !important;
+        }
+        .ui-menu-item-wrapper {
+            @@apply tw-py-2 tw-px-3 tw-transition-colors tw-text-slate-700 !important;
+        }
+        .ui-menu-item-wrapper.ui-state-active {
+            @@apply tw-bg-amber-400 tw-text-slate-900 tw-border-transparent tw-rounded-md tw-font-bold !important;
+            margin: 0 !important;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-handshake tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Settlements</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Final Settlement</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Final Settlement (Salary Check)</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Calculate and finalize working days and settlement values for separated employees.</p>
+        </div>
+    </div>
+
+
+    <div class="tw-max-w-4xl tw-mx-auto">
+        <!-- Form Panel -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+            <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-amber-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none"></div>
+
+            <div class="tw-p-6 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-relative tw-z-10">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    Settlement Computation
+                </h3>
+            </div>
+
+            <form asp-controller="Settlement" asp-action="FinalSettlement" method="post" id="settlementForm" class="tw-p-7 tw-space-y-6 tw-relative tw-z-10">
+                
+                <div class="tw-grid md:tw-grid-cols-[2fr_1fr] tw-gap-6">
+                    <!-- Employee Picker -->
+                    <div>
+                        <label asp-for="EmployeeDescription" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Authorized Personnel <span class="tw-text-red-500">*</span></label>
+                        <div class="tw-relative">
+                            <i class="fas fa-user-tag tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-sm"></i>
+                            <input type="text" asp-for="EmployeeDescription" id="txtEmployeeDescription" placeholder="Search wildcard '%'" 
+                                   class="tw-w-full tw-pl-10 tw-pr-3 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm" />
+                        </div>
+                        <span asp-validation-for="EmployeeDescription" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+
+                    <!-- Emp Code -->
+                    <div>
+                        <label asp-for="EmpNo" class="tw-block tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-1.5">Pers ID</label>
+                        <input type="text" asp-for="EmpNo" id="txtEmployeeCode" readonly 
+                               class="tw-w-full tw-px-3 tw-py-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-text-center tw-font-mono tw-font-bold tw-text-slate-500 focus:tw-outline-none tw-cursor-not-allowed" />
+                        <span asp-validation-for="EmpNo" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+                </div>
+
+                <div class="tw-grid md:tw-grid-cols-2 tw-gap-6">
+                    <!-- Resign Date -->
+                    <div>
+                         <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Resign Date</label>
+                         <div class="tw-relative">
+                             <i class="fas fa-calendar-times tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                             <input type="date" asp-for="ResignDate" id="txtResignDate" readonly
+                                    class="tw-w-full tw-pl-8 tw-pr-3 tw-py-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-outline-none tw-cursor-not-allowed" />
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Months Row -->
+                <div id="monthsRow" style="display: none;" class="tw-bg-slate-50 tw-p-5 tw-rounded-xl tw-border tw-border-slate-200 tw-mt-4">
+                    <h4 class="tw-text-xs tw-font-black tw-text-slate-600 tw-uppercase tw-tracking-widest tw-mb-4"><i class="fas fa-calendar-check tw-mr-1.5"></i> Working Days Calculation</h4>
+                    <div class="tw-grid md:tw-grid-cols-2 tw-gap-6">
+                        <div>
+                            <label id="lblmonth1" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Working Days Month 1</label>
+                            <div class="tw-relative">
+                                <i class="fas fa-business-time tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                                <input type="number" asp-for="WorkingDays1" 
+                                        class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-300 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" />
+                                <input type="hidden" asp-for="Month1" id="hdnMonth1" />
+                            </div>
+                        </div>
+                        <div>
+                            <label id="lblmonth2" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Working Days Month 2</label>
+                            <div class="tw-relative">
+                                <i class="fas fa-business-time tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                                <input type="number" asp-for="WorkingDays2" 
+                                        class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-300 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" />
+                                <input type="hidden" asp-for="Month2" id="hdnMonth2" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tw-border-t tw-border-slate-100 tw-pt-3 tw-mt-2"></div>
+
+                 <!-- Action Controls -->
+                <div class="tw-space-y-3">
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-4">
+                        <button type="submit" name="action" value="Save" id="btnSave" 
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-50 disabled:tw-cursor-not-allowed">
+                            <i class="fas fa-check-circle tw-text-sm"></i> Process Final Settlement
+                        </button>
+                        <button type="submit" name="action" value="Reset" id="btnReset" formnovalidate
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                            <i class="fas fa-undo-alt tw-opacity-60"></i> Deselect
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            // Employee Autocomplete
+            $("#txtEmployeeDescription").autocomplete({
+                source: function (request, response) {
+                    // Only fetch inactive / resigned employees if possible
+                    $.ajax({
+                        url: '@Url.Action("SearchSettlementEmployees", "Settlement")',
+                        type: "GET",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.label, value: item.desc, id: item.value };
+                            }))
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    $("#txtEmployeeDescription").val(ui.item.value);
+                    $("#txtEmployeeCode").val(ui.item.id);
+                    fetchEmployeeResignData(ui.item.id);
+                    return false;
+                },
+                minLength: 1
+            });
+            
+            $("#txtEmployeeDescription").keyup(function() {
+                if (!$(this).val()) {
+                    $("#txtEmployeeCode").val('');
+                    $('#monthsRow').hide();
+                }
+            });
+
+            function fetchEmployeeResignData(empNo) {
+                if(empNo) {
+                    $.ajax({
+                        url: '@Url.Action("GetEmployeeResignData", "Settlement")',
+                        type: "GET",
+                        data: { empNo: empNo },
+                        success: function(res) {
+                            if(res && res.success) {
+                                $("#txtResignDate").val(res.resignDate);
+                                $("#lblmonth1").text("Working Days of " + res.month1Name);
+                                $("#lblmonth2").text("Working Days of " + res.month2Name);
+                                $("#hdnMonth1").val(res.month1);
+                                $("#hdnMonth2").val(res.month2);
+                                $('#monthsRow').show();
+                            } else {
+                                alert(res.error || "Employee has no termination record.");
+                                $('#monthsRow').hide();
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+}

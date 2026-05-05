@@ -1,0 +1,43 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+    ViewData["PageTitle"] = "Error";
+}
+
+<div class="app-page">
+    <section class="app-panel">
+        <div class="tw-grid tw-gap-0 lg:tw-grid-cols-[0.85fr_1.15fr]">
+            <div class="tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-red-600 tw-via-red-500 tw-to-amber-500 tw-p-10 tw-text-white">
+                <div class="tw-max-w-sm">
+                    <p class="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-[0.35em] tw-text-red-100">Request Failed</p>
+                    <h1 class="tw-mt-5 tw-text-4xl tw-font-semibold tw-leading-tight">An error occurred while processing your request.</h1>
+                    <p class="tw-mt-4 tw-text-base tw-leading-7 tw-text-red-50">
+                        The application intercepted the exception and stopped the request before a partial response was sent.
+                    </p>
+                </div>
+            </div>
+
+            <div class="tw-p-8 sm:tw-p-10">
+                @if (Model.ShowRequestId)
+                {
+                    <div class="app-section-card tw-mb-6 tw-border-red-200 tw-bg-red-50">
+                        <p class="tw-text-sm tw-font-semibold tw-text-red-700">Request ID</p>
+                        <code class="tw-mt-3 tw-block tw-rounded-xl tw-bg-white tw-p-4 tw-text-sm tw-text-slate-800">@Model.RequestId</code>
+                    </div>
+                }
+
+                <div class="app-section-card">
+                    <h2 class="tw-text-xl tw-font-semibold tw-text-slate-900">Development Mode</h2>
+                    <p class="tw-mt-4 tw-text-sm tw-leading-7 tw-text-slate-600">
+                        Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
+                    </p>
+                    <p class="tw-mt-4 tw-text-sm tw-leading-7 tw-text-slate-600">
+                        <strong>The Development environment should not be enabled for deployed applications.</strong>
+                        It can expose sensitive information to end users. For local debugging, set
+                        <strong>ASPNETCORE_ENVIRONMENT</strong> to <strong>Development</strong> and restart the app.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

@@ -1,0 +1,107 @@
+@model LCS_HR_MVC.Models.Payroll.SingleEmployeeCommissionViewModel
+@{
+    ViewData["PageTitle"] = "Employee Commission Reprocess";
+    ViewData["Title"] = "Employee Commission Reprocess";
+    var years  = Enumerable.Range(DateTime.Now.Year - 3, 5).Reverse();
+    var months = Enumerable.Range(1, 12).Select(m => new { Value = m, Text = new DateTime(2000, m, 1).ToString("MMMM") });
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+        .animate-main{animation:slideUp .4s ease-out}
+        .f-label{display:block;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+        .f-input{width:100%;padding:10px 14px;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;transition:border-color .15s,box-shadow .15s}
+        .f-input:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .f-select{width:100%;padding:10px 32px 10px 12px;background:#fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right .75rem top 50%;background-size:.65rem;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;appearance:none;transition:border-color .15s,box-shadow .15s}
+        .f-select:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .btn-p{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#fbbf24,#f97316);color:#1e293b;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(245,197,24,.3);transition:all .15s}
+        .btn-p:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,197,24,.4)}
+        .btn-s{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;color:#475569;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #e2e8f0;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
+        .btn-s:hover{background:#f8fafc;transform:translateY(-1px)}
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5"></i><span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-green-50 tw-border tw-border-green-100 tw-rounded-xl tw-text-green-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-check-circle tw-mt-0.5"></i><span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <div class="tw-bg-white tw-rounded-2xl tw-shadow-sm tw-border tw-border-slate-100 tw-overflow-hidden">
+        <div class="tw-px-6 tw-py-4 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-3">
+            <div class="tw-w-8 tw-h-8 tw-bg-amber-100 tw-rounded-lg tw-flex tw-items-center tw-justify-center">
+                <i class="fas fa-user-cog tw-text-amber-600 tw-text-sm"></i>
+            </div>
+            <div>
+                <h2 class="tw-text-base tw-font-extrabold tw-text-slate-800 tw-tracking-tight">Employee Commission Reprocess</h2>
+                <p class="tw-text-xs tw-text-slate-400 tw-font-semibold tw-mt-0.5">
+                    Recalculates commission for a single employee without affecting other employees.
+                    Prerequisites: Cash Commission, COD, OverLand, and Commission Process (Master) must have already been run for the selected month.
+                </p>
+            </div>
+        </div>
+
+        <div class="tw-p-6">
+            <form method="post" asp-action="EmployeeCommissionReprocess">
+                @Html.AntiForgeryToken()
+
+                <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-3 tw-gap-4 tw-mb-6">
+
+                    <div>
+                        <label class="f-label">Employee Number</label>
+                        <input asp-for="EmpNo" class="f-input" placeholder="e.g. 00000000012345" maxlength="14" autocomplete="off" />
+                        <span asp-validation-for="EmpNo" class="tw-text-red-500 tw-text-xs tw-font-bold"></span>
+                        <span class="tw-text-slate-400 tw-text-[10px] tw-font-semibold tw-mt-1 tw-block">14-digit zero-padded format (e.g. 00000000012345)</span>
+                    </div>
+
+                    <div>
+                        <label class="f-label">Year</label>
+                        <select asp-for="Year" class="f-select">
+                            @foreach (var y in years)
+                            {
+                                <option value="@y" selected="@(y == Model.Year ? "selected" : null)">@y</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Year" class="tw-text-red-500 tw-text-xs tw-font-bold"></span>
+                    </div>
+
+                    <div>
+                        <label class="f-label">Month</label>
+                        <select asp-for="Month" class="f-select">
+                            @foreach (var m in months)
+                            {
+                                <option value="@m.Value" selected="@(m.Value == Model.Month ? "selected" : null)">@m.Text</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Month" class="tw-text-red-500 tw-text-xs tw-font-bold"></span>
+                    </div>
+
+                </div>
+
+                <div class="tw-flex tw-items-center tw-gap-3">
+                    <button type="submit" name="action" value="Process" class="btn-p">
+                        <i class="fas fa-sync-alt"></i> Reprocess Commission
+                    </button>
+                    <button type="submit" name="action" value="Reset" class="btn-s">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

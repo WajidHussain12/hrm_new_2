@@ -1,0 +1,1128 @@
+@model LCS_HR_MVC.Models.CommissionHistoryViewModel
+@using Microsoft.AspNetCore.Html
+@{
+    ViewData["PageTitle"] = "Commission History";
+
+    var monthNames = new[]
+    {
+        "January","February","March","April","May","June",
+        "July","August","September","October","November","December"
+    };
+
+    var pipeline = new[]
+    {
+        new { Key = "CashCommission",      Step = 1, Label = "Cash Commission",            ShortLabel = "Cash",       Icon = "fas fa-money-bill-wave",  Color = "blue",   TableHint = "hr_cash_consignments" },
+        new { Key = "CodCommission",       Step = 2, Label = "COD Commission",              ShortLabel = "COD",        Icon = "fas fa-hand-holding-usd", Color = "purple", TableHint = "hr_codcommission" },
+        new { Key = "OverLandCommission",  Step = 3, Label = "OverLand Commission",         ShortLabel = "Overland",   Icon = "fas fa-truck",            Color = "orange", TableHint = "hr_olecommissionprocess" },
+        new { Key = "ReturnCodCommission", Step = 4, Label = "Return COD Commission",       ShortLabel = "Return COD", Icon = "fas fa-undo-alt",         Color = "rose",   TableHint = "hr_codreturncommissionprocess" },
+        new { Key = "CommissionProcess",   Step = 5, Label = "Commission Process (Master)", ShortLabel = "Master",     Icon = "fas fa-layer-group",      Color = "green",  TableHint = "hr_commissionprocess" },
+        new { Key = "FinalCommission",     Step = 6, Label = "Final Commission",            ShortLabel = "Final",      Icon = "fas fa-flag-checkered",   Color = "indigo", TableHint = "is_final_commission_process" },
+    };
+
+    var stepColor = new Dictionary<string, (string bg, string text, string border, string light)>
+    {
+        ["blue"]   = ("bg-blue-500",   "text-blue-700",   "border-blue-300",   "bg-blue-50"),
+        ["purple"] = ("bg-purple-500", "text-purple-700", "border-purple-300", "bg-purple-50"),
+        ["orange"] = ("bg-orange-500", "text-orange-700", "border-orange-300", "bg-orange-50"),
+        ["rose"]   = ("bg-rose-500",   "text-rose-700",   "border-rose-300",   "bg-rose-50"),
+        ["green"]  = ("bg-green-600",  "text-green-700",  "border-green-300",  "bg-green-50"),
+        ["indigo"] = ("bg-indigo-600", "text-indigo-700", "border-indigo-300", "bg-indigo-50"),
+    };
+
+    var commTypes = pipeline.Select(p => p.Key).ToArray();
+
+    // Dedup: when a city has duplicate entries for the same commission type,
+    // keep the most relevant one (highest DerivedStatus priority, then latest ProcessedAt).
+    var statusPriority = new Dictionary<string, int>
+    {
+        ["Completed"]        = 5,
+        ["AlreadyProcessed"] = 5,
+        ["Processed"]        = 5,
+        ["Running"]          = 4,
+        ["Pending"]          = 3,
+        ["NoData"]           = 2,
+        ["NoHistory"]        = 1,
+        ["Failed"]           = 1,
+    };
+    var entryMap = Model.Entries
+        .GroupBy(e => e.CityCode)
+        .ToDictionary(g => g.Key, g => g
+            .GroupBy(e => e.CommissionType)
+            .ToDictionary(
+                cg => cg.Key,
+                cg => cg.OrderByDescending(e => statusPriority.GetValueOrDefault(e.DerivedStatus, 0))
+                         .ThenByDescending(e => e.ProcessedAt ?? DateTime.MinValue)
+                         .First()));
+
+    var cities = Model.Entries
+        .Select(e => new { e.CityCode, e.CityName })
+        .Distinct()
+        .OrderBy(c => c.CityName)
+        .ToList();
+
+    // Status counts using DerivedStatus
+    var completedCount        = Model.Entries.Count(e => e.DerivedStatus == "Completed");
+    var alreadyProcessedCount = Model.Entries.Count(e => e.DerivedStatus == "AlreadyProcessed");
+    var reconciledCount       = Model.Entries.Count(e => e.DerivedStatus == "Processed");
+    var noDataCount           = Model.Entries.Count(e => e.DerivedStatus == "NoData");
+    var failedCount           = Model.Entries.Count(e => e.DerivedStatus == "Failed");
+    var runningCount          = Model.Entries.Count(e => e.DerivedStatus == "Running");
+    var pendingCount          = Model.Entries.Count(e => e.DerivedStatus is "Pending" or "NoHistory");
+    var totalCount            = Model.Entries.Count;
+
+    // "Done" = Completed, AlreadyProcessed, OR Processed (actual output data confirmed)
+    static bool IsDone(string s) => s is "Completed" or "AlreadyProcessed" or "Processed";
+
+    var overallPct = totalCount > 0
+        ? (int)(((completedCount + alreadyProcessedCount + reconciledCount) * 100.0) / totalCount)
+        : 0;
+
+    var citiesTotal     = cities.Count;
+    var citiesDone      = cities.Count(c => commTypes.All(ct =>
+                            entryMap.TryGetValue(c.CityCode, out var m) &&
+                            m.TryGetValue(ct, out var e) && IsDone(e.DerivedStatus)));
+    var citiesRemaining = citiesTotal - citiesDone;
+
+    var commPeriodFrom = new DateTime(Model.Year, Model.Month, 21).AddMonths(-1);
+    var commPeriodTo   = new DateTime(Model.Year, Model.Month, 20);
+
+    // For detail table: sort by city then pipeline order
+    var pipelineOrder = pipeline.Select((p, i) => new { p.Key, Order = i }).ToDictionary(x => x.Key, x => x.Order);
+    var sortedEntries = Model.Entries
+        .OrderBy(e => e.CityName)
+        .ThenBy(e => pipelineOrder.TryGetValue(e.CommissionType, out var o) ? o : 99)
+        .ToList();
+}
+
+<div class="w-full space-y-4">
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- PAGE HEADER                                                   -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div class="bg-white border border-gray-200 rounded shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center shadow shrink-0">
+                <i class="fas fa-history text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-gray-800">Commission History</h1>
+                <p class="text-[11px] text-gray-400 mt-0.5">
+                    Reconciles <strong>automation log</strong> + <strong>6 actual output tables</strong>
+                    — shows commissions even if run outside automation.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <!-- Data source badges -->
+            <span class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                <i class="fas fa-table text-slate-400"></i>6 Tables Checked
+            </span>
+            @if (Model.EvidenceErrors.Any())
+            {
+                <span class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-700 border border-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                      title="@string.Join(" | ", Model.EvidenceErrors.Select(e => e.Key + ": " + e.Value))">
+                    <i class="fas fa-exclamation-triangle"></i>@Model.EvidenceErrors.Count query error(s)
+                </span>
+            }
+            <a href="/Automation/Commission"
+               class="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors">
+                <i class="fas fa-play"></i>Go to Automation
+            </a>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- RECONCILIATION LEGEND (always visible)                        -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div class="bg-indigo-50 border border-indigo-200 rounded shadow-sm px-4 py-3">
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px]">
+            <span class="font-bold text-indigo-700 shrink-0">
+                <i class="fas fa-info-circle mr-1"></i>Reconciliation Key:
+            </span>
+            <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
+                <strong>Completed</strong> — automation log confirmed success
+            </span>
+            <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+                <strong>Already Processed</strong> — was processed in a prior run
+            </span>
+            <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block"></span>
+                <strong>Processed</strong> — output table has data; no/incomplete log (manual/old-system run)
+            </span>
+            <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
+                <strong>Failed</strong> — log shows failure, no output data found
+            </span>
+            <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-orange-400 inline-block"></span>
+                <strong>No MIS Data</strong> — FinalCommission: SP returned 0 rows
+            </span>
+            <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block"></span>
+                <strong>Pending / No History</strong> — nothing found anywhere
+            </span>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- YEAR / MONTH SELECTOR + DATA PROCESSING WINDOW               -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div class="bg-white border border-gray-200 rounded shadow-sm p-4">
+        <div class="flex flex-wrap gap-6 items-end">
+            <form method="get" asp-action="History" class="flex flex-wrap items-end gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Year</label>
+                    <select name="year" class="bg-[#fdf4b5] border border-gray-300 rounded text-gray-700 text-xs h-[30px] px-2 shadow-inner w-[90px]">
+                        @foreach (var y in Model.AvailableYears)
+                        {
+                            if (y == Model.Year) { @Html.Raw($"<option value='{y}' selected>{y}</option>") }
+                            else                 { @Html.Raw($"<option value='{y}'>{y}</option>") }
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Month</label>
+                    <select name="month" class="bg-[#fdf4b5] border border-gray-300 rounded text-gray-700 text-xs h-[30px] px-2 shadow-inner w-[115px]">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            if (m == Model.Month) { @Html.Raw($"<option value='{m}' selected>{monthNames[m - 1]}</option>") }
+                            else                  { @Html.Raw($"<option value='{m}'>{monthNames[m - 1]}</option>") }
+                        }
+                    </select>
+                </div>
+                <button type="submit"
+                        class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold py-1.5 px-4 rounded h-[30px] flex items-center gap-1.5 transition-colors">
+                    <i class="fas fa-search"></i>View History
+                </button>
+            </form>
+
+            <div class="text-xs text-gray-500 leading-tight">
+                <div class="font-semibold text-gray-700 text-sm">@monthNames[Model.Month - 1] @Model.Year</div>
+                @if (Model.JobRunId != null)
+                {
+                    <div class="font-mono text-gray-400 text-[10px]">Automation Job: @Model.JobRunId</div>
+                }
+                <div class="text-[10px] mt-0.5">
+                    <span class="@(Model.HasLogData ? "text-green-600" : "text-gray-400")">
+                        <i class="fas fa-circle text-[6px] mr-0.5"></i>Log: @(Model.HasLogData ? "found" : "none")
+                    </span>
+                    &nbsp;
+                    <span class="@(Model.HasTableData ? "text-teal-600" : "text-gray-400")">
+                        <i class="fas fa-circle text-[6px] mr-0.5"></i>Table data: @(Model.HasTableData ? "found" : "none")
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Processing Window -->
+        <div class="mt-4 pt-3 border-t border-dashed border-indigo-200">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg px-4 py-2.5 shadow-sm">
+                    <div class="w-9 h-9 bg-indigo-500 rounded-lg flex items-center justify-center shrink-0 shadow">
+                        <i class="fas fa-calendar-days text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-extrabold text-indigo-500 uppercase tracking-widest">Data Processing Window</div>
+                        <div class="text-sm font-bold text-indigo-900 mt-0.5 tabular-nums">
+                            @commPeriodFrom.ToString("MMM dd, yyyy") &nbsp;&rarr;&nbsp; @commPeriodTo.ToString("MMM dd, yyyy")
+                        </div>
+                    </div>
+                </div>
+                <div class="text-[11px] text-gray-500 leading-snug max-w-sm">
+                    <i class="fas fa-circle-info text-indigo-400 mr-1"></i>
+                    Commission for <strong class="text-gray-700">@monthNames[Model.Month - 1] @Model.Year</strong>
+                    processed source data falling within this date range.
+                    <span class="block text-[10px] text-gray-400 mt-0.5 italic">
+                        Formula: 21st of previous month &rarr; 20th of selected month
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Entries.Any())
+    {
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- OVERALL SUMMARY                                          -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="bg-white border border-gray-200 rounded shadow-sm p-4">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+                <span class="text-sm font-bold text-gray-700">
+                    <i class="fas fa-chart-bar text-slate-500 mr-1.5"></i>
+                    Overall Summary — @monthNames[Model.Month - 1] @Model.Year
+                </span>
+                <span class="text-sm font-bold text-gray-700">@overallPct%</span>
+            </div>
+
+            <!-- Progress bar (completed + already-processed + reconciled all count) -->
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-3 overflow-hidden flex">
+                @{
+                    var completedW        = totalCount > 0 ? (int)((completedCount        * 100.0) / totalCount) : 0;
+                    var alreadyW          = totalCount > 0 ? (int)((alreadyProcessedCount * 100.0) / totalCount) : 0;
+                    var reconciledW       = totalCount > 0 ? (int)((reconciledCount       * 100.0) / totalCount) : 0;
+                }
+                <div class="h-4 bg-green-500 transition-all" style="width:@completedW%"></div>
+                <div class="h-4 bg-amber-400 transition-all" style="width:@alreadyW%"></div>
+                <div class="h-4 bg-teal-500 transition-all" style="width:@reconciledW%"></div>
+            </div>
+
+            <!-- Status count cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-2 mb-3">
+                <div class="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-center">
+                    <div class="text-lg font-black text-green-700 tabular-nums">@completedCount</div>
+                    <div class="text-[10px] font-semibold text-green-600 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-0.5"></span>Completed
+                    </div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+                    <div class="text-lg font-black text-amber-700 tabular-nums">@alreadyProcessedCount</div>
+                    <div class="text-[10px] font-semibold text-amber-600 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 inline-block mr-0.5"></span>Already Processed
+                    </div>
+                </div>
+                <div class="bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-center">
+                    <div class="text-lg font-black text-teal-700 tabular-nums">@reconciledCount</div>
+                    <div class="text-[10px] font-semibold text-teal-600 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-teal-500 inline-block mr-0.5"></span>Processed
+                    </div>
+                </div>
+                <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
+                    <div class="text-lg font-black text-red-700 tabular-nums">@failedCount</div>
+                    <div class="text-[10px] font-semibold text-red-600 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-red-500 inline-block mr-0.5"></span>Failed
+                    </div>
+                </div>
+                <div class="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-center">
+                    <div class="text-lg font-black text-orange-700 tabular-nums">@noDataCount</div>
+                    <div class="text-[10px] font-semibold text-orange-600 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-orange-400 inline-block mr-0.5"></span>No MIS Data
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-center">
+                    <div class="text-lg font-black text-blue-700 tabular-nums">@runningCount</div>
+                    <div class="text-[10px] font-semibold text-blue-600 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-blue-400 inline-block mr-0.5"></span>Running
+                    </div>
+                </div>
+                <div class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-center">
+                    <div class="text-lg font-black text-gray-600 tabular-nums">@pendingCount</div>
+                    <div class="text-[10px] font-semibold text-gray-500 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-0.5"></span>Pending / None
+                    </div>
+                </div>
+                <div class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-center">
+                    <div class="text-lg font-black text-slate-700 tabular-nums">@totalCount</div>
+                    <div class="text-[10px] font-semibold text-slate-500 mt-0.5">
+                        <i class="fas fa-list-check text-slate-400 mr-0.5"></i>Total Tasks
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cities progress -->
+            <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
+                <span class="font-semibold text-gray-600 flex items-center gap-1">
+                    <i class="fas fa-city text-gray-400"></i>Cities Progress
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
+                    <span class="font-bold text-green-700">@citiesDone</span>
+                    <span class="text-gray-500">done (all 6 steps confirmed)</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block"></span>
+                    <span class="font-bold text-gray-600">@citiesRemaining</span>
+                    <span class="text-gray-500">remaining</span>
+                </span>
+                <span class="text-gray-400 ml-auto">
+                    Total: <strong>@citiesTotal</strong> cities
+                </span>
+            </div>
+        </div>
+
+        <!-- Evidence errors notice -->
+        @if (Model.EvidenceErrors.Any())
+        {
+            <div class="bg-amber-50 border border-amber-300 rounded shadow-sm px-4 py-3 text-xs text-amber-800">
+                <strong><i class="fas fa-exclamation-triangle mr-1"></i>Some table evidence queries failed:</strong>
+                The data for those commission types shows log-only status.
+                <div class="mt-1 space-y-0.5">
+                    @foreach (var kv in Model.EvidenceErrors)
+                    {
+                        <div class="font-mono text-[10px] text-amber-700">
+                            <span class="font-bold">@kv.Key:</span> @kv.Value
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- CITY-WISE STATUS GRID                                    -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="bg-white border border-gray-200 rounded shadow-sm">
+            <div class="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+                <h2 class="text-sm font-bold text-gray-700">
+                    <i class="fas fa-table text-blue-500 mr-1.5"></i>
+                    City-wise Commission Status — @monthNames[Model.Month - 1] @Model.Year
+                </h2>
+                <div class="flex items-center gap-3 text-[10px] text-gray-500">
+                    <span><i class="fas fa-database text-teal-500 mr-0.5"></i>Teal = reconciled from output table</span>
+                    <span>Columns = Steps 1–6</span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="border border-gray-200 px-3 py-2 text-left text-[10px] text-gray-400 font-semibold min-w-[130px]" rowspan="2">
+                                <div>City</div>
+                                <div class="text-[9px] font-normal text-gray-400">Zone / Code</div>
+                            </th>
+                            @foreach (var p in pipeline)
+                            {
+                                var c = stepColor[p.Color];
+                                <th class="border border-gray-200 px-2 py-1.5 text-center min-w-[118px] @c.light">
+                                    <div class="flex flex-col items-center gap-0.5">
+                                        <span class="@c.bg text-white text-[9px] font-black px-2 py-0.5 rounded-full">STEP @p.Step</span>
+                                        <span class="@c.text font-bold text-[11px] leading-tight">@p.Label</span>
+                                        <span class="text-gray-400 text-[9px]"><i class="@p.Icon mr-0.5"></i>@p.ShortLabel</span>
+                                    </div>
+                                </th>
+                            }
+                        </tr>
+                        <tr class="bg-gray-50 border-b-2 border-gray-300">
+                            @foreach (var p in pipeline)
+                            {
+                                <th class="border border-gray-200 px-2 py-1 text-center">
+                                    <span class="text-[9px] text-gray-400 font-mono">&#8594; @p.TableHint</span>
+                                </th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var city in cities)
+                        {
+                            var zone          = Model.CityZones.TryGetValue(city.CityCode, out var zn) ? zn : "—";
+                            var cityAllDone   = commTypes.All(ct => entryMap.TryGetValue(city.CityCode, out var m) && m.TryGetValue(ct, out var e) && IsDone(e.DerivedStatus));
+                            var cityHasFailed = commTypes.Any(ct => entryMap.TryGetValue(city.CityCode, out var m) && m.TryGetValue(ct, out var e) && e.DerivedStatus == "Failed");
+                            var rowBg = cityHasFailed ? "bg-red-50" : cityAllDone ? "bg-green-50" : "";
+
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 @rowBg">
+                                <td class="border border-gray-200 px-3 py-2">
+                                    <div class="font-bold text-gray-800 text-[12px]">@city.CityName</div>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="text-[10px] text-gray-400">
+                                            <i class="fas fa-map-marker-alt mr-0.5 text-rose-400"></i>@zone
+                                        </span>
+                                        <span class="text-[9px] text-gray-400 font-mono bg-gray-100 px-1 rounded">@city.CityCode</span>
+                                    </div>
+                                </td>
+                                @foreach (var p in pipeline)
+                                {
+                                    LCS_HR_MVC.Models.CommissionHistoryEntry? entry = null;
+                                    if (entryMap.TryGetValue(city.CityCode, out var typeMap))
+                                        typeMap.TryGetValue(p.Key, out entry);
+
+                                    <td class="border border-gray-200 px-2 py-1.5 text-center">
+                                        @CellContent(entry)
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Legend -->
+            <div class="px-4 py-2 border-t border-gray-100 bg-gray-50 flex flex-wrap gap-4 text-[10px] text-gray-500">
+                <span class="font-semibold text-gray-600 mr-1">Legend:</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-green-500 mr-1 align-middle"></span>Completed (log)</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-amber-400 mr-1 align-middle"></span>Already Processed</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-teal-500 mr-1 align-middle"></span>Processed (table data)</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-red-500 mr-1 align-middle"></span>Failed</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-orange-400 mr-1 align-middle"></span>No MIS Data</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-gray-300 mr-1 align-middle"></span>Pending / No History</span>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- COMMISSION DETAIL TABLE                                  -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="bg-white border border-gray-200 rounded shadow-sm">
+            <div class="px-4 py-2.5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h2 class="text-sm font-bold text-gray-700">
+                        <i class="fas fa-list-alt text-slate-500 mr-1.5"></i>
+                        Commission Detail — All Entries
+                    </h2>
+                    <p class="text-[11px] text-gray-400 mt-0.5">
+                        Every commission step for every city — status source, evidence rows, exact timing, retries, and errors.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <input type="text" id="detailSearch" placeholder="Search city / type / status..."
+                           oninput="filterDetailTable()"
+                           class="text-[11px] border border-gray-200 rounded px-2.5 py-1.5 w-52 focus:outline-none focus:ring-1 focus:ring-indigo-300 bg-gray-50">
+                    <select id="detailStatusFilter" onchange="filterDetailTable()"
+                            class="text-[11px] border border-gray-200 rounded px-2 py-1.5 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+                        <option value="">All Status</option>
+                        <option value="Completed">Completed</option>
+                        <option value="AlreadyProcessed">Already Processed</option>
+                        <option value="Processed">Processed</option>
+                        <option value="NoData">No MIS Data</option>
+                        <option value="Failed">Failed</option>
+                        <option value="Running">Running</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                    <span id="detailRowCount" class="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-mono">@totalCount rows</span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs border-collapse" id="detailTable">
+                    <thead>
+                        <tr class="bg-gray-50 border-b-2 border-gray-300 text-left">
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">#</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">City</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">Step</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">Commission Type</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">Status</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">Source</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap min-w-[160px]">
+                                <i class="fas fa-user text-indigo-400 mr-1"></i>Triggered By
+                            </th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">Date / Time</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">Duration</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap text-right">Rows</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap text-right">Retries</th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap text-center">
+                                <i class="fas fa-history text-purple-400 mr-1"></i>Audit
+                            </th>
+                            <th class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{int rowNum = 0;}
+                        @foreach (var entry in sortedEntries)
+                        {
+                            rowNum++;
+                            var auditId      = $"audit-{rowNum}";
+                            var pipelineStep = pipeline.FirstOrDefault(p => p.Key == entry.CommissionType);
+                            var stepLabel    = pipelineStep?.Label ?? entry.CommissionType;
+                            var stepNum      = pipelineStep?.Step ?? 0;
+                            var stepColorKey = pipelineStep?.Color ?? "blue";
+                            var sc           = stepColor[stepColorKey];
+
+                            var badgeCss = entry.DerivedStatus switch
+                            {
+                                "Completed"        => "bg-green-100 text-green-700 border border-green-200",
+                                "AlreadyProcessed" => "bg-amber-100 text-amber-700 border border-amber-200",
+                                "Processed"       => "bg-teal-100 text-teal-700 border border-teal-200",
+                                "NoData"           => "bg-orange-100 text-orange-700 border border-orange-200",
+                                "Failed"           => "bg-red-100 text-red-700 border border-red-200",
+                                "Running"          => "bg-blue-100 text-blue-700 border border-blue-200",
+                                _                  => "bg-gray-100 text-gray-500 border border-gray-200"
+                            };
+                            var statusDisplay = entry.DerivedStatus switch
+                            {
+                                "AlreadyProcessed" => "Already Processed",
+                                "NoData"           => "No MIS Data",
+                                "NoHistory"        => "No History",
+                                _ => entry.DerivedStatus
+                            };
+                            var statusIcon = entry.DerivedStatus switch
+                            {
+                                "Completed"        => "fas fa-check-circle text-green-600",
+                                "AlreadyProcessed" => "fas fa-clock text-amber-600",
+                                "Processed"       => "fas fa-database text-teal-600",
+                                "NoData"           => "fas fa-exclamation-triangle text-orange-500",
+                                "Failed"           => "fas fa-times-circle text-red-600",
+                                "Running"          => "fas fa-spinner fa-spin text-blue-600",
+                                _                  => "far fa-clock text-gray-400"
+                            };
+
+                            var sourceBadge = entry.StatusSource switch
+                            {
+                                "Both"  => "<span class='text-[9px] bg-indigo-100 text-indigo-700 border border-indigo-200 px-1 py-0.5 rounded font-bold'>Log+Table</span>",
+                                "Table" => "<span class='text-[9px] bg-teal-100 text-teal-700 border border-teal-200 px-1 py-0.5 rounded font-bold'>Table</span>",
+                                "Log"   => "<span class='text-[9px] bg-slate-100 text-slate-600 border border-slate-200 px-1 py-0.5 rounded font-bold'>Log</span>",
+                                _       => "<span class='text-[9px] text-gray-300'>—</span>"
+                            };
+
+                            var rowBgCss = entry.DerivedStatus switch
+                            {
+                                "Failed"     => "bg-red-50",
+                                "NoData"     => "bg-orange-50",
+                                "Processed" => "bg-teal-50",
+                                _ => ""
+                            };
+
+                            var logEntry = entry.LogEntry;
+                            TimeSpan? duration = null;
+                            if (logEntry?.StartedAt.HasValue == true && logEntry?.CompletedAt.HasValue == true)
+                                duration = logEntry.CompletedAt!.Value - logEntry.StartedAt!.Value;
+
+                            // ── Triggered-by display ─────────────────────────────────────
+                            // Priority: new triggered_by columns → evidence CreatedBy → parse error_message
+                            string? tbName = null;
+                            string? tbId   = null;
+                            string? tbType = null; // "automation" | "table" | "legacy"
+
+                            if (!string.IsNullOrWhiteSpace(logEntry?.TriggeredBy))
+                            {
+                                tbName = entry.TriggeredByUserName ?? logEntry.TriggeredBy;
+                                tbId   = logEntry.TriggeredByUserId;
+                                tbType = "automation";
+                            }
+                            else if (!string.IsNullOrWhiteSpace(entry.ProcessedByUserId))
+                            {
+                                tbName = entry.EvidenceUserName;
+                                tbId   = entry.ProcessedByUserId;
+                                tbType = "table";
+                            }
+                            else if (!string.IsNullOrWhiteSpace(logEntry?.ErrorMessage))
+                            {
+                                // Backward-compat: parse "... By: 123 (John)" or "User: 123 (John)"
+                                var em = logEntry.ErrorMessage;
+                                var byIdx = em.IndexOf("By:", StringComparison.OrdinalIgnoreCase);
+                                if (byIdx < 0) byIdx = em.IndexOf("User:", StringComparison.OrdinalIgnoreCase);
+                                if (byIdx >= 0)
+                                {
+                                    var afterBy = em[(byIdx + (em[byIdx] == 'B' ? 3 : 5))..].Trim();
+                                    // Expect: "123 (John Doe)" or just "123"
+                                    var parenOpen  = afterBy.IndexOf('(');
+                                    var parenClose = afterBy.IndexOf(')');
+                                    if (parenOpen > 0 && parenClose > parenOpen)
+                                    {
+                                        tbId   = afterBy[..parenOpen].Trim();
+                                        tbName = afterBy[(parenOpen + 1)..parenClose].Trim();
+                                    }
+                                    else
+                                    {
+                                        var space = afterBy.IndexOf(' ');
+                                        tbId   = space > 0 ? afterBy[..space] : afterBy;
+                                    }
+                                    tbType = "legacy";
+                                }
+                            }
+
+                            bool hasAuditTrail = entry.AllExecutions.Count > 0;
+
+                            // Date/time to show: prefer completedAt, fall back to processedAt
+                            var displayDt = logEntry?.CompletedAt ?? entry.ProcessedAt;
+
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 @rowBgCss detail-row"
+                                data-city="@entry.CityName.ToLower()"
+                                data-type="@entry.CommissionType.ToLower()"
+                                data-status="@entry.DerivedStatus">
+                                <!-- # -->
+                                <td class="px-3 py-2 text-gray-400 font-mono text-[10px]">@rowNum</td>
+                                <!-- City -->
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <div class="font-semibold text-gray-800">@entry.CityName</div>
+                                    <div class="text-[10px] text-gray-400 font-mono">@entry.CityCode</div>
+                                </td>
+                                <!-- Step -->
+                                <td class="px-3 py-2">
+                                    @if (stepNum > 0)
+                                    {
+                                        <span class="@sc.bg text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">@stepNum</span>
+                                    }
+                                </td>
+                                <!-- Commission Type -->
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <span class="@sc.text @sc.light @sc.border border px-1.5 py-0.5 rounded text-[10px] font-semibold">@stepLabel</span>
+                                </td>
+                                <!-- Status -->
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1 @badgeCss px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                        <i class="@statusIcon text-[9px]"></i>@statusDisplay
+                                    </span>
+                                    @if (entry.RetryCount > 0)
+                                    {
+                                        <div class="text-[9px] text-orange-500 font-bold mt-0.5">&#215;@entry.RetryCount retry</div>
+                                    }
+                                </td>
+                                <!-- Source -->
+                                <td class="px-3 py-2">@Html.Raw(sourceBadge)</td>
+                                <!-- Triggered By (NEW) -->
+                                <td class="px-3 py-2 whitespace-nowrap min-w-[150px]">
+                                    @if (tbName != null || tbId != null)
+                                    {
+                                        <div class="flex items-start gap-1.5">
+                                            <div class="w-5 h-5 rounded-full @(tbType == "automation" ? "bg-indigo-100" : tbType == "table" ? "bg-teal-100" : "bg-gray-100") flex items-center justify-center shrink-0 mt-0.5">
+                                                <i class="@(tbType == "automation" ? "fas fa-robot text-indigo-500" : tbType == "table" ? "fas fa-database text-teal-500" : "fas fa-user text-gray-400") text-[8px]"></i>
+                                            </div>
+                                            <div>
+                                                @if (tbName != null)
+                                                {
+                                                    <div class="font-semibold text-gray-800 text-[11px] leading-tight">@tbName</div>
+                                                }
+                                                @if (tbId != null)
+                                                {
+                                                    <div class="font-mono text-[10px] text-gray-400">ID: @tbId</div>
+                                                }
+                                                <div class="text-[9px] @(tbType == "automation" ? "text-indigo-400" : tbType == "table" ? "text-teal-500" : "text-gray-400") font-semibold mt-0.5 uppercase tracking-wide">
+                                                    @(tbType == "automation" ? "Automation" : tbType == "table" ? "Manual/Old" : "Legacy")
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-gray-300 text-[10px]">—</span>
+                                    }
+                                </td>
+                                <!-- Date / Time (merged started + completed) -->
+                                <td class="px-3 py-2 whitespace-nowrap font-mono text-[10px]">
+                                    @if (displayDt.HasValue)
+                                    {
+                                        <div class="font-semibold text-gray-700">@displayDt.Value.ToString("dd-MMM-yyyy")</div>
+                                        <div class="text-gray-400">@displayDt.Value.ToString("HH:mm:ss")</div>
+                                        @if (logEntry?.StartedAt.HasValue == true && logEntry.StartedAt != logEntry.CompletedAt)
+                                        {
+                                            <div class="text-[9px] text-gray-400 mt-0.5">
+                                                <span class="text-gray-300">start</span> @logEntry.StartedAt!.Value.ToString("HH:mm:ss")
+                                            </div>
+                                        }
+                                    }
+                                    else { <span class="text-gray-300">—</span> }
+                                </td>
+                                <!-- Duration -->
+                                <td class="px-3 py-2 whitespace-nowrap font-mono text-[10px] text-gray-500">
+                                    @if (duration.HasValue)
+                                    {
+                                        var d    = duration.Value;
+                                        var dStr = d.TotalMinutes >= 1 ? $"{(int)d.TotalMinutes}m {d.Seconds:D2}s" : $"{d.Seconds:D2}s";
+                                        <span class="bg-gray-100 px-1.5 py-0.5 rounded font-semibold">@dStr</span>
+                                    }
+                                    else { <span class="text-gray-300">—</span> }
+                                </td>
+                                <!-- Rows -->
+                                <td class="px-3 py-2 text-right whitespace-nowrap">
+                                    @if (entry.EvidenceRowCount > 0)
+                                    {
+                                        <span class="font-bold text-gray-700 tabular-nums">@entry.EvidenceRowCount.ToString("N0")</span>
+                                    }
+                                    else { <span class="text-gray-300 text-[10px]">—</span> }
+                                </td>
+                                <!-- Retries -->
+                                <td class="px-3 py-2 text-center">
+                                    @if (entry.RetryCount > 0)
+                                    {
+                                        <span class="font-bold text-orange-600">@entry.RetryCount</span>
+                                    }
+                                    else { <span class="text-gray-300">0</span> }
+                                </td>
+                                <!-- Audit Trail Toggle (NEW) -->
+                                <td class="px-3 py-2 text-center">
+                                    @if (hasAuditTrail)
+                                    {
+                                        <button type="button"
+                                                onclick="toggleAudit('@auditId', this)"
+                                                class="inline-flex items-center gap-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-[9px] font-bold px-2 py-1 rounded transition-colors">
+                                            <i class="fas fa-history text-[8px]"></i>
+                                            @entry.AllExecutions.Count run@(entry.AllExecutions.Count == 1 ? "" : "s")
+                                            <i class="fas fa-chevron-down text-[8px] audit-chevron"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-gray-200 text-[9px]">—</span>
+                                    }
+                                </td>
+                                <!-- Note -->
+                                <td class="px-3 py-2 max-w-[220px]">
+                                    @if (entry.DerivedStatus == "Failed" && !string.IsNullOrWhiteSpace(entry.ErrorMessage))
+                                    {
+                                        <div class="text-red-600 text-[10px] leading-snug" style="word-break:break-word">
+                                            <i class="fas fa-times-circle mr-0.5"></i>@entry.ErrorMessage
+                                        </div>
+                                    }
+                                    else if (entry.DerivedStatus == "NoData" && !string.IsNullOrWhiteSpace(entry.ErrorMessage))
+                                    {
+                                        <div class="text-orange-600 text-[10px] leading-snug">@entry.ErrorMessage</div>
+                                    }
+                                    else if (entry.DerivedStatus == "Processed" && entry.StatusSource == "Table")
+                                    {
+                                        <span class="text-teal-600 text-[10px]">
+                                            <i class="fas fa-database mr-0.5"></i>Output table only
+                                        </span>
+                                    }
+                                    else if (entry.DerivedStatus is "Completed" or "AlreadyProcessed")
+                                    {
+                                        <span class="text-green-500 text-[10px]"><i class="fas fa-check mr-0.5"></i>OK</span>
+                                    }
+                                    else { <span class="text-gray-300 text-[10px]">—</span> }
+                                </td>
+                            </tr>
+
+                            @if (hasAuditTrail)
+                            {
+                                <!-- ── Audit Trail hidden row ───────────────────────────── -->
+                                <tr id="@auditId" class="hidden audit-row">
+                                    <td colspan="13" class="px-0 py-0 border-b-2 border-purple-200">
+                                        <div class="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-3">
+                                            <div class="text-[10px] font-black text-purple-700 uppercase tracking-widest mb-2">
+                                                <i class="fas fa-history mr-1"></i>
+                                                Full Execution History — @entry.CityName (@entry.CityCode) · @stepLabel
+                                                <span class="ml-2 bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded-full font-bold">@entry.AllExecutions.Count run@(entry.AllExecutions.Count == 1 ? "" : "s")</span>
+                                            </div>
+                                            <div class="overflow-x-auto">
+                                                <table class="w-full text-[10px] border-collapse bg-white rounded shadow-sm overflow-hidden">
+                                                    <thead>
+                                                        <tr class="bg-purple-100 text-purple-800 text-[9px] font-bold uppercase">
+                                                            <th class="px-3 py-1.5 text-left whitespace-nowrap">Run #</th>
+                                                            <th class="px-3 py-1.5 text-left whitespace-nowrap">Source</th>
+                                                            <th class="px-3 py-1.5 text-left whitespace-nowrap">Job Run ID</th>
+                                                            <th class="px-3 py-1.5 text-left whitespace-nowrap">
+                                                                <i class="fas fa-user mr-0.5"></i>Triggered By
+                                                            </th>
+                                                            <th class="px-3 py-1.5 text-left whitespace-nowrap">User ID</th>
+                                                            <th class="px-3 py-1.5 text-left whitespace-nowrap">Status</th>
+                                                            <th class="px-3 py-1.5 text-left whitespace-nowrap">Started At</th>
+                                                            <th class="px-3 py-1.5 text-left whitespace-nowrap">Completed At</th>
+                                                            <th class="px-3 py-1.5 text-right whitespace-nowrap">Duration</th>
+                                                            <th class="px-3 py-1.5 text-right whitespace-nowrap">Rows</th>
+                                                            <th class="px-3 py-1.5 text-left">Note</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @{int runIdx = 0;}
+                                                        @foreach (var hist in entry.AllExecutions) // newest first (CommissionExecutionRecord)
+                                                        {
+                                                            runIdx++;
+
+                                                            var hBadge = hist.Status switch
+                                                            {
+                                                                "Completed"        => "bg-green-100 text-green-700",
+                                                                "AlreadyProcessed" => "bg-amber-100 text-amber-700",
+                                                                "Failed"           => "bg-red-100 text-red-700",
+                                                                "NoData"           => "bg-orange-100 text-orange-700",
+                                                                "Running"          => "bg-blue-100 text-blue-700",
+                                                                _                  => "bg-gray-100 text-gray-500"
+                                                            };
+
+                                                            var hSrcBadge = hist.ExecutionSource == "Automation"
+                                                                ? "bg-indigo-100 text-indigo-700"
+                                                                : "bg-teal-100 text-teal-700";
+
+                                                            var histUserName = !string.IsNullOrWhiteSpace(hist.TriggeredBy)
+                                                                ? hist.TriggeredBy : "—";
+
+                                                            // Duration — prefer DurationMs if stored, otherwise compute
+                                                            string? hDurStr = null;
+                                                            if (hist.DurationMs.HasValue)
+                                                            {
+                                                                var ms = hist.DurationMs.Value;
+                                                                hDurStr = ms >= 60000 ? $"{ms / 60000}m {(ms % 60000) / 1000}s"
+                                                                        : ms >= 1000  ? $"{ms / 1000}s"
+                                                                        : $"{ms}ms";
+                                                            }
+                                                            else if (hist.StartedAt.HasValue && hist.CompletedAt.HasValue)
+                                                            {
+                                                                var hd = hist.CompletedAt!.Value - hist.StartedAt!.Value;
+                                                                hDurStr = hd.TotalMinutes >= 1 ? $"{(int)hd.TotalMinutes}m {hd.Seconds}s" : $"{hd.Seconds}s";
+                                                            }
+
+                                                            <tr class="border-b border-purple-50 @(runIdx == 1 ? "bg-purple-50/50" : "bg-white") hover:bg-purple-50">
+                                                                <td class="px-3 py-1.5 text-purple-600 font-bold">
+                                                                    @if (runIdx == 1)
+                                                                    {
+                                                                        <span class="bg-purple-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full mr-1">LATEST</span>
+                                                                    }
+                                                                    @(entry.AllExecutions.Count - runIdx + 1)
+                                                                </td>
+                                                                <td class="px-3 py-1.5 whitespace-nowrap">
+                                                                    <span class="@hSrcBadge px-1.5 py-0.5 rounded text-[9px] font-semibold">@hist.ExecutionSource</span>
+                                                                </td>
+                                                                <td class="px-3 py-1.5 font-mono text-gray-500 text-[9px]">
+                                                                    @if (!string.IsNullOrWhiteSpace(hist.JobRunId))
+                                                                    {
+                                                                        @(hist.JobRunId[..Math.Min(12, hist.JobRunId.Length)])<text>&hellip;</text>
+                                                                    }
+                                                                    else { <span class="text-gray-300">—</span> }
+                                                                </td>
+                                                                <td class="px-3 py-1.5 whitespace-nowrap">
+                                                                    <div class="font-semibold text-gray-800">@histUserName</div>
+                                                                </td>
+                                                                <td class="px-3 py-1.5 font-mono text-gray-500">
+                                                                    @(hist.TriggeredByUserId ?? "—")
+                                                                </td>
+                                                                <td class="px-3 py-1.5 whitespace-nowrap">
+                                                                    <span class="@hBadge px-1.5 py-0.5 rounded text-[9px] font-semibold">
+                                                                        @(hist.Status == "AlreadyProcessed" ? "Already Proc." : hist.Status)
+                                                                    </span>
+                                                                </td>
+                                                                <td class="px-3 py-1.5 font-mono text-gray-600 whitespace-nowrap">
+                                                                    @if (hist.StartedAt.HasValue)
+                                                                    {
+                                                                        <div>@hist.StartedAt.Value.ToString("dd-MMM-yyyy")</div>
+                                                                        <div class="text-gray-400">@hist.StartedAt.Value.ToString("HH:mm:ss")</div>
+                                                                    }
+                                                                    else { <span class="text-gray-300">—</span> }
+                                                                </td>
+                                                                <td class="px-3 py-1.5 font-mono text-gray-600 whitespace-nowrap">
+                                                                    @if (hist.CompletedAt.HasValue)
+                                                                    {
+                                                                        <div>@hist.CompletedAt.Value.ToString("dd-MMM-yyyy")</div>
+                                                                        <div class="text-gray-400">@hist.CompletedAt.Value.ToString("HH:mm:ss")</div>
+                                                                    }
+                                                                    else { <span class="text-gray-300">—</span> }
+                                                                </td>
+                                                                <td class="px-3 py-1.5 text-right font-mono text-purple-600 whitespace-nowrap">
+                                                                    @(hDurStr ?? "—")
+                                                                </td>
+                                                                <td class="px-3 py-1.5 text-right font-bold text-gray-700 tabular-nums">
+                                                                    @(hist.RowsProcessed > 0 ? hist.RowsProcessed.ToString("N0") : "—")
+                                                                </td>
+                                                                <td class="px-3 py-1.5 text-[9px] text-gray-500 max-w-[220px]" style="word-break:break-word">
+                                                                    @if (!string.IsNullOrWhiteSpace(hist.ErrorMessage))
+                                                                    {
+                                                                        var nc = hist.Status == "Failed" ? "text-red-600" : hist.Status == "AlreadyProcessed" ? "text-amber-600" : "text-gray-500";
+                                                                        <span class="@nc">@hist.ErrorMessage</span>
+                                                                    }
+                                                                    else { <span class="text-gray-300">—</span> }
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- 7 COMMISSIONS CONTEXT                                    -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="bg-white border border-gray-200 rounded shadow-sm">
+            <div class="px-4 py-3 border-b border-gray-100">
+                <h2 class="text-sm font-bold text-gray-700">
+                    <i class="fas fa-info-circle text-amber-500 mr-1.5"></i>
+                    Commission Coverage — 7 Total (6 Automated + 1 Manual Tool)
+                </h2>
+                <p class="text-[11px] text-gray-400 mt-0.5">
+                    History above shows the 6 automated pipeline steps. Employee Reprocess is a manual tool — no log entries in this view.
+                </p>
+            </div>
+            <div class="p-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                @foreach (var p in pipeline)
+                {
+                    var c = stepColor[p.Color];
+                    <div class="border @c.border @c.light rounded-lg p-3 flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                            <span class="@c.bg text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0">@p.Step</span>
+                            <i class="@p.Icon @c.text text-xs"></i>
+                        </div>
+                        <div class="text-[11px] font-bold @c.text leading-tight">@p.Label</div>
+                        <div class="text-[9px] font-mono text-gray-400 leading-snug">@p.TableHint</div>
+                        <span class="inline-block bg-green-100 text-green-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full w-fit mt-auto">
+                            <i class="fas fa-robot mr-0.5"></i>Automated
+                        </span>
+                    </div>
+                }
+                <div class="border border-amber-200 bg-amber-50 rounded-lg p-3 flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-amber-400 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0">7</span>
+                        <i class="fas fa-user-cog text-amber-700 text-xs"></i>
+                    </div>
+                    <div class="text-[11px] font-bold text-amber-700 leading-tight">Employee Commission Reprocess</div>
+                    <div class="text-[9px] font-mono text-gray-400 leading-snug">hr_commissionprocess (emp-scoped)</div>
+                    <span class="inline-block bg-amber-100 text-amber-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full w-fit border border-amber-300 mt-auto">
+                        <i class="fas fa-hand-pointer mr-0.5"></i>Manual Only
+                    </span>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white border border-gray-200 rounded shadow-sm p-12 text-center text-gray-400">
+            <i class="fas fa-history text-6xl mb-4 opacity-10"></i>
+            <p class="text-base font-semibold text-gray-500">No commission history for @monthNames[Model.Month - 1] @Model.Year</p>
+            <p class="text-sm mt-2 text-gray-400">
+                Neither the automation log nor any commission output table contains data for this month.
+            </p>
+            <div class="mt-4 flex flex-wrap justify-center gap-3">
+                <a href="/Automation/Commission?year=@Model.Year&month=@Model.Month"
+                   class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded transition-colors">
+                    <i class="fas fa-play"></i>Go to Automation — @monthNames[Model.Month - 1] @Model.Year
+                </a>
+            </div>
+            <div class="mt-4 text-[11px] text-gray-400">
+                Tip: Try selecting a different month/year to view existing history.
+            </div>
+        </div>
+    }
+
+</div>
+
+@functions {
+    string BadgeCss(string status) => status switch
+    {
+        "Completed"        => "bg-green-100 text-green-700 border border-green-300",
+        "AlreadyProcessed" => "bg-amber-100 text-amber-700 border border-amber-300",
+        "Processed"       => "bg-teal-100 text-teal-700 border border-teal-300",
+        "NoData"           => "bg-orange-100 text-orange-700 border border-orange-300",
+        "Failed"           => "bg-red-100 text-red-700 border border-red-300",
+        "Running"          => "bg-blue-100 text-blue-700 border border-blue-300",
+        _                  => "bg-gray-100 text-gray-400 border border-gray-200"
+    };
+
+    IHtmlContent CellContent(LCS_HR_MVC.Models.CommissionHistoryEntry? entry)
+    {
+        var status       = entry?.DerivedStatus ?? "NoHistory";
+        var retries      = entry?.RetryCount ?? 0;
+        var errMsg       = entry?.ErrorMessage;
+        var processedAt  = entry?.ProcessedAt;
+        var rowCount     = entry?.EvidenceRowCount ?? 0;
+        var statusSource = entry?.StatusSource ?? "None";
+        var logEntry     = entry?.LogEntry;
+
+        var css  = BadgeCss(status);
+        var icon = status switch
+        {
+            "Completed"        => "<i class='fas fa-check-circle'></i>",
+            "AlreadyProcessed" => "<i class='fas fa-clock'></i>",
+            "Processed"       => "<i class='fas fa-database'></i>",
+            "NoData"           => "<i class='fas fa-exclamation-triangle'></i>",
+            "Failed"           => "<i class='fas fa-times-circle'></i>",
+            "Running"          => "<i class='fas fa-spinner fa-spin'></i>",
+            _                  => "<i class='far fa-clock'></i>"
+        };
+        var displayText = status switch
+        {
+            "AlreadyProcessed" => "Already Processed",
+            "NoData"           => "No MIS Data",
+            "NoHistory"        => "No History",
+            _ => status
+        };
+        var tip = !string.IsNullOrWhiteSpace(errMsg)
+            ? $" title=\"{System.Web.HttpUtility.HtmlAttributeEncode(errMsg)}\""
+            : "";
+
+        // Progress bar
+        var (barColor, barWidth) = status switch
+        {
+            "Completed"        => ("bg-green-500",  100),
+            "AlreadyProcessed" => ("bg-amber-400",  100),
+            "Processed"       => ("bg-teal-500",   100),
+            "Failed"           => ("bg-red-400",    100),
+            "NoData"           => ("bg-orange-400", 0),
+            "Running"          => ("bg-blue-400",   50),
+            _                  => ("bg-gray-200",   0)
+        };
+        var progressBarHtml = $@"<div class='w-full rounded-full overflow-hidden bg-gray-100 mt-0.5' style='height:3px'>
+            <div class='h-full rounded-full {barColor} transition-all duration-700' style='width:{barWidth}%'></div>
+        </div>";
+
+        // Row count line
+        var countHtml = "";
+        if (rowCount > 0 && status is "Completed" or "Processed" or "AlreadyProcessed")
+        {
+            var countCss = status == "Processed" ? "text-teal-700" : status == "AlreadyProcessed" ? "text-amber-700" : "text-green-700";
+            countHtml = $"<span class='text-[9px] {countCss} font-semibold mt-0.5 tabular-nums'>{rowCount:N0} rows</span>";
+        }
+
+        // Timing line (from log entry or ProcessedAt from table evidence)
+        var timingHtml = "";
+        if (logEntry?.StartedAt.HasValue == true)
+            timingHtml += $"<div class='text-[9px] text-gray-400 mt-0.5'><i class='fas fa-play text-[7px] mr-0.5'></i>{logEntry.StartedAt!.Value:HH:mm:ss}</div>";
+        if (logEntry?.CompletedAt.HasValue == true)
+            timingHtml += $"<div class='text-[9px] text-gray-400'><i class='fas fa-stop text-[7px] mr-0.5'></i>{logEntry.CompletedAt!.Value:HH:mm:ss}</div>";
+        else if (processedAt.HasValue && logEntry == null)
+            timingHtml += $"<div class='text-[9px] text-teal-500 mt-0.5'><i class='fas fa-database text-[7px] mr-0.5'></i>{processedAt.Value:HH:mm:ss}</div>";
+
+        // AlreadyProcessed date info
+        var alreadyInfoHtml = "";
+        if (status == "AlreadyProcessed" && !string.IsNullOrWhiteSpace(errMsg))
+        {
+            var infoEncoded = System.Web.HttpUtility.HtmlEncode(errMsg.Replace("Already Processed on ", "").TrimEnd('.'));
+            alreadyInfoHtml = $"<div class='text-[9px] text-amber-600 font-semibold mt-0.5 leading-snug text-center max-w-full px-1' style='word-break:break-word'>{infoEncoded}</div>";
+        }
+
+        // Processed source indicator
+        var reconciledInfoHtml = "";
+        if (status == "Processed")
+        {
+            var srcLabel = statusSource == "Both" ? "Log + Table" : "Table only";
+            reconciledInfoHtml = $"<div class='text-[9px] text-teal-600 font-semibold mt-0.5 leading-snug text-center px-1'>{srcLabel}</div>";
+        }
+
+        // Retry badge
+        var retryHtml = retries > 0
+            ? $"<span class='text-[9px] text-orange-500 font-bold'>&#215;{retries} retry</span>"
+            : "";
+
+        var html = $@"<div class='flex flex-col items-center gap-0.5 w-full'>
+            <span class='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold {css}'{tip}>
+                {icon} {displayText}
+            </span>
+            {progressBarHtml}
+            {alreadyInfoHtml}
+            {reconciledInfoHtml}
+            {countHtml}
+            {retryHtml}
+            {timingHtml}
+        </div>";
+
+        return new Microsoft.AspNetCore.Html.HtmlString(html);
+    }
+}
+
+@section Scripts {
+<script>
+function filterDetailTable() {
+    var searchVal    = (document.getElementById('detailSearch').value || '').toLowerCase();
+    var statusFilter = (document.getElementById('detailStatusFilter').value || '').toLowerCase();
+    var rows         = document.querySelectorAll('#detailTable .detail-row');
+    var visible      = 0;
+    rows.forEach(function(row) {
+        var city   = (row.dataset.city   || '');
+        var type   = (row.dataset.type   || '');
+        var status = (row.dataset.status || '').toLowerCase();
+        var matchSearch = !searchVal || city.indexOf(searchVal) !== -1 || type.indexOf(searchVal) !== -1 || status.indexOf(searchVal) !== -1;
+        var matchStatus = !statusFilter || status === statusFilter;
+        var show = matchSearch && matchStatus;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+        // Also hide corresponding audit row when main row is hidden
+        var nextRow = row.nextElementSibling;
+        if (nextRow && nextRow.classList.contains('audit-row')) {
+            if (!show) nextRow.style.display = 'none';
+        }
+    });
+    var cnt = document.getElementById('detailRowCount');
+    if (cnt) cnt.textContent = visible + ' row' + (visible !== 1 ? 's' : '');
+}
+
+function toggleAudit(id, btn) {
+    var row = document.getElementById(id);
+    if (!row) return;
+    var isHidden = row.classList.contains('hidden') || row.style.display === 'none';
+    if (isHidden) {
+        row.classList.remove('hidden');
+        row.style.display = '';
+        btn.classList.add('bg-purple-200');
+        var chev = btn.querySelector('.audit-chevron');
+        if (chev) { chev.classList.remove('fa-chevron-down'); chev.classList.add('fa-chevron-up'); }
+    } else {
+        row.classList.add('hidden');
+        row.style.display = 'none';
+        btn.classList.remove('bg-purple-200');
+        var chev = btn.querySelector('.audit-chevron');
+        if (chev) { chev.classList.remove('fa-chevron-up'); chev.classList.add('fa-chevron-down'); }
+    }
+}
+</script>
+}

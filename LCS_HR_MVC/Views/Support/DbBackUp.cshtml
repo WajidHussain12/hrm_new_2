@@ -1,0 +1,194 @@
+@model LCS_HR_MVC.Models.Support.DbBackUpViewModel
+@{
+    ViewData["Title"] = "Database Backup Nexus";
+    ViewData["PageTitle"] = "Database Backup";
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Backup Table styling */
+        .backup-table thead th {
+            @@apply tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-[0.15em] tw-py-4 tw-px-5 tw-border-b-2 tw-border-slate-100 !important;
+        }
+        .backup-table tbody tr {
+            @@apply tw-border-b tw-border-slate-50 tw-transition-colors hover:tw-bg-amber-50/30;
+        }
+        .backup-table tbody td {
+            @@apply tw-py-4 tw-px-5 tw-align-middle tw-text-sm;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-sm">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-sm">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-amber-500 tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-hdd tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Maintenance</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Storage Ops</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Database Backup Nexus</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Snapshot systemic datasets into compressed archives following the legacy ERP redundancy protocols.</p>
+        </div>
+    </div>
+
+    <div class="tw-space-y-6">
+        <!-- Action Control Panel -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+            <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none z-0"></div>
+
+            <div class="tw-relative tw-z-10 tw-p-6 sm:tw-p-8 tw-flex tw-flex-col lg:tw-flex-row lg:tw-items-center lg:tw-justify-between tw-gap-6">
+                <div class="tw-flex tw-items-center tw-gap-5">
+                    <div class="tw-w-14 tw-h-14 tw-rounded-2xl tw-bg-gradient-to-br tw-from-slate-900 tw-to-slate-800 tw-flex tw-items-center tw-justify-center tw-shadow-xl tw-shrink-0">
+                        <i class="fas fa-cloud-upload-alt tw-text-amber-400 tw-text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="tw-font-black tw-text-xl tw-text-slate-800 tw-tracking-tight">Execute Snapshot</h2>
+                        <p class="tw-text-xs tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mt-1">Initialize redundant storage cycle</p>
+                    </div>
+                </div>
+
+                <form asp-action="DbBackUp" method="post" class="tw-flex tw-items-center tw-gap-3">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" name="action" value="Backup" 
+                            class="tw-flex tw-items-center tw-justify-center tw-gap-3 tw-py-4 tw-px-8 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-2xl tw-font-black tw-text-xs tw-tracking-widest tw-uppercase tw-shadow-[0_8px_25px_rgba(245,197,24,0.3)] hover:tw-shadow-[0_10px_30px_rgba(245,197,24,0.4)] hover:tw--translate-y-0.5 tw-transition-all">
+                        <i class="fas fa-database tw-text-sm"></i> Commit Backup
+                    </button>
+                    <button type="submit" name="action" value="Reset" formnovalidate
+                            class="tw-inline-flex tw-items-center tw-justify-center tw-w-14 tw-h-14 tw-bg-white tw-text-slate-400 tw-border-2 tw-border-slate-100 tw-rounded-2xl hover:tw-bg-slate-50 hover:tw-text-slate-900 hover:tw-border-slate-200 tw-transition-all shadow-sm">
+                        <i class="fas fa-undo-alt"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Registry Map -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+            <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-bg-slate-50/80">
+                <div class="tw-flex tw-items-center tw-gap-4">
+                    <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-white tw-border tw-border-slate-200 tw-flex tw-items-center tw-justify-center tw-shadow-sm">
+                        <i class="fas fa-archive tw-text-slate-400 tw-text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="tw-font-black tw-text-base tw-text-slate-800 tw-tracking-tight">Archive Registry</h2>
+                        <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">Existing Backup Logs</p>
+                    </div>
+                </div>
+                @if (Model.Backups.Count == 0)
+                {
+                    <span class="tw-text-xs tw-font-bold tw-text-slate-400 tw-italic">Registry Empty</span>
+                }
+            </div>
+
+            <div class="tw-relative tw-z-10 tw-p-6">
+                @if (Model.Backups.Count > 0)
+                {
+                    <div class="tw-overflow-x-auto custom-scrollbar tw-rounded-2xl tw-border tw-border-slate-100">
+                        <table class="tw-w-full backup-table">
+                            <thead>
+                                <tr>
+                                    <th>Volume Label</th>
+                                    <th>Temporal Stamp</th>
+                                    <th class="tw-text-right">Payload Size</th>
+                                    <th class="tw-text-right tw-pr-4">Nexus Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="tw-divide-y tw-divide-slate-100">
+                                @foreach (var file in Model.Backups)
+                                {
+                                    <tr class="hover:tw-bg-slate-50 tw-transition-colors group">
+                                        <td>
+                                            <div class="tw-flex tw-items-center tw-gap-3">
+                                                <i class="far fa-file-archive tw-text-slate-300 group-hover:tw-text-amber-500 tw-transition-colors"></i>
+                                                <span class="tw-font-mono tw-text-xs tw-font-bold tw-text-slate-700">@file.FileName</span>
+                                                @if (string.Equals(Model.LatestFileName, file.FileName, StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="tw-px-2 tw-py-0.5 tw-bg-emerald-50 tw-text-emerald-600 tw-border tw-border-emerald-100 tw-rounded tw-text-[9px] tw-font-black tw-uppercase tw-tracking-widest">LATEST</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="tw-text-xs tw-font-bold tw-text-slate-500">@file.LastModified.ToString("dd MMM yyyy")</span>
+                                            <span class="tw-text-[10px] tw-text-slate-400 tw-ml-1">@file.LastModified.ToString("HH:mm")</span>
+                                        </td>
+                                        <td class="tw-text-right">
+                                            <span class="tw-text-xs tw-font-mono tw-font-bold tw-text-slate-600">@((file.Length / 1024d).ToString("N2")) KB</span>
+                                        </td>
+                                        <td class="tw-text-right tw-pr-4">
+                                            <a class="tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-py-2 tw-px-4 tw-bg-slate-900 tw-text-white tw-rounded-lg tw-font-black tw-text-[10px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-800 tw-transition-all tw-shadow-sm"
+                                               asp-action="DownloadBackup" asp-route-fileName="@file.FileName">
+                                                <i class="fas fa-download tw-text-[10px]"></i> Pull Volume
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="tw-py-20 tw-text-center">
+                        <div class="tw-w-20 tw-h-20 tw-bg-slate-50 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-mx-auto tw-mb-4">
+                            <i class="fas fa-ghost tw-text-3xl tw-text-slate-200"></i>
+                        </div>
+                        <h3 class="tw-text-slate-400 tw-font-bold tw-text-sm">No backup volumes detected in systemic repository.</h3>
+                        <p class="tw-text-slate-300 tw-text-xs tw-mt-1">Initiate a commit to create your first archive.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

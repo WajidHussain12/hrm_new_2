@@ -1,0 +1,1785 @@
+@model LCS_HR_MVC.Models.CommissionAutomationDashboardViewModel
+@using Microsoft.AspNetCore.Html
+@{
+    ViewData["PageTitle"] = "Commission Automation";
+
+    var monthNames = new[]
+    {
+        "January","February","March","April","May","June",
+        "July","August","September","October","November","December"
+    };
+
+    // Commission pipeline definition (order matters)
+    var pipeline = new[]
+    {
+        new { Key = "CashCommission",      Step = 1, Label = "Cash Commission",            ShortLabel = "Cash",        Icon = "fas fa-money-bill-wave",    Color = "blue",   WritesTo = "hr_cash_consignments",                              Desc = "Processes cash delivery commissions from billing system for the selected period." },
+        new { Key = "CodCommission",       Step = 2, Label = "COD Commission",              ShortLabel = "COD",         Icon = "fas fa-hand-holding-usd",   Color = "purple", WritesTo = "hr_cod_consignments, hr_all_cod_consignment",       Desc = "Processes Cash-on-Delivery commissions including activity rows and return shipments." },
+        new { Key = "OverLandCommission",  Step = 3, Label = "OverLand Commission",         ShortLabel = "Overland",    Icon = "fas fa-truck",              Color = "orange", WritesTo = "hr_cash_consignments (OLE/RBI rows)",               Desc = "Processes overland/inter-city delivery commissions and route-based incentives." },
+        new { Key = "ReturnCodCommission", Step = 4, Label = "Return COD Commission",       ShortLabel = "Return COD",  Icon = "fas fa-undo-alt",           Color = "rose",   WritesTo = "cod_returnshipments, hr_codreturncommissionprocess", Desc = "Processes return COD shipment commissions grouped by employee." },
+        new { Key = "CommissionProcess",   Step = 5, Label = "Commission Process (Master)", ShortLabel = "Master",      Icon = "fas fa-layer-group",        Color = "green",  WritesTo = "hr_commissionprocess",                              Desc = "Master commission consolidation — aggregates all 4 prerequisite types into final records." },
+        new { Key = "FinalCommission",     Step = 6, Label = "Final Commission",            ShortLabel = "Final",       Icon = "fas fa-flag-checkered",     Color = "indigo", WritesTo = "is_final_commission_process",                       Desc = "Finalizes and locks commission for the month — confirms all records are complete and prevents re-processing for the selected period." },
+    };
+
+    var stepColor = new Dictionary<string, (string bg, string text, string border, string light)>
+    {
+        ["blue"]   = ("bg-blue-500",   "text-blue-700",   "border-blue-300",   "bg-blue-50"),
+        ["purple"] = ("bg-purple-500", "text-purple-700", "border-purple-300", "bg-purple-50"),
+        ["orange"] = ("bg-orange-500", "text-orange-700", "border-orange-300", "bg-orange-50"),
+        ["rose"]   = ("bg-rose-500",   "text-rose-700",   "border-rose-300",   "bg-rose-50"),
+        ["green"]  = ("bg-green-600",  "text-green-700",  "border-green-300",  "bg-green-50"),
+        ["indigo"] = ("bg-indigo-600", "text-indigo-700", "border-indigo-300", "bg-indigo-50"),
+    };
+
+    var commTypes = pipeline.Select(p => p.Key).ToArray();
+
+    // Status priority: when a city has duplicate entries for the same commission type
+    // (e.g. a Failed row from bulk-update + a re-attempted row), keep the most relevant one.
+    // Priority order: Completed/AlreadyProcessed > Running > Pending > NoData > Failed
+    // Within equal priority, the latest UpdatedAt wins.
+    var statusPriority = new Dictionary<string, int>
+    {
+        ["Completed"]        = 5,
+        ["AlreadyProcessed"] = 5,
+        ["Running"]          = 4,
+        ["Pending"]          = 3,
+        ["NoData"]           = 2,
+        ["Failed"]           = 1,
+    };
+    var entryMap = Model.Entries
+        .GroupBy(e => e.CityCode)
+        .ToDictionary(g => g.Key, g => g
+            .GroupBy(e => e.CommissionType)
+            .ToDictionary(
+                cg => cg.Key,
+                cg => cg.OrderByDescending(e => statusPriority.GetValueOrDefault(e.Status, 0))
+                         .ThenByDescending(e => e.UpdatedAt)
+                         .First()));
+
+    var cities = Model.Entries
+        .Select(e => new { e.CityCode, e.CityName })
+        .Distinct()
+        .OrderBy(c => c.CityName)
+        .ToList();
+
+    var totalCount            = Model.Entries.Count;
+    var completedCount        = Model.Entries.Count(e => e.Status == "Completed");
+    var alreadyProcessedCount = Model.Entries.Count(e => e.Status == "AlreadyProcessed");
+    var noDataCount           = Model.Entries.Count(e => e.Status == "NoData");
+    var failedCount           = Model.Entries.Count(e => e.Status == "Failed");
+    var runningCount          = Model.Entries.Count(e => e.Status == "Running");
+    var pendingCount          = Model.Entries.Count(e => e.Status == "Pending");
+    var overallPct            = totalCount > 0 ? (int)(((completedCount + alreadyProcessedCount) * 100.0) / totalCount) : 0;
+
+    // City-level stats (a city is "done" when ALL 6 commissions are Completed or AlreadyProcessed).
+    // NoData (FinalCommission had no MIS rows) does NOT count as done — city stays in "remaining"
+    // until MIS data is uploaded and automation is re-run.
+    var citiesTotal     = cities.Count;
+    var citiesDone      = cities.Count(c => commTypes.All(ct =>
+                            entryMap.TryGetValue(c.CityCode, out var m) &&
+                            m.TryGetValue(ct, out var e) && (e.Status == "Completed" || e.Status == "AlreadyProcessed")));
+    var citiesRunning   = cities.Count(c => !commTypes.All(ct =>
+                            entryMap.TryGetValue(c.CityCode, out var m) &&
+                            m.TryGetValue(ct, out var e) && e.Status == "Completed") &&
+                          commTypes.Any(ct =>
+                            entryMap.TryGetValue(c.CityCode, out var m2) &&
+                            m2.TryGetValue(ct, out var e2) && e2.Status == "Running"));
+    var citiesRemaining = citiesTotal - citiesDone;
+
+    var today    = DateTime.Today;
+    bool inWindow = today.Day >= 26 || today.Day <= 3;
+
+    // Currently-running entry (for the live banner)
+    var runningEntry = Model.Entries.FirstOrDefault(e => e.Status == "Running");
+
+    // Data processing window for the selected commission period
+    // Rule: From = 21st of previous month, To = 20th of selected month
+    var commPeriodFrom = new DateTime(Model.Year, Model.Month, 21).AddMonths(-1);
+    var commPeriodTo   = new DateTime(Model.Year, Model.Month, 20);
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded mb-3 text-sm">
+        <i class="fas fa-exclamation-circle mr-1"></i><strong>Error:</strong> @TempData["ErrorMessage"]
+    </div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded mb-3 text-sm">
+        <i class="fas fa-check-circle mr-1"></i><strong>Started:</strong> @TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ValidationFailed"] != null)
+{
+    var vr = System.Text.Json.JsonSerializer.Deserialize<LCS_HR_MVC.Models.CommissionBaseDataValidationResult>(
+                 TempData["ValidationFailed"]!.ToString()!,
+                 new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+    if (vr != null)
+    {
+        <div class="bg-amber-50 border border-amber-400 rounded shadow-sm mb-3 overflow-hidden">
+            <!-- Header -->
+            <div class="bg-amber-500 text-white px-4 py-3 flex items-center gap-3">
+                <i class="fas fa-exclamation-triangle text-xl"></i>
+                <div>
+                    <div class="font-bold text-sm">Base Data Validation Failed — Cannot Start Automation</div>
+                    <div class="text-[11px] text-amber-100">
+                        One or more source tables do not have data for the required commission period.
+                    </div>
+                </div>
+            </div>
+            <!-- Period info -->
+            <div class="px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex flex-wrap gap-4 text-xs text-amber-800">
+                <span><i class="fas fa-calendar-alt mr-1"></i><strong>Commission Period:</strong>
+                    @monthNames[vr.Month - 1] @vr.Year</span>
+                <span><i class="fas fa-arrow-right mr-1"></i><strong>Required Data Range:</strong>
+                    @vr.RequiredFrom.ToString("MMM dd, yyyy") — @vr.RequiredTo.ToString("MMM dd, yyyy")</span>
+            </div>
+            <!-- Checks table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead class="bg-amber-100 border-b border-amber-200">
+                        <tr>
+                            <th class="text-left px-4 py-2 text-amber-700 font-bold">Commission Type</th>
+                            <th class="text-left px-4 py-2 text-amber-700 font-bold">Source Table</th>
+                            <th class="text-left px-4 py-2 text-amber-700 font-bold">Connection</th>
+                            <th class="text-center px-4 py-2 text-amber-700 font-bold">Status</th>
+                            <th class="text-right px-4 py-2 text-amber-700 font-bold">Rows Found</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tc in vr.TableChecks)
+                        {
+                            var rowOk = tc.ConnectionAvailable && tc.HasData;
+                            var rowBgCss = rowOk ? "bg-green-50" : "bg-red-50";
+                            <tr class="border-b border-amber-100 @rowBgCss">
+                                <td class="px-4 py-2">
+                                    @{
+                                        var labelColor = tc.CommissionType switch
+                                        {
+                                            "CashCommission"      => "bg-blue-100 text-blue-700",
+                                            "CodCommission"       => "bg-purple-100 text-purple-700",
+                                            "OverLandCommission"  => "bg-orange-100 text-orange-700",
+                                            "ReturnCodCommission" => "bg-rose-100 text-rose-700",
+                                            _                     => "bg-gray-100 text-gray-600"
+                                        };
+                                    }
+                                    <span class="@labelColor px-1.5 py-0.5 rounded text-[10px] font-semibold">@tc.CommissionType</span>
+                                    <div class="text-[10px] text-gray-500 mt-0.5">@tc.Label</div>
+                                </td>
+                                <td class="px-4 py-2 font-mono text-[10px] text-gray-700">@tc.TableName</td>
+                                <td class="px-4 py-2 text-[10px] text-gray-600">@tc.ConnectionName</td>
+                                <td class="px-4 py-2 text-center">
+                                    @if (!tc.ConnectionAvailable)
+                                    {
+                                        <span class="inline-flex items-center gap-1 bg-red-100 text-red-700 border border-red-300 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                            <i class="fas fa-plug-circle-exclamation"></i> Connection Failed
+                                        </span>
+                                        <div class="text-[9px] text-red-500 mt-0.5 max-w-[200px] mx-auto">@tc.ConnectionError</div>
+                                    }
+                                    else if (!tc.HasData)
+                                    {
+                                        <span class="inline-flex items-center gap-1 bg-red-100 text-red-700 border border-red-300 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                            <i class="fas fa-database"></i> No Data Found
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1 bg-green-100 text-green-700 border border-green-300 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                            <i class="fas fa-check-circle"></i> Data Available
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-4 py-2 text-right font-bold tabular-nums @(rowOk ? "text-green-700" : "text-red-600")">
+                                    @if (tc.ConnectionAvailable)
+                                    {
+                                        @(tc.HasData ? "✓" : "0")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-gray-400">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <!-- Footer -->
+            <div class="px-4 py-3 bg-amber-50 border-t border-amber-200 text-[11px] text-amber-700 flex items-start gap-2">
+                <i class="fas fa-info-circle mt-0.5 shrink-0"></i>
+                <div>
+                    <strong>What to do:</strong> Ensure the source systems have been updated with data for the period
+                    <strong>@vr.RequiredFrom.ToString("MMM dd, yyyy") to @vr.RequiredTo.ToString("MMM dd, yyyy")</strong>
+                    before running automation. Contact the respective team to upload or sync the missing data.
+                </div>
+            </div>
+        </div>
+    }
+}
+
+<div class="w-full space-y-4">
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 1 — PIPELINE OVERVIEW (always visible)             -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="bg-white border border-gray-200 rounded shadow-sm">
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-sm font-bold text-gray-700">
+                    <i class="fas fa-sitemap text-amber-500 mr-1.5"></i>
+                    Commission Pipeline — Execution Order
+                </h2>
+                <p class="text-[11px] text-gray-400 mt-0.5">
+                    Each city runs through all 6 steps below <strong>in this exact order</strong>, one at a time.
+                    Step 5 (Master) requires Steps 1–4 complete. Step 6 (Final) locks the month.
+                </p>
+            </div>
+            @if (inWindow)
+            {
+                <div class="bg-amber-50 border border-amber-300 text-amber-700 px-3 py-1.5 rounded text-[11px] font-semibold shrink-0">
+                    <i class="fas fa-calendar-check mr-1"></i>Processing window active (26th – 3rd)
+                </div>
+            }
+        </div>
+
+        <div class="p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            @foreach (var p in pipeline)
+            {
+                var c = stepColor[p.Color];
+                <div class="relative flex flex-col border @c.border @c.light rounded-lg p-3">
+                    <!-- Step badge -->
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="@c.bg text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0">@p.Step</span>
+                        <i class="@p.Icon @c.text text-sm"></i>
+                        <span class="text-[11px] font-bold @c.text leading-tight">@p.Label</span>
+                    </div>
+                    <p class="text-[10px] text-gray-500 leading-snug mb-2 flex-1">@p.Desc</p>
+                    <div class="text-[9px] text-gray-400 mt-auto pt-1 border-t border-gray-200">
+                        <i class="fas fa-database mr-0.5"></i>Writes to: <span class="font-mono">@p.WritesTo</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 2 — CONTROLS (Year/Month + Start Button)           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="bg-white border border-gray-200 rounded shadow-sm p-4">
+        <div class="flex flex-wrap gap-6 items-end">
+
+            <!-- Year / Month picker -->
+            <form method="get" asp-action="Commission" class="flex flex-wrap items-end gap-3" id="viewCommissionForm">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Year</label>
+                    <select name="year" class="bg-[#fdf4b5] border border-gray-300 rounded text-gray-700 text-xs h-[30px] px-2 shadow-inner w-[90px]">
+                        @foreach (var y in Model.AvailableYears)
+                        {
+                            if (y == Model.Year) { @Html.Raw($"<option value='{y}' selected>{y}</option>") }
+                            else                 { @Html.Raw($"<option value='{y}'>{y}</option>") }
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Month</label>
+                    <select name="month" class="bg-[#fdf4b5] border border-gray-300 rounded text-gray-700 text-xs h-[30px] px-2 shadow-inner w-[115px]">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            if (m == Model.Month) { @Html.Raw($"<option value='{m}' selected>{monthNames[m - 1]}</option>") }
+                            else                  { @Html.Raw($"<option value='{m}'>{monthNames[m - 1]}</option>") }
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold py-1.5 px-3 rounded h-[30px]">
+                    <i class="fas fa-search mr-1"></i>View
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="hidden md:block w-px h-10 bg-gray-200"></div>
+
+            <!-- Start button -->
+            <form method="post" asp-action="StartCommission" class="flex items-center gap-3" id="startCommissionForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="year" value="@Model.Year" />
+                <input type="hidden" name="month" value="@Model.Month" />
+                @if (Model.IsRunning)
+                {
+                    <button type="submit" disabled
+                            class="bg-blue-400 text-white text-sm font-bold py-2 px-5 rounded shadow cursor-not-allowed opacity-70">
+                        <i class="fas fa-spinner fa-spin mr-1"></i>Running…
+                    </button>
+                }
+                else if (!Model.Entries.Any())
+                {
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 px-5 rounded shadow">
+                        <i class="fas fa-play mr-1"></i>Start Automation
+                    </button>
+                }
+                else if (Model.Entries.All(e => e.Status == "Completed"))
+                {
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-2 px-5 rounded shadow">
+                        <i class="fas fa-redo mr-1"></i>Re-run Automation
+                    </button>
+                }
+                else
+                {
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 px-5 rounded shadow">
+                        <i class="fas fa-play mr-1"></i>Resume Automation
+                    </button>
+                }
+
+                <div class="text-xs text-gray-500 leading-tight">
+                    <div class="font-semibold text-gray-700">@monthNames[Model.Month - 1] @Model.Year</div>
+                    @if (Model.JobRunId != null)
+                    {
+                        <div class="font-mono text-gray-400 text-[10px]">Job: @Model.JobRunId</div>
+                    }
+                </div>
+            </form>
+
+            <!-- Auto-schedule info -->
+            <div class="ml-auto text-right text-[11px] text-gray-400 hidden md:block">
+                <div><i class="fas fa-clock mr-1 text-amber-400"></i><strong class="text-gray-600">Auto-schedule:</strong> 26th of every month at 1:00 AM</div>
+                <div class="mt-0.5 text-[10px]">Hangfire recurring job · <code class="bg-gray-100 px-1 rounded">0 1 26 * *</code></div>
+            </div>
+        </div>
+
+        <!-- ── Data Processing Window Info Bar ──────────────────────────────── -->
+        <div class="mt-4 pt-3 border-t border-dashed border-indigo-200">
+            <div class="flex flex-wrap items-center gap-3">
+
+                <!-- Date range box -->
+                <div id="dateRangeBox"
+                     class="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg px-4 py-2.5 shadow-sm">
+                    <div class="w-9 h-9 bg-indigo-500 rounded-lg flex items-center justify-center shrink-0 shadow">
+                        <i class="fas fa-calendar-days text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-extrabold text-indigo-500 uppercase tracking-widest">
+                            Data Processing Window
+                        </div>
+                        <div class="text-sm font-bold text-indigo-900 mt-0.5 tabular-nums" id="dateRangeDisplay">
+                            @commPeriodFrom.ToString("MMM dd, yyyy") &nbsp;&rarr;&nbsp; @commPeriodTo.ToString("MMM dd, yyyy")
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explanation text -->
+                <div class="text-[11px] text-gray-500 leading-snug max-w-sm">
+                    <i class="fas fa-circle-info text-indigo-400 mr-1"></i>
+                    Commission for
+                    <strong class="text-gray-700" id="commissionMonthLabel">@monthNames[Model.Month - 1] @Model.Year</strong>
+                    will process source data falling within this date range.
+                    <span class="block text-[10px] text-gray-400 mt-0.5 italic">
+                        Formula: 21st of previous month &rarr; 20th of selected month
+                    </span>
+                </div>
+
+                @if (!inWindow)
+                {
+                    <div class="ml-auto hidden md:flex items-center gap-1.5 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-2.5 py-1.5 shrink-0">
+                        <i class="fas fa-clock"></i>
+                        <span>Auto-run window: <strong>26th – 3rd of month</strong></span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Entries.Any())
+    {
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- SECTION 3 — LIVE RUNNING BANNER                           -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        @if (runningEntry != null)
+        {
+            var runStep = pipeline.FirstOrDefault(p => p.Key == runningEntry.CommissionType);
+            var zone = Model.CityZones.TryGetValue(runningEntry.CityCode, out var z) ? z : "—";
+            <div id="liveBanner" class="bg-blue-600 text-white rounded shadow px-4 py-3 flex flex-wrap items-center gap-3 text-sm">
+                <i class="fas fa-spinner fa-spin text-lg"></i>
+                <div>
+                    <span class="font-bold">Now Running:</span>
+                    <span class="ml-1">Step @(runStep?.Step ?? 0) — @(runStep?.Label ?? runningEntry.CommissionType)</span>
+                </div>
+                <div class="bg-blue-500 px-3 py-1 rounded text-xs font-semibold">
+                    <i class="fas fa-city mr-1"></i>City: <strong>@runningEntry.CityName</strong>
+                    (@runningEntry.CityCode)
+                </div>
+                <div class="bg-blue-500 px-3 py-1 rounded text-xs font-semibold">
+                    <i class="fas fa-map-marker-alt mr-1"></i>Zone: <strong>@zone</strong>
+                </div>
+                <div class="bg-blue-500 px-3 py-1 rounded text-xs font-semibold">
+                    <i class="fas fa-calendar mr-1"></i>Period: <strong>@monthNames[Model.Month - 1] @Model.Year</strong>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div id="liveBanner" style="display:none"></div>
+        }
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- SECTION 4 — OVERALL PROGRESS                              -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <div class="bg-white border border-gray-200 rounded shadow-sm p-4">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+                <span class="text-sm font-bold text-gray-700">
+                    Overall Progress — @monthNames[Model.Month - 1] @Model.Year
+                </span>
+                <span class="text-sm font-bold text-gray-700" id="overallPctLabel">@overallPct%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-4">
+                <div id="overallProgressBar"
+                     class="bg-blue-500 h-4 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                     style="width: @(overallPct > 5 ? overallPct : 0)%">
+                    @if (overallPct > 10)
+                    {
+                        <span class="text-[9px] text-white font-bold">@overallPct%</span>
+                    }
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-4 mt-2 text-xs">
+                <span class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
+                    <span id="cntCompleted">@completedCount</span> Completed
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+                    <span id="cntAlreadyProcessed">@alreadyProcessedCount</span> Already Processed
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full bg-orange-400 inline-block"></span>
+                    <span id="cntNoData">@noDataCount</span> No MIS Data
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
+                    <span id="cntFailed">@failedCount</span> Failed
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>
+                    <span id="cntRunning">@runningCount</span> Running
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full bg-gray-300 inline-block"></span>
+                    <span id="cntPending">@pendingCount</span> Pending
+                </span>
+                <span class="ml-auto text-gray-400">
+                    Total tasks: <strong>@totalCount</strong>
+                    (@cities.Count cities × 6 commissions)
+                </span>
+            </div>
+
+            <!-- City-level progress row -->
+            <div class="mt-3 pt-2 border-t border-gray-100 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
+                <span class="font-semibold text-gray-600 flex items-center gap-1">
+                    <i class="fas fa-city text-gray-400"></i> Cities Progress
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
+                    <span class="font-bold text-green-700" id="citiesDone">@citiesDone</span>
+                    <span class="text-gray-500">done</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-400 inline-block"></span>
+                    <span class="font-bold text-blue-700" id="citiesRunning">@citiesRunning</span>
+                    <span class="text-gray-500">running</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block"></span>
+                    <span class="font-bold text-gray-600" id="citiesRemaining">@citiesRemaining</span>
+                    <span class="text-gray-500">remaining</span>
+                </span>
+                <span class="text-gray-400 ml-auto">
+                    Total: <strong>@citiesTotal</strong> cities
+                </span>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- SECTION 5 — CITY × COMMISSION STATUS GRID                 -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <div class="bg-white border border-gray-200 rounded shadow-sm">
+            <div class="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+                <h2 class="text-sm font-bold text-gray-700">
+                    <i class="fas fa-table text-blue-500 mr-1.5"></i>
+                    City-wise Commission Status — @monthNames[Model.Month - 1] @Model.Year
+                </h2>
+                <span class="text-[11px] text-gray-400">
+                    Columns = commission steps (left → right = Step 1 → Step 6)
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs border-collapse">
+                    <thead>
+                        <!-- Row 1: Step numbers -->
+                        <tr class="bg-gray-50">
+                            <th class="border border-gray-200 px-3 py-2 text-left text-[10px] text-gray-400 font-semibold min-w-[130px]" rowspan="2">
+                                <div>City</div>
+                                <div class="text-[9px] font-normal text-gray-400">Zone / Code</div>
+                            </th>
+                            @foreach (var p in pipeline)
+                            {
+                                var c = stepColor[p.Color];
+                                <th class="border border-gray-200 px-2 py-1.5 text-center min-w-[120px] @c.light">
+                                    <div class="flex flex-col items-center gap-0.5">
+                                        <span class="@c.bg text-white text-[9px] font-black px-2 py-0.5 rounded-full">STEP @p.Step</span>
+                                        <span class="@c.text font-bold text-[11px] leading-tight">@p.Label</span>
+                                        <span class="text-gray-400 text-[9px] leading-tight">
+                                            <i class="@p.Icon mr-0.5"></i>@p.ShortLabel
+                                        </span>
+                                    </div>
+                                </th>
+                            }
+                        </tr>
+                        <!-- Row 2: Writes-to hint -->
+                        <tr class="bg-gray-50 border-b-2 border-gray-300">
+                            @foreach (var p in pipeline)
+                            {
+                                <th class="border border-gray-200 px-2 py-1 text-center">
+                                    <span class="text-[9px] text-gray-400 font-mono">→ @p.WritesTo</span>
+                                </th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var city in cities)
+                        {
+                            var zone = Model.CityZones.TryGetValue(city.CityCode, out var zn) ? zn : "—";
+                            var cityCompleted  = commTypes.All(ct => entryMap.TryGetValue(city.CityCode, out var m) && m.TryGetValue(ct, out var e) && (e.Status == "Completed" || e.Status == "AlreadyProcessed"));
+                            var cityHasFailed  = commTypes.Any(ct => entryMap.TryGetValue(city.CityCode, out var m) && m.TryGetValue(ct, out var e) && e.Status == "Failed");
+                            var cityIsRunning  = commTypes.Any(ct => entryMap.TryGetValue(city.CityCode, out var m) && m.TryGetValue(ct, out var e) && e.Status == "Running");
+                            var rowBg = cityIsRunning ? "bg-blue-50" : cityHasFailed ? "bg-red-50" : cityCompleted ? "bg-green-50" : "";
+
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 @rowBg" id="city-row-@city.CityCode">
+                                <td class="border border-gray-200 px-3 py-2">
+                                    <div class="font-bold text-gray-800 text-[12px]">@city.CityName</div>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="text-[10px] text-gray-400">
+                                            <i class="fas fa-map-marker-alt mr-0.5 text-rose-400"></i>@zone
+                                        </span>
+                                        <span class="text-[9px] text-gray-400 font-mono bg-gray-100 px-1 rounded">@city.CityCode</span>
+                                    </div>
+                                    <div class="text-[9px] text-gray-400 mt-0.5">
+                                        <i class="fas fa-calendar mr-0.5"></i>@monthNames[Model.Month - 1] @Model.Year
+                                    </div>
+                                </td>
+
+                                @foreach (var p in pipeline)
+                                {
+                                    CommissionAutomationLogEntry? entry = null;
+                                    if (entryMap.TryGetValue(city.CityCode, out var typeMap))
+                                        typeMap.TryGetValue(p.Key, out entry);
+
+                                    var cellId = $"cell-{(entry?.Id ?? 0)}";
+                                    var status = entry?.Status ?? "Pending";
+                                    var retries = entry?.RetryCount ?? 0;
+                                    var errMsg = entry?.ErrorMessage;
+                                    var logId = entry?.Id ?? 0;
+                                    var startedAt = entry?.StartedAt;
+                                    var completedAt = entry?.CompletedAt;
+
+                                    <td class="border border-gray-200 px-2 py-1.5 text-center"
+                                        id="@cellId"
+                                        data-log-id="@logId"
+                                        data-city="@city.CityName"
+                                        data-step="@p.Step"
+                                        data-commission="@p.Label"
+                                        data-commission-key="@p.Key">
+                                        @CellContent(status, retries, errMsg, startedAt, completedAt, entry?.ProgressPct ?? 0, entry?.ProcessedCount ?? 0, entry?.TotalCount ?? 0)
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Legend -->
+            <div class="px-4 py-2 border-t border-gray-100 bg-gray-50 flex flex-wrap gap-4 text-[10px] text-gray-500">
+                <span class="font-semibold text-gray-600 mr-1">Legend:</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-gray-200 mr-1 align-middle"></span>Pending — waiting to run</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-blue-400 mr-1 align-middle"></span>Running — executing now</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-green-500 mr-1 align-middle"></span>Completed — done successfully</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-amber-400 mr-1 align-middle"></span>Already Processed — was processed previously</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-red-500 mr-1 align-middle"></span>Failed — error (see tooltip)</span>
+                <span><span class="inline-block w-2.5 h-2.5 rounded bg-orange-400 mr-1 align-middle"></span>×N = retry count</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Empty state -->
+        <div class="bg-white border border-gray-200 rounded shadow-sm p-12 text-center text-gray-400">
+            <i class="fas fa-robot text-6xl mb-4 opacity-20"></i>
+            <p class="text-base font-semibold text-gray-500">No automation data for @monthNames[Model.Month - 1] @Model.Year</p>
+            <p class="text-sm mt-1">Click <strong class="text-blue-600">Start Automation</strong> to begin processing all @pipeline.Length commission types for every city.</p>
+            <div class="mt-6 flex flex-wrap justify-center gap-2 text-xs text-gray-400">
+                @foreach (var p in pipeline)
+                {
+                    var c = stepColor[p.Color];
+                    <span class="@c.light @c.border border px-2 py-1 rounded">
+                        <span class="@c.text font-bold">@p.Step.</span> @p.ShortLabel
+                    </span>
+                    if (p.Step < 6)
+                    {
+                        <span class="text-gray-300">→</span>
+                    }
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- POST-PIPELINE MANUAL CORRECTION TOOLS                                  -->
+    <!-- Always visible — explains what comes AFTER the 6-step automation runs  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="bg-white border border-gray-200 rounded shadow-sm">
+
+        <!-- Section header — same style as Section 1 and Section 5 -->
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-sm font-bold text-gray-700">
+                    <i class="fas fa-wrench text-amber-500 mr-1.5"></i>
+                    Post-Pipeline Manual Correction Tools
+                </h2>
+                <p class="text-[11px] text-gray-400 mt-0.5">
+                    These tools <strong class="text-gray-600">do NOT execute automatically</strong>
+                    and are <strong class="text-gray-600">not part of the 6-step automation pipeline</strong>.
+                    Use them manually <em>after</em> the full automation (Steps 1–6) has completed for the selected month.
+                </p>
+            </div>
+            <span class="bg-amber-100 text-amber-700 border border-amber-300 text-[10px] font-bold px-3 py-1.5 rounded shrink-0 ml-4">
+                <i class="fas fa-hand-pointer mr-1"></i>Manual Trigger Only
+            </span>
+        </div>
+
+        <!-- Flow context bar: shows where these tools fit relative to the pipeline -->
+        <div class="px-4 pt-3 pb-2 flex flex-wrap items-center gap-1.5 text-[10px]">
+            <span class="text-gray-400 font-semibold uppercase tracking-wide mr-1">Pipeline:</span>
+            @foreach (var p in pipeline)
+            {
+                var c = stepColor[p.Color];
+                <span class="@c.bg text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">@p.Step</span>
+                <span class="@c.text font-semibold text-[9px]">@p.ShortLabel</span>
+                if (p.Step < 6)
+                {
+                    <span class="text-gray-300 mx-0.5">→</span>
+                }
+            }
+            <span class="text-gray-300 mx-1.5">→</span>
+            <span class="bg-green-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                <i class="fas fa-check"></i>
+            </span>
+            <span class="text-green-700 font-bold text-[9px]">Automation Complete</span>
+            <span class="text-gray-300 mx-1.5">→</span>
+            <span class="bg-amber-400 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                <i class="fas fa-user-cog"></i>
+            </span>
+            <span class="text-amber-700 font-bold text-[9px]">If correction needed → use tools below</span>
+        </div>
+
+        <!-- Employee Commission Reprocess tool card -->
+        <div class="px-4 pb-4">
+            <div class="border border-amber-200 rounded-lg overflow-hidden">
+
+                <!-- Card header strip -->
+                <div class="bg-amber-500 px-4 py-2.5 flex items-center gap-2.5">
+                    <i class="fas fa-user-cog text-white text-base"></i>
+                    <div class="flex-1">
+                        <div class="text-white font-bold text-sm leading-tight">Employee Commission Reprocess</div>
+                        <div class="text-amber-100 text-[10px] leading-tight mt-0.5">Single-employee commission correction tool</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-white text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">
+                            Manual Only
+                        </span>
+                        <span class="bg-amber-700 bg-opacity-50 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                            Not in Automation Pipeline
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Card body -->
+                <div class="bg-amber-50 p-4 flex flex-wrap gap-4 items-start">
+
+                    <!-- Explanation column -->
+                    <div class="flex-1 min-w-[260px]">
+
+                        <!-- Explicit NOT-automatic warning -->
+                        <div class="flex items-start gap-2 bg-white border border-amber-300 rounded-lg px-3 py-2 mb-3">
+                            <i class="fas fa-circle-info text-amber-500 mt-0.5 shrink-0"></i>
+                            <p class="text-[11px] text-amber-800 leading-snug">
+                                <strong>This tool does not run automatically.</strong>
+                                It must be triggered manually by a supervisor when an individual employee's commission needs correction after the pipeline has already completed.
+                            </p>
+                        </div>
+
+                        <!-- What it does -->
+                        <p class="text-[11px] text-amber-700 leading-snug mb-2">
+                            Recalculates commission for a <strong>single employee</strong> without affecting other employees or rerunning city-wide automation.
+                            Only the target employee's commission records are updated — all other employees remain unchanged.
+                        </p>
+
+                        <!-- Prerequisites and scope -->
+                        <div class="flex flex-wrap gap-3 text-[10px] text-amber-700">
+                            <span class="flex items-center gap-1">
+                                <i class="fas fa-check-circle text-green-500"></i>
+                                Prerequisite: Full pipeline (Steps 1–6) completed
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i class="fas fa-shield-alt text-indigo-400"></i>
+                                Scoped to emp_no only — other employees unaffected
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i class="fas fa-database text-gray-400"></i>
+                                Writes: <code class="bg-amber-100 px-1 rounded font-mono">hr_commissionprocess</code>, <code class="bg-amber-100 px-1 rounded font-mono">hr_empcommadjdtl</code>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i class="fas fa-history text-gray-400"></i>
+                                Audits to <code class="bg-amber-100 px-1 rounded font-mono">hr_acknowledgment</code> (type=3)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Action column -->
+                    <div class="flex flex-col items-center gap-2 shrink-0">
+                        <a href="/Payroll/EmployeeCommissionReprocess"
+                           class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-5 py-2.5 rounded-lg shadow transition-colors">
+                            <i class="fas fa-user-cog"></i> Open Tool
+                        </a>
+                        <span class="text-[9px] text-gray-400 text-center leading-tight">/Payroll/EmployeeCommissionReprocess</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<!-- ── Real-Time Automation Log ─────────────────────────────────────────── -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <!-- Header -->
+    <div class="px-5 py-3 border-b border-gray-200 flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center shrink-0">
+                <i class="fas fa-terminal text-green-400 text-sm"></i>
+            </div>
+            <div>
+                <h2 class="font-semibold text-gray-700 text-sm">Real-Time Automation Log</h2>
+                <div class="text-[10px] text-gray-400 mt-0.5">Live activity stream — every commission type &amp; city, with failure details</div>
+            </div>
+            <span id="commLogCount" class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono ml-1">0 entries</span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <!-- Level filters -->
+            <div class="flex gap-1">
+                <button onclick="setCommLogFilter('all')" data-filter="all"
+                        class="comm-log-filter px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-800 text-white">All</button>
+                <button onclick="setCommLogFilter('INFO')" data-filter="INFO"
+                        class="comm-log-filter px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200">Info</button>
+                <button onclick="setCommLogFilter('SUCCESS')" data-filter="SUCCESS"
+                        class="comm-log-filter px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200">Success</button>
+                <button onclick="setCommLogFilter('WARN')" data-filter="WARN"
+                        class="comm-log-filter px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200">Warn</button>
+                <button onclick="setCommLogFilter('ERROR')" data-filter="ERROR"
+                        class="comm-log-filter px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200">Error</button>
+            </div>
+            <!-- Search -->
+            <input type="text" id="commLogSearch" placeholder="Search..."
+                   oninput="filterCommLog()"
+                   class="text-[10px] border border-gray-200 rounded px-2 py-0.5 w-28 focus:outline-none focus:ring-1 focus:ring-indigo-300 bg-gray-50">
+            <!-- Auto-scroll toggle -->
+            <label class="flex items-center gap-1 text-[10px] text-gray-500 cursor-pointer select-none">
+                <input type="checkbox" id="commLogAutoScroll" checked class="w-3 h-3 accent-indigo-500">
+                Auto-scroll
+            </label>
+            <!-- Scroll to bottom -->
+            <button onclick="document.getElementById('commLogBox').scrollTop=document.getElementById('commLogBox').scrollHeight"
+                    title="Scroll to bottom"
+                    class="text-[10px] text-indigo-400 hover:text-indigo-600 px-1.5 py-0.5 rounded hover:bg-indigo-50">
+                <i class="fas fa-arrow-down mr-0.5"></i>Bottom
+            </button>
+            <!-- Clear -->
+            <button onclick="clearCommLog()" title="Clear log display"
+                    class="text-[10px] text-gray-400 hover:text-red-500 px-1.5 py-0.5 rounded hover:bg-red-50">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Terminal window -->
+    <div id="commLogBox"
+         class="font-mono text-[11px] bg-[#0d1117] p-4 overflow-y-auto rounded-b-lg"
+         style="height:20rem; line-height:1.7">
+
+        @{
+            // Pre-populate with historical entries from the current job (non-pending)
+            var historyEntries = Model.Entries
+                .Where(e => e.Status is "Completed" or "Failed" or "Running" or "AlreadyProcessed")
+                .OrderBy(e => e.UpdatedAt)
+                .ThenBy(e => e.Id)
+                .ToList();
+
+            string LevelCss(string level) => level switch
+            {
+                "SUCCESS" => "color:#4ade80",
+                "ERROR"   => "color:#f87171",
+                "WARN"    => "color:#facc15",
+                _         => "color:#93c5fd"
+            };
+            string MsgCss(string level) => level switch
+            {
+                "SUCCESS" => "color:#bbf7d0",
+                "ERROR"   => "color:#fecaca",
+                "WARN"    => "color:#fef08a",
+                _         => "color:#d1d5db"
+            };
+            string CommCss(string comm) => comm switch
+            {
+                "CashCommission"      => "color:#60a5fa",
+                "CodCommission"       => "color:#c084fc",
+                "OverLandCommission"  => "color:#fb923c",
+                "ReturnCodCommission" => "color:#fb7185",
+                "CommissionProcess"   => "color:#4ade80",
+                "FinalCommission"     => "color:#a5b4fc",
+                _                    => "color:#9ca3af"
+            };
+        }
+
+        @if (!historyEntries.Any())
+        {
+            <div id="commLogEmpty" style="color:#4b5563; font-style:italic; font-size:10px">
+                @(Model.IsRunning ? "Connecting to log stream..." : Model.Entries.Any() ? "Run completed. Start a new run to see live logs." : "No activity yet. Start automation to see real-time logs here.")
+            </div>
+        }
+
+        @foreach (var he in historyEntries)
+        {
+            var lv  = he.Status == "Completed" ? "SUCCESS" : he.Status is "AlreadyProcessed" or "NoData" ? "WARN" : he.Status == "Failed" ? "ERROR" : "INFO";
+            var msg = he.Status switch
+            {
+                "Completed"        => he.ProcessedCount > 0 ? $"Completed — {he.ProcessedCount:N0} rows." : "Completed.",
+                "AlreadyProcessed" => he.ErrorMessage ?? "Already Processed.",
+                "NoData"           => $"No MIS data — {he.ErrorMessage ?? "MIS source tables returned 0 rows. Re-run when data is available."}",
+                "Failed"           => $"FAILED: {he.ErrorMessage ?? "Unknown error"}",
+                _                  => "Running...",
+            };
+            var ts = he.UpdatedAt.ToString("HH:mm:ss");
+            <div class="flex gap-2 py-px log-entry" data-level="@lv">
+                <span style="color:#4b5563; white-space:nowrap">@ts</span>
+                <span style="@LevelCss(lv); font-weight:700; width:3.5rem; text-align:right; white-space:nowrap; flex-shrink:0">@lv</span>
+                <span style="@CommCss(he.CommissionType); width:9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0" title="@he.CommissionType">@he.CommissionType</span>
+                <span style="color:#6b7280; width:9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0" title="@he.CityName (@he.CityCode)">@he.CityName</span>
+                <span style="@MsgCss(lv); flex:1">@msg</span>
+            </div>
+        }
+    </div>
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- VALIDATION MODAL (shown by JS during AJAX pre-check)       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="validationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" style="display:none!important">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+
+        <!-- Modal header -->
+        <div class="bg-red-600 text-white px-5 py-4 flex items-center gap-3 shrink-0">
+            <i class="fas fa-shield-exclamation text-2xl"></i>
+            <div>
+                <div class="font-bold text-base" id="modalTitle">Base Data Validation Failed</div>
+                <div class="text-[11px] text-red-100" id="modalSubtitle">Commission automation cannot start — required source data is missing.</div>
+            </div>
+            <button type="button" onclick="closeValidationModal()" class="ml-auto text-red-200 hover:text-white text-xl leading-none">&times;</button>
+        </div>
+
+        <!-- Period info bar -->
+        <div id="modalPeriodBar" class="bg-red-50 border-b border-red-200 px-5 py-2.5 flex flex-wrap gap-4 text-xs text-red-800 shrink-0"></div>
+
+        <!-- Commission type summary (populated by JS on validation failure) -->
+        <div id="modalCommSummary" class="px-5 py-3 bg-red-50 border-b border-red-100 shrink-0" style="display:none"></div>
+
+        <!-- Loading state -->
+        <div id="modalLoading" class="flex items-center justify-center gap-3 py-12 text-gray-500 text-sm">
+            <i class="fas fa-spinner fa-spin text-blue-500 text-xl"></i>
+            <span>Checking source data availability…</span>
+        </div>
+
+        <!-- Results table -->
+        <div id="modalResults" class="overflow-auto flex-1" style="display:none">
+            <table class="w-full text-xs">
+                <thead class="bg-gray-50 border-b border-gray-200 sticky top-0">
+                    <tr>
+                        <th class="text-left px-4 py-2.5 text-gray-600 font-bold">Commission Type</th>
+                        <th class="text-left px-4 py-2.5 text-gray-600 font-bold">Source Table</th>
+                        <th class="text-left px-4 py-2.5 text-gray-600 font-bold">Connection</th>
+                        <th class="text-center px-4 py-2.5 text-gray-600 font-bold">Status</th>
+                        <th class="text-right px-4 py-2.5 text-gray-600 font-bold">Rows Found</th>
+                    </tr>
+                </thead>
+                <tbody id="modalTableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div id="modalFooter" class="px-5 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3 shrink-0" style="display:none">
+            <div class="text-[11px] text-gray-500 flex items-start gap-2 flex-1">
+                <i class="fas fa-info-circle text-blue-400 mt-0.5 shrink-0"></i>
+                <span id="modalFooterText"></span>
+            </div>
+            <button type="button" onclick="closeValidationModal()"
+                    class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold px-4 py-2 rounded shrink-0">
+                <i class="fas fa-times mr-1"></i>Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FULL-SCREEN LAUNCH LOADER (shown between modal close and   -->
+<!-- page reload after Start Automation is confirmed)           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="launchLoader" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;margin:0;padding:0;z-index:9999;background:rgba(15,23,42,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+    <div style="text-align:center;user-select:none;">
+
+        <!-- Outer glow ring -->
+        <div style="position:relative;width:96px;height:96px;margin:0 auto 24px;">
+            <!-- Pulsing backdrop -->
+            <div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.18);animation:llPulse 1.6s ease-in-out infinite;"></div>
+            <!-- Spinning arc -->
+            <svg style="position:absolute;inset:0;width:96px;height:96px;animation:llSpin 0.9s linear infinite;" viewBox="0 0 96 96" fill="none">
+                <circle cx="48" cy="48" r="40" stroke="rgba(255,255,255,0.12)" stroke-width="6"/>
+                <path d="M48 8 A40 40 0 0 1 88 48" stroke="url(#llGrad)" stroke-width="6" stroke-linecap="round"/>
+                <defs>
+                    <linearGradient id="llGrad" x1="48" y1="8" x2="88" y2="48" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#60a5fa"/>
+                        <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <!-- Centre icon -->
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-layer-group" style="font-size:28px;color:#93c5fd;"></i>
+            </div>
+        </div>
+
+        <!-- Text -->
+        <div style="color:#f8fafc;font-size:17px;font-weight:600;letter-spacing:0.01em;margin-bottom:6px;" id="launchLoaderTitle">Starting Commission Automation</div>
+        <div style="color:#94a3b8;font-size:12px;letter-spacing:0.03em;" id="launchLoaderSub">Initialising job — please wait…</div>
+
+        <!-- Animated dots -->
+        <div style="margin-top:18px;display:flex;justify-content:center;gap:6px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#3b82f6;display:inline-block;animation:llDot 1.2s ease-in-out infinite;"></span>
+            <span style="width:7px;height:7px;border-radius:50%;background:#3b82f6;display:inline-block;animation:llDot 1.2s ease-in-out 0.2s infinite;"></span>
+            <span style="width:7px;height:7px;border-radius:50%;background:#3b82f6;display:inline-block;animation:llDot 1.2s ease-in-out 0.4s infinite;"></span>
+        </div>
+    </div>
+
+    <style>
+        @@keyframes llSpin  { to { transform: rotate(360deg); } }
+        @@keyframes llPulse { 0%,100%{ transform:scale(1);opacity:.6 } 50%{ transform:scale(1.18);opacity:1 } }
+        @@keyframes llDot   { 0%,80%,100%{ transform:scale(0.6);opacity:.4 } 40%{ transform:scale(1);opacity:1 } }
+    </style>
+</div>
+
+@functions {
+
+    string BadgeCss(string status) => status switch
+    {
+        "Completed"        => "bg-green-100 text-green-700 border border-green-300",
+        "Running"          => "bg-blue-100 text-blue-700 border border-blue-300",
+        "Failed"           => "bg-red-100 text-red-700 border border-red-300",
+        "AlreadyProcessed" => "bg-amber-100 text-amber-700 border border-amber-300",
+        "NoData"           => "bg-orange-100 text-orange-700 border border-orange-300",
+        "Skipped"          => "bg-yellow-100 text-yellow-700 border border-yellow-300",
+        _                  => "bg-gray-100 text-gray-500 border border-gray-200"
+    };
+
+    IHtmlContent CellContent(string status, int retries, string? errorMessage,
+                              DateTime? startedAt, DateTime? completedAt,
+                              int progressPct = 0, int processedCount = 0, int totalCount = 0)
+    {
+        var css  = BadgeCss(status);
+        var icon = status switch
+        {
+            "Completed"        => "<i class='fas fa-check-circle'></i>",
+            "Running"          => "<i class='fas fa-spinner fa-spin'></i>",
+            "Failed"           => "<i class='fas fa-times-circle'></i>",
+            "AlreadyProcessed" => "<i class='fas fa-clock'></i>",
+            "NoData"           => "<i class='fas fa-exclamation-triangle'></i>",
+            "Skipped"          => "<i class='fas fa-forward'></i>",
+            _                  => "<i class='far fa-clock'></i>"
+        };
+        var displayText = status switch
+        {
+            "AlreadyProcessed" => "Already Processed",
+            "NoData"           => "No MIS Data",
+            _ => status
+        };
+        var tip = !string.IsNullOrWhiteSpace(errorMessage)
+            ? $" title=\"{System.Web.HttpUtility.HtmlAttributeEncode(errorMessage)}\""
+            : "";
+
+        var retryHtml = retries > 0
+            ? $"<span class='text-[9px] text-orange-500 font-bold'>×{retries} retry</span>"
+            : "";
+
+        // Progress bar
+        var (barColor, barWidth, barAnim) = status switch
+        {
+            "Completed"        => ("bg-green-500",  100,   ""),
+            "Running"          => ("bg-blue-400",   progressPct > 0 ? progressPct : 10, "animate-pulse"),
+            "Failed"           => ("bg-red-400",    100,   ""),
+            "AlreadyProcessed" => ("bg-amber-400",  100,   ""),
+            "NoData"           => ("bg-orange-400", 0,     ""),
+            _                  => ("bg-gray-200",   0,     "")
+        };
+        var progressBarHtml = $@"<div class='w-full rounded-full overflow-hidden bg-gray-100 mt-0.5' style='height:3px'>
+            <div class='h-full rounded-full {barColor} {barAnim} transition-all duration-700' style='width:{barWidth}%'></div>
+        </div>";
+
+        // Count line
+        var countHtml = "";
+        if (status == "Running")
+        {
+            if (totalCount > 0)
+                countHtml = $"<span class='text-[9px] text-blue-700 font-bold mt-0.5 tabular-nums'>{processedCount:N0} / {totalCount:N0} rows</span>";
+            else if (processedCount > 0)
+                countHtml = $"<span class='text-[9px] text-blue-700 font-bold mt-0.5 tabular-nums'>{processedCount:N0} rows</span>";
+            // if both are 0: show nothing — SignalR will push counts shortly
+        }
+        else if (status == "Completed" && processedCount > 0)
+        {
+            countHtml = (totalCount > 0 && totalCount != processedCount)
+                ? $"<span class='text-[9px] text-green-700 font-semibold mt-0.5 tabular-nums'>{processedCount:N0} / {totalCount:N0} rows</span>"
+                : $"<span class='text-[9px] text-green-700 font-semibold mt-0.5 tabular-nums'>{processedCount:N0} rows</span>";
+        }
+
+        // Timing lines
+        var timingHtml = "";
+        if (startedAt.HasValue)
+            timingHtml += $"<div class='text-[9px] text-gray-400 mt-0.5'><i class='fas fa-play text-[7px] mr-0.5'></i>{startedAt.Value:HH:mm:ss}</div>";
+        if (completedAt.HasValue)
+            timingHtml += $"<div class='text-[9px] text-gray-400'><i class='fas fa-stop text-[7px] mr-0.5'></i>{completedAt.Value:HH:mm:ss}</div>";
+
+        // AlreadyProcessed info line: parse date+user from errorMessage
+        var alreadyInfoHtml = "";
+        if (status == "AlreadyProcessed" && !string.IsNullOrWhiteSpace(errorMessage))
+        {
+            // errorMessage format: "Already Processed on 28-Mar-2026. — By: 101 (John Doe)"
+            // or just "Already Processed on 28-Mar-2026."
+            var infoEncoded = System.Web.HttpUtility.HtmlEncode(errorMessage
+                .Replace("Already Processed on ", "")
+                .TrimEnd('.'));
+            alreadyInfoHtml = $"<div class='text-[9px] text-amber-600 font-semibold mt-0.5 leading-snug text-center max-w-full px-1' style='word-break:break-word'>{infoEncoded}</div>";
+        }
+
+        // NoData info line: MIS source tables returned 0 rows — month NOT finalized
+        var noDataInfoHtml = "";
+        if (status == "NoData")
+        {
+            noDataInfoHtml = "<div class='text-[9px] text-orange-600 font-semibold mt-0.5 leading-snug text-center px-1'>MIS data pending. Re-run when available.</div>";
+        }
+
+        var html = $@"<div class='flex flex-col items-center gap-0.5 w-full'>
+            <span class='badge-status inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold {css}'{tip}>
+                {icon} {displayText}
+            </span>
+            {progressBarHtml}
+            {alreadyInfoHtml}
+            {noDataInfoHtml}
+            {countHtml}
+            {retryHtml}
+            {timingHtml}
+        </div>";
+
+        return new Microsoft.AspNetCore.Html.HtmlString(html);
+    }
+}
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script>
+// ─── Clean up any orphaned loaders (useful if using PJAX/Turbolinks) ──────────
+document.querySelectorAll('body > #launchLoader').forEach(function(el) {
+    el.remove();
+});
+
+// ─── Full-screen launch loader ────────────────────────────────────────────────
+function showLaunchLoader(subText, title) {
+    var el = document.getElementById('launchLoader');
+    if (!el) return;
+    // Move directly onto <body> so position:fixed is relative to the viewport,
+    // not clipped/offset by any transformed/overflow-hidden ancestor.
+    if (el.parentNode !== document.body) document.body.appendChild(el);
+    if (title)   document.getElementById('launchLoaderTitle').textContent = title;
+    if (subText) document.getElementById('launchLoaderSub').textContent   = subText;
+    el.style.display = 'flex';
+}
+
+// ─── Pre-flight Validation Modal ──────────────────────────────────────────────
+var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+var commissionColors = {
+    'CashCommission':      'bg-blue-100 text-blue-700',
+    'CodCommission':       'bg-purple-100 text-purple-700',
+    'OverLandCommission':  'bg-orange-100 text-orange-700',
+    'ReturnCodCommission': 'bg-rose-100 text-rose-700',
+    'CommissionProcess':   'bg-green-100 text-green-700',
+    'FinalCommission':     'bg-indigo-100 text-indigo-700'
+};
+
+function formatNum(n) {
+    return typeof n === 'number' ? n.toLocaleString() : '—';
+}
+
+function openValidationModal() {
+    var modal = document.getElementById('validationModal');
+    if (modal.parentNode !== document.body) document.body.appendChild(modal);
+    modal.style.cssText = '';   // clear the display:none!important from template
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeValidationModal() {
+    var modal = document.getElementById('validationModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+function showValidationLoading() {
+    document.getElementById('modalLoading').style.display     = 'flex';
+    document.getElementById('modalResults').style.display     = 'none';
+    document.getElementById('modalFooter').style.display      = 'none';
+    document.getElementById('modalCommSummary').style.display = 'none';
+    document.getElementById('modalPeriodBar').innerHTML       = '';
+    document.getElementById('modalTitle').textContent         = 'Checking Base Data…';
+    document.getElementById('modalSubtitle').textContent      = 'Connecting to source databases, please wait.';
+    // Switch header to neutral blue while loading
+    var hdr = document.getElementById('validationModal').querySelector('.bg-red-600');
+    if (hdr) { hdr.classList.remove('bg-red-600'); hdr.classList.add('bg-blue-600'); }
+    openValidationModal();
+}
+
+function renderValidationResults(data) {
+    var isValid = data.isValid;
+
+    // Update modal header colour
+    var hdr = document.getElementById('validationModal').querySelector('[class*="bg-blue-600"], [class*="bg-red-600"], [class*="bg-green-600"]');
+    if (hdr) {
+        hdr.classList.remove('bg-blue-600','bg-red-600','bg-green-600');
+        hdr.classList.add(isValid ? 'bg-green-600' : 'bg-red-600');
+    }
+
+    document.getElementById('modalTitle').textContent    = isValid ? 'Base Data Validation Passed' : 'Base Data Validation Failed';
+    document.getElementById('modalSubtitle').textContent = isValid
+        ? 'All required source tables have data for the commission period. You may proceed.'
+        : 'One or more source tables are missing data. Automation cannot start.';
+
+    // Period bar
+    var from = new Date(data.requiredFrom), to = new Date(data.requiredTo);
+    var fmt  = function(d) { return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); };
+
+    // Update the period bar color to match validation state
+    var periodBar = document.getElementById('modalPeriodBar');
+    periodBar.className = isValid
+        ? 'bg-green-50 border-b border-green-200 px-5 py-2.5 flex flex-wrap gap-4 text-xs text-green-800 shrink-0'
+        : 'bg-red-50 border-b border-red-200 px-5 py-2.5 flex flex-wrap gap-4 text-xs text-red-800 shrink-0';
+    periodBar.innerHTML =
+        '<span><i class="fas fa-calendar-alt mr-1"></i><strong>Commission Period:</strong> ' +
+        monthNames[data.month - 1] + ' ' + data.year + '</span>' +
+        '<span><i class="fas fa-arrow-right mx-1"></i><strong>Required Data Range:</strong> ' +
+        fmt(from) + ' &nbsp;→&nbsp; ' + fmt(to) + '</span>';
+
+    // ── Commission Type Summary Section ─────────────────────────────────────
+    var summaryDiv = document.getElementById('modalCommSummary');
+    if (summaryDiv) {
+        if (!isValid) {
+            // Build a map of failing vs passing commission types
+            var failingTypeMap = {};
+            data.tableChecks.forEach(function(tc) {
+                var ok = tc.connectionAvailable && tc.hasData;
+                if (!ok) {
+                    if (!failingTypeMap[tc.commissionType]) failingTypeMap[tc.commissionType] = [];
+                    failingTypeMap[tc.commissionType].push(tc);
+                }
+            });
+            var failingTypes = Object.keys(failingTypeMap);
+            var totalIssues  = data.tableChecks.filter(function(tc) { return !tc.connectionAvailable || !tc.hasData; }).length;
+
+            var summaryHtml =
+                '<div class="mb-2 flex items-center gap-2">' +
+                '  <div class="w-7 h-7 bg-red-500 rounded-full flex items-center justify-center shrink-0">' +
+                '    <i class="fas fa-triangle-exclamation text-white text-xs"></i>' +
+                '  </div>' +
+                '  <div>' +
+                '    <div class="text-xs font-bold text-red-700">' +
+                      failingTypes.length + ' Commission Type' + (failingTypes.length !== 1 ? 's' : '') + ' Missing Base Data' +
+                '    </div>' +
+                '    <div class="text-[10px] text-red-500">' + totalIssues + ' source table' + (totalIssues !== 1 ? 's' : '') + ' require attention</div>' +
+                '  </div>' +
+                '</div>' +
+                '<div class="flex flex-wrap gap-2 mt-1">';
+
+            failingTypes.forEach(function(type) {
+                var issues = failingTypeMap[type];
+                var color  = commissionColors[type] || 'bg-gray-100 text-gray-600';
+                var detail = issues.map(function(t) {
+                    return !t.connectionAvailable ? 'Connection Failed' : 'No Data in Range';
+                }).join(' · ');
+                summaryHtml +=
+                    '<div class="flex flex-col bg-white border border-red-200 rounded-lg px-3 py-1.5 shadow-sm min-w-[160px]">' +
+                    '  <span class="' + color + ' px-1.5 py-0.5 rounded text-[10px] font-bold self-start mb-1">' +
+                    '    <i class="fas fa-xmark mr-0.5"></i>' + type +
+                    '  </span>' +
+                    '  <span class="text-[9px] text-red-600 font-semibold">' + detail + '</span>' +
+                    '  <span class="text-[9px] text-gray-400 mt-0.5">' + issues.length + ' table' + (issues.length !== 1 ? 's' : '') + ' affected</span>' +
+                    '</div>';
+            });
+
+            summaryHtml += '</div>';
+            summaryDiv.innerHTML = summaryHtml;
+            summaryDiv.style.display = '';
+        } else {
+            summaryDiv.style.display = 'none';
+        }
+    }
+
+    // ── Build table rows ────────────────────────────────────────────────────
+    var tbody = document.getElementById('modalTableBody');
+    tbody.innerHTML = '';
+    data.tableChecks.forEach(function(tc) {
+        var ok      = tc.connectionAvailable && tc.hasData;
+        var rowBg   = ok ? 'bg-green-50' : 'bg-red-50';
+        var color   = commissionColors[tc.commissionType] || 'bg-gray-100 text-gray-600';
+        var statusHtml;
+        if (!tc.connectionAvailable) {
+            statusHtml =
+                '<span class="inline-flex items-center gap-1 bg-red-100 text-red-700 border border-red-300 px-2 py-0.5 rounded text-[10px] font-semibold">' +
+                '<i class="fas fa-plug"></i> Connection Failed</span>' +
+                (tc.connectionError
+                    ? '<div class="text-[9px] text-red-500 mt-0.5 max-w-[220px] mx-auto leading-tight">' + tc.connectionError + '</div>'
+                    : '');
+        } else if (!tc.hasData) {
+            statusHtml =
+                '<span class="inline-flex items-center gap-1 bg-orange-100 text-orange-700 border border-orange-300 px-2 py-0.5 rounded text-[10px] font-semibold">' +
+                '<i class="fas fa-database"></i> No Data in Date Range</span>';
+        } else {
+            statusHtml =
+                '<span class="inline-flex items-center gap-1 bg-green-100 text-green-700 border border-green-300 px-2 py-0.5 rounded text-[10px] font-semibold">' +
+                '<i class="fas fa-check-circle"></i> Data Available</span>';
+        }
+        var rowCountHtml = tc.connectionAvailable
+            ? '<span class="font-bold tabular-nums ' + (ok ? 'text-green-700' : 'text-orange-600') + '">' + formatNum(tc.rowCount) + '</span>'
+            : '<span class="text-gray-400">—</span>';
+
+        var tr = document.createElement('tr');
+        tr.className = rowBg + ' border-b border-gray-100';
+        tr.innerHTML =
+            '<td class="px-4 py-2.5">' +
+              '<span class="' + color + ' px-1.5 py-0.5 rounded text-[10px] font-semibold">' + tc.commissionType + '</span>' +
+              '<div class="text-[10px] text-gray-500 mt-0.5">' + tc.label + '</div>' +
+            '</td>' +
+            '<td class="px-4 py-2.5 font-mono text-[10px] text-gray-700">' + tc.tableName + '</td>' +
+            '<td class="px-4 py-2.5 text-[10px] text-gray-600">' + tc.connectionName + '</td>' +
+            '<td class="px-4 py-2.5 text-center">' + statusHtml + '</td>' +
+            '<td class="px-4 py-2.5 text-right">' + rowCountHtml + '</td>';
+        tbody.appendChild(tr);
+    });
+
+    // ── Footer text ─────────────────────────────────────────────────────────
+    if (!isValid) {
+        var missingItems = data.tableChecks.filter(function(tc) { return !tc.connectionAvailable || !tc.hasData; });
+        var noDataItems  = data.tableChecks.filter(function(tc) { return tc.connectionAvailable && !tc.hasData; });
+        var connErrItems = data.tableChecks.filter(function(tc) { return !tc.connectionAvailable; });
+        var actionMsg = '<strong>Action Required:</strong> ';
+        if (connErrItems.length > 0) {
+            actionMsg += connErrItems.length + ' database connection' + (connErrItems.length > 1 ? 's' : '') + ' could not be reached. ';
+        }
+        if (noDataItems.length > 0) {
+            actionMsg += noDataItems.length + ' source table' + (noDataItems.length > 1 ? 's' : '') + ' ha' +
+                (noDataItems.length > 1 ? 've' : 's') + ' no data for ' +
+                '<strong>' + fmt(from) + ' – ' + fmt(to) + '</strong>. ';
+        }
+        actionMsg += 'Please ensure the source systems are updated before running ' +
+            '<strong>' + monthNames[data.month - 1] + ' ' + data.year + '</strong> commission automation.';
+        document.getElementById('modalFooterText').innerHTML = actionMsg;
+    } else {
+        document.getElementById('modalFooterText').innerHTML =
+            'All ' + data.tableChecks.length + ' source tables have data for ' +
+            '<strong>' + fmt(from) + ' → ' + fmt(to) + '</strong>. ' +
+            'Click <strong>Close</strong> and then start the automation.';
+    }
+
+    document.getElementById('modalLoading').style.display = 'none';
+    document.getElementById('modalResults').style.display = 'block';
+    document.getElementById('modalFooter').style.display  = 'flex';
+}
+
+// ─── Dynamic Date Range Display ────────────────────────────────────────────────
+function computeDateRange(year, month) {
+    var prevMonth = month === 1 ? 12 : month - 1;
+    var prevYear  = month === 1 ? year - 1 : year;
+    var shortMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return {
+        from: shortMonths[prevMonth - 1] + ' 21, ' + prevYear,
+        to:   shortMonths[month - 1]     + ' 20, ' + year
+    };
+}
+
+// Intercept Start / Resume / Re-run form submission for AJAX pre-check
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Dynamic date range update when Year/Month picker changes ───────────
+    var yearSelect  = document.querySelector('select[name="year"]');
+    var monthSelect = document.querySelector('select[name="month"]');
+
+    function refreshDateRangeDisplay() {
+        if (!yearSelect || !monthSelect) return;
+        var y = parseInt(yearSelect.value);
+        var m = parseInt(monthSelect.value);
+        var range = computeDateRange(y, m);
+
+        var displayEl = document.getElementById('dateRangeDisplay');
+        if (displayEl) displayEl.textContent = range.from + ' \u2192 ' + range.to;
+
+        var labelEl = document.getElementById('commissionMonthLabel');
+        if (labelEl) labelEl.textContent = monthNames[m - 1] + ' ' + y;
+    }
+
+    if (yearSelect)  yearSelect.addEventListener('change',  refreshDateRangeDisplay);
+    if (monthSelect) monthSelect.addEventListener('change', refreshDateRangeDisplay);
+
+    // ── View form (Year / Month picker) ─────────────────────────────────────
+    var viewForm = document.getElementById('viewCommissionForm');
+    if (viewForm) {
+        viewForm.addEventListener('submit', function () {
+            showLaunchLoader('Loading Automation Commission History Data', 'Loading Commission Automation History');
+        });
+
+        // Disable Start Automation when year/month selection changes —
+        // button re-enables naturally after View reloads the page.
+        var startBtn = document.querySelector('#startCommissionForm button[type="submit"]:not([disabled])');
+        if (startBtn) {
+            var originalHtml  = startBtn.innerHTML;
+            var originalClass = startBtn.className;
+
+            function disableStartBtn() {
+                startBtn.disabled  = true;
+                startBtn.innerHTML = '<i class="fas fa-eye mr-1"></i>Click View First';
+                startBtn.className = startBtn.className
+                    .replace(/bg-\S+/g, 'bg-gray-400')
+                    .replace(/hover:bg-\S+/g, '')
+                    + ' cursor-not-allowed opacity-70';
+                startBtn.title = 'Select year/month and click View before starting automation.';
+            }
+
+            viewForm.querySelector('select[name="year"]').addEventListener('change',  disableStartBtn);
+            viewForm.querySelector('select[name="month"]').addEventListener('change', disableStartBtn);
+        }
+    }
+
+    // ── Intercept Start / Resume / Re-run form ─────────────────────────────
+    var form = document.getElementById('startCommissionForm');
+    if (!form) return;
+
+    // Only intercept if the button is not disabled (i.e., not already running)
+    form.addEventListener('submit', function (e) {
+        var btn = form.querySelector('button[type="submit"]');
+        if (btn && btn.disabled) return; // Running — let it through (server will reject anyway)
+
+        e.preventDefault();
+        var year  = form.querySelector('input[name="year"]').value;
+        var month = form.querySelector('input[name="month"]').value;
+
+        showValidationLoading();
+
+        fetch('/Automation/ValidateBaseData?year=' + year + '&month=' + month)
+            .then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
+            .then(function (data) {
+                if (data.isValid) {
+                    // All good — close modal, show full-screen loader, then submit
+                    closeValidationModal();
+                    showLaunchLoader('Loading Commission Data — Please Wait…', 'Starting Commission Automation');
+                    form.submit();
+                } else {
+                    // Show the professional failure panel
+                    renderValidationResults(data);
+                }
+            })
+            .catch(function (err) {
+                console.error('Validation request failed:', err);
+                // On network error, close modal, show loader, allow submission
+                closeValidationModal();
+                showLaunchLoader('Loading Commission Data — Please Wait…');
+                form.submit();
+            });
+    });
+
+    // Close modal on backdrop click
+    document.getElementById('validationModal').addEventListener('click', function (e) {
+        if (e.target === this) closeValidationModal();
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeValidationModal();
+    });
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+(function () {
+    var jobRunId = '@Html.Raw(Model.JobRunId ?? "")';
+    var year     = @Model.Year;
+    var month    = @Model.Month;
+    var pollTimer = null;
+
+    var badgeCss = {
+        'Completed':        'bg-green-100 text-green-700 border border-green-300',
+        'Running':          'bg-blue-100 text-blue-700 border border-blue-300',
+        'Failed':           'bg-red-100 text-red-700 border border-red-300',
+        'AlreadyProcessed': 'bg-amber-100 text-amber-700 border border-amber-300',
+        'NoData':           'bg-orange-100 text-orange-700 border border-orange-300',
+        'Skipped':          'bg-yellow-100 text-yellow-700 border border-yellow-300',
+        'Pending':          'bg-gray-100 text-gray-500 border border-gray-200'
+    };
+    var badgeIcon = {
+        'Completed':        "<i class='fas fa-check-circle'></i>",
+        'Running':          "<i class='fas fa-spinner fa-spin'></i>",
+        'Failed':           "<i class='fas fa-times-circle'></i>",
+        'AlreadyProcessed': "<i class='fas fa-clock'></i>",
+        'NoData':           "<i class='fas fa-exclamation-triangle'></i>",
+        'Skipped':          "<i class='fas fa-forward'></i>",
+        'Pending':          "<i class='far fa-clock'></i>"
+    };
+    var badgeDisplayText = {
+        'AlreadyProcessed': 'Already Processed',
+        'NoData':           'No MIS Data'
+    };
+
+    function renderCell(status, retries, errorMessage, progressPct, processedCount, totalCount) {
+        var css  = badgeCss[status] || badgeCss['Pending'];
+        var icon = badgeIcon[status] || badgeIcon['Pending'];
+        var displayText = badgeDisplayText[status] || status;
+        var tip  = errorMessage ? ' title="' + errorMessage.replace(/"/g, '&quot;') + '"' : '';
+        var pct  = progressPct || 0;
+
+        // Progress bar
+        var barColorMap = { 'Completed': 'bg-green-500', 'Running': 'bg-blue-400', 'Failed': 'bg-red-400', 'AlreadyProcessed': 'bg-amber-400', 'NoData': 'bg-orange-400' };
+        var barColor = barColorMap[status] || 'bg-gray-200';
+        var barWidth = (status === 'Completed' || status === 'Failed' || status === 'AlreadyProcessed') ? 100 : status === 'Running' ? (pct > 0 ? pct : 10) : 0;
+        var barAnim  = status === 'Running' ? ' animate-pulse' : '';
+        var progressBar = '<div class="w-full rounded-full overflow-hidden bg-gray-100 mt-0.5" style="height:3px">' +
+                          '<div class="h-full rounded-full ' + barColor + barAnim + ' transition-all duration-700" style="width:' + barWidth + '%"></div>' +
+                          '</div>';
+
+        // Count line
+        var countHtml = '';
+        if (status === 'Running') {
+            if (totalCount > 0) {
+                countHtml = '<span class="text-[9px] text-blue-700 font-bold mt-0.5 tabular-nums">' +
+                            processedCount.toLocaleString() + ' / ' + totalCount.toLocaleString() + ' rows</span>';
+            } else if (processedCount > 0) {
+                countHtml = '<span class="text-[9px] text-blue-700 font-bold mt-0.5 tabular-nums">' +
+                            processedCount.toLocaleString() + ' rows</span>';
+            }
+            // if both are 0: show nothing — counts arrive via SignalR shortly
+        } else if (status === 'Completed') {
+            if (processedCount > 0 && totalCount > 0 && totalCount !== processedCount) {
+                countHtml = '<span class="text-[9px] text-green-700 font-semibold mt-0.5 tabular-nums">' +
+                            processedCount.toLocaleString() + ' / ' + totalCount.toLocaleString() + ' rows</span>';
+            } else if (processedCount > 0) {
+                countHtml = '<span class="text-[9px] text-green-700 font-semibold mt-0.5 tabular-nums">' +
+                            processedCount.toLocaleString() + ' rows</span>';
+            }
+        }
+
+        var retry = retries > 0 ? '<span class="text-[9px] text-orange-500 font-bold">×' + retries + ' retry</span>' : '';
+
+        // AlreadyProcessed info line
+        var alreadyInfoHtml = '';
+        if (status === 'AlreadyProcessed' && errorMessage) {
+            var infoText = errorMessage.replace(/^Already Processed on /i, '').replace(/\.$/, '');
+            alreadyInfoHtml = '<div class="text-[9px] text-amber-600 font-semibold mt-0.5 leading-snug text-center px-1" style="word-break:break-word">' +
+                              infoText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+        }
+
+        // NoData info line — month NOT finalized, MIS data pending
+        var noDataInfoHtml = '';
+        if (status === 'NoData') {
+            noDataInfoHtml = '<div class="text-[9px] text-orange-600 font-semibold mt-0.5 leading-snug text-center px-1">MIS data pending. Re-run when available.</div>';
+        }
+
+        return '<div class="flex flex-col items-center gap-0.5 w-full">' +
+               '<span class="badge-status inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ' + css + '"' + tip + '>' +
+               icon + ' ' + displayText + '</span>' +
+               progressBar + alreadyInfoHtml + noDataInfoHtml + countHtml + retry + '</div>';
+    }
+
+    function getCityCountForCommission(commissionKey) {
+        var cells = document.querySelectorAll('[data-commission-key="' + commissionKey + '"]:not([data-log-id="0"])');
+        var completed = 0, total = cells.length;
+        cells.forEach(function(c) {
+            var badge = c.querySelector('.badge-status');
+            if (badge && badge.textContent.trim().indexOf('Completed') !== -1) completed++;
+        });
+        return { completed: completed, total: total };
+    }
+
+    function refreshCityCounts() {
+        // No-op: city-count badges removed. Counts now come from SignalR progress callbacks.
+    }
+
+    function refreshCityStats() {
+        var cityRows = document.querySelectorAll('tr[id^="city-row-"]');
+        var done = 0, running = 0, total = cityRows.length;
+        cityRows.forEach(function(row) {
+            var badges = row.querySelectorAll('[data-log-id]:not([data-log-id="0"]) .badge-status');
+            if (!badges.length) return;
+            var statuses = Array.from(badges).map(function(b) { return b.textContent.trim(); });
+            // A city is "done" only when ALL 6 steps are Completed or Already Processed.
+            // "No MIS Data" (NoData) does NOT count — month is not finalized.
+            var allCompleted = statuses.length === 6 && statuses.every(function(s) { return s.indexOf('Completed') !== -1 || s.indexOf('Already Processed') !== -1; });
+            var anyRunning   = statuses.some(function(s) { return s.indexOf('Running') !== -1; });
+            if (allCompleted) done++;
+            else if (anyRunning) running++;
+        });
+        var remaining = total - done;
+        var el = function(id) { return document.getElementById(id); };
+        if (el('citiesDone'))      el('citiesDone').textContent      = done;
+        if (el('citiesRunning'))   el('citiesRunning').textContent   = running;
+        if (el('citiesRemaining')) el('citiesRemaining').textContent = remaining;
+    }
+
+    function applyUpdate(update) {
+        var cell = document.querySelector('[data-log-id="' + update.logId + '"]');
+        if (!cell) return;
+        cell.innerHTML = renderCell(update.status, update.retryCount, update.errorMessage, update.progressPct, update.processedCount, update.totalCount);
+
+        refreshCityCounts();
+        refreshCityStats();
+        updateLiveBanner();
+        refreshCounters();
+    }
+
+    function updateLiveBanner() {
+        var running = document.querySelector('[data-log-id]:not([data-log-id="0"]) .fa-spin');
+        var banner  = document.getElementById('liveBanner');
+        if (!banner) return;
+        if (running) {
+            var cell = running.closest('[data-log-id]');
+            if (cell) {
+                var city = cell.getAttribute('data-city') || '';
+                var step = cell.getAttribute('data-step') || '';
+                var comm = cell.getAttribute('data-commission') || '';
+                banner.style.display = '';
+                var inner = banner.querySelector('#bannerText');
+                if (inner) inner.textContent = 'Step ' + step + ' — ' + comm + '  |  City: ' + city;
+            }
+        } else {
+            banner.style.display = 'none';
+        }
+    }
+
+    function refreshCounters() {
+        var allCells = document.querySelectorAll('[data-log-id]:not([data-log-id="0"])');
+        var counts = { Completed: 0, AlreadyProcessed: 0, NoData: 0, Failed: 0, Running: 0, Pending: 0, total: 0 };
+        allCells.forEach(function(c) {
+            counts.total++;
+            var span = c.querySelector('span.badge-status');
+            if (!span) return;
+            var txt = span.textContent.trim();
+            if      (txt.indexOf('Already Processed') !== -1) counts.AlreadyProcessed++;
+            else if (txt.indexOf('No MIS Data')       !== -1) counts.NoData++;
+            else if (txt.indexOf('Completed')         !== -1) counts.Completed++;
+            else if (txt.indexOf('Failed')            !== -1) counts.Failed++;
+            else if (txt.indexOf('Running')           !== -1) counts.Running++;
+            else                                               counts.Pending++;
+        });
+        // NoData is intentionally excluded from progress pct — MIS data not yet processed
+        var pct = counts.total > 0 ? Math.round(((counts.Completed + counts.AlreadyProcessed) * 100) / counts.total) : 0;
+        var bar  = document.getElementById('overallProgressBar');
+        var lbl  = document.getElementById('overallPctLabel');
+        if (bar) bar.style.width = (pct > 5 ? pct : 0) + '%';
+        if (lbl) lbl.textContent = pct + '%';
+        ['Completed','AlreadyProcessed','NoData','Failed','Running','Pending'].forEach(function(s) {
+            var el = document.getElementById('cnt' + s);
+            if (el) el.textContent = counts[s];
+        });
+    }
+
+    function startPolling() {
+        if (pollTimer) return;
+        pollTimer = setInterval(function () {
+            fetch('/Automation/Status?year=' + year + '&month=' + month)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data || !data.entries) return;
+                    data.entries.forEach(function(e) {
+                        applyUpdate({ logId: e.id, status: e.status, retryCount: e.retryCount, errorMessage: e.errorMessage, progressPct: e.progressPct, processedCount: e.processedCount, totalCount: e.totalCount });
+                    });
+                    if (!data.isRunning) { clearInterval(pollTimer); pollTimer = null; }
+                })
+                .catch(function(err) { console.warn('Poll error:', err); });
+        }, 3000);
+    }
+
+    function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    }
+
+    if (jobRunId) {
+        var connection = new signalR.HubConnectionBuilder()
+            .withUrl('/hubs/commission-progress')
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on('progressUpdate', function(update) { applyUpdate(update); });
+        connection.on('logEntry',       function(entry)  { appendCommLog(entry); });
+
+        connection.start()
+            .then(function() { return connection.invoke('JoinRun', jobRunId); })
+            .then(function() { stopPolling(); })
+            .catch(function(err) { console.warn('SignalR failed, polling:', err); startPolling(); });
+
+        connection.onreconnecting(function() { startPolling(); });
+        connection.onreconnected(function() {
+            stopPolling();
+            connection.invoke('JoinRun', jobRunId).catch(console.warn);
+        });
+        connection.onclose(function() { startPolling(); });
+    }
+
+    refreshCityCounts();
+    refreshCityStats();
+})();
+
+// ─── Automation Log ────────────────────────────────────────────────────────────
+(function () {
+    var allLogEntries  = [];
+    var activeFilter   = 'all';
+
+    // Sync initial count from server-rendered lines
+    var preloaded = document.querySelectorAll('#commLogBox .log-entry').length;
+    if (preloaded > 0) {
+        allLogEntries = new Array(preloaded); // placeholder — we just need the count
+        var countEl = document.getElementById('commLogCount');
+        if (countEl) countEl.textContent = preloaded + ' entr' + (preloaded === 1 ? 'y' : 'ies');
+    }
+
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function levelColor(level) {
+        return level === 'SUCCESS' ? '#4ade80'
+             : level === 'ERROR'   ? '#f87171'
+             : level === 'WARN'    ? '#facc15'
+             : '#93c5fd';
+    }
+    function msgColor(level) {
+        return level === 'SUCCESS' ? '#bbf7d0'
+             : level === 'ERROR'   ? '#fecaca'
+             : level === 'WARN'    ? '#fef08a'
+             : '#d1d5db';
+    }
+    function commColor(comm) {
+        var map = {
+            'CashCommission':      '#60a5fa',
+            'CodCommission':       '#c084fc',
+            'OverLandCommission':  '#fb923c',
+            'ReturnCodCommission': '#fb7185',
+            'CommissionProcess':   '#4ade80'
+        };
+        return map[comm] || '#9ca3af';
+    }
+
+    window.appendCommLog = function(entry) {
+        allLogEntries.push(entry);
+
+        var empty = document.getElementById('commLogEmpty');
+        if (empty) empty.remove();
+
+        var searchEl = document.getElementById('commLogSearch');
+        var search   = searchEl ? searchEl.value.toLowerCase() : '';
+        var levelOk  = activeFilter === 'all' || entry.level === activeFilter;
+        var textOk   = !search || [entry.ts, entry.level, entry.comm, entry.city, entry.msg]
+                           .join(' ').toLowerCase().includes(search);
+
+        var div = document.createElement('div');
+        div.className = 'flex gap-2 py-px log-entry';
+        div.setAttribute('data-level', entry.level);
+        div.style.display = (levelOk && textOk) ? '' : 'none';
+        div.innerHTML =
+            '<span style="color:#4b5563;white-space:nowrap">' + escHtml(entry.ts) + '</span>' +
+            '<span style="color:' + levelColor(entry.level) + ';font-weight:700;width:3.5rem;text-align:right;white-space:nowrap;flex-shrink:0">' + escHtml(entry.level) + '</span>' +
+            (entry.comm
+                ? '<span style="color:' + commColor(entry.comm) + ';width:9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="' + escHtml(entry.comm) + '">' + escHtml(entry.comm) + '</span>'
+                : '<span style="width:9rem;flex-shrink:0"></span>') +
+            (entry.city
+                ? '<span style="color:#6b7280;width:9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="' + escHtml(entry.city) + '">' + escHtml(entry.city) + '</span>'
+                : '<span style="width:9rem;flex-shrink:0"></span>') +
+            '<span style="color:' + msgColor(entry.level) + ';flex:1">' + escHtml(entry.msg) + '</span>';
+
+        document.getElementById('commLogBox').appendChild(div);
+
+        // Update count badge
+        var countEl = document.getElementById('commLogCount');
+        if (countEl) {
+            var n = allLogEntries.length;
+            countEl.textContent = n + ' entr' + (n === 1 ? 'y' : 'ies');
+        }
+
+        // Auto-scroll
+        var autoScroll = document.getElementById('commLogAutoScroll');
+        var box = document.getElementById('commLogBox');
+        if (autoScroll && autoScroll.checked && box) {
+            box.scrollTop = box.scrollHeight;
+        }
+    };
+
+    window.setCommLogFilter = function(filter) {
+        activeFilter = filter;
+        document.querySelectorAll('.comm-log-filter').forEach(function(btn) {
+            var active = btn.getAttribute('data-filter') === filter;
+            btn.style.background = active ? '#1f2937' : '';
+            btn.style.color      = active ? '#fff'    : '';
+            btn.className = 'comm-log-filter px-2 py-0.5 rounded text-[10px] font-semibold ' +
+                (active ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200');
+        });
+        filterCommLog();
+    };
+
+    window.filterCommLog = function() {
+        var search = (document.getElementById('commLogSearch')?.value || '').toLowerCase();
+        document.querySelectorAll('#commLogBox .log-entry').forEach(function(div) {
+            var level = div.getAttribute('data-level') || '';
+            var levelOk  = activeFilter === 'all' || level === activeFilter;
+            var searchOk = !search || div.textContent.toLowerCase().includes(search);
+            div.style.display = (levelOk && searchOk) ? '' : 'none';
+        });
+    };
+
+    window.clearCommLog = function() {
+        allLogEntries = [];
+        var box = document.getElementById('commLogBox');
+        if (box) box.innerHTML = '<div id="commLogEmpty" style="color:#4b5563;font-style:italic;font-size:10px">Log cleared.</div>';
+        var countEl = document.getElementById('commLogCount');
+        if (countEl) countEl.textContent = '0 entries';
+    };
+
+    // Scroll to bottom of log on page load if there's preloaded content
+    if (preloaded > 0) {
+        var box = document.getElementById('commLogBox');
+        if (box) box.scrollTop = box.scrollHeight;
+    }
+})();
+</script>
+}

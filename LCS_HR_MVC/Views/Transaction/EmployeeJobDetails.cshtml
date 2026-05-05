@@ -1,0 +1,357 @@
+@model LCS_HR_MVC.Models.EmployeeJobDetailModel
+@{
+    ViewData["PageTitle"] = "Employee Designation Details";
+    var jobDetailsList = ViewBag.JobDetailsList as IEnumerable<LCS_HR_MVC.Models.EmployeeJobDetailModel> ?? new List<LCS_HR_MVC.Models.EmployeeJobDetailModel>();
+    var divisionsList = ViewBag.DivisionsList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var departmentsList = ViewBag.DepartmentsList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var subDepartmentsList = ViewBag.SubDepartmentsList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var designationsList = ViewBag.DesignationsList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    
+}
+
+<div class="w-full p-6 bg-white">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="text-red-700 bg-red-100 border border-red-400 p-3 rounded mb-4 shadow-sm"><div class="font-medium"><strong>Error! </strong>@TempData["ErrorMessage"]</div></div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="text-green-700 bg-green-100 border border-green-400 p-3 rounded mb-4 shadow-sm"><div class="font-medium"><strong>Success! </strong>@TempData["SuccessMessage"]</div></div>
+    }
+
+    <div style="margin-bottom: 20px;"></div>
+    
+    <div class="w-full max-w-7xl mx-auto">
+        <table class="w-full shadow-lg bg-white rounded-lg border border-gray-200" style="width:100%;">
+            <tr>
+                <td colspan="2" class="border border-gray-300 p-2 text-gray-800">
+                    <div class="p-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+                        <table width="750px" border="0" cellpadding="0" cellspacing="0">
+                            <tbody>
+                                <tr>
+                                    <td class="border border-gray-300 p-2 text-gray-800"><span class="text-sm font-semibold text-gray-700">Search</span></td>
+                                    <td class="border border-gray-300 p-2 text-gray-800"><input type="text" id="txtsearch" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Enter keyword to search" style="width:200px;" /></td>
+                                    <td class="border border-gray-300 p-2 text-gray-800">
+                                        <button type="button" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onclick="filterTable()">Search</button>
+                                        <button type="button" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onclick="resetSearch()">Clear Search</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td valign="top" width="60%" style="padding-right: 10px;" class="border border-gray-300 p-2 text-gray-800">
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table id="dg1" class="tablesorter w-full border-collapse border border-gray-300 text-sm bg-white shadow-sm rounded-lg overflow-hidden" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Code</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Employee</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Job Type</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Effective From</th>
+                                    <th class="bg-gray-200 border border-gray-300 p-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wider">Effective To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in jobDetailsList)
+                                {
+                                    <tr class="gridRow hover:bg-gray-100 border-b border-gray-200 transition-colors">
+                                        <td class="border border-gray-300 p-2 text-gray-800">
+                                            <a href="@Url.Action("EmployeeJobDetails", "Transaction", new { code = item.Code })" class="job-link" 
+                                               data-code="@item.Code" 
+                                               data-effectiveto="@(item.EffectiveTo?.ToString("yyyy-MM-dd"))">@item.Code</a>
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">@item.EmployeeName</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">@item.JobName</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">@(item.EffectiveFrom?.ToString("dd/MM/yyyy"))</td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">@(item.EffectiveTo?.ToString("dd/MM/yyyy"))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+
+                <td style="vertical-align: baseline;" class="border border-gray-300 p-2 text-gray-800">
+                    <form asp-controller="Transaction" asp-action="EmployeeJobDetails" method="post" id="jobForm">
+                        <fieldset class="border border-gray-300 p-5 rounded-md mb-4 bg-gray-50 shadow-sm">
+                            <legend class="text-sm font-semibold text-gray-800 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm">Entry</legend>
+                            <table class="w-full border-spacing-y-2 border-separate" width="98%" border="0" cellpadding="0" cellspacing="5">
+                                <tbody>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2 text-gray-800" width="130">
+                                            <span class="text-sm font-semibold text-gray-700">Code</span>
+                                        </td>
+                                        <td colspan="2" class="border border-gray-300 p-2 text-gray-800">
+                                            <input type="text" id="displayCode" value="@Model.Code" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" disabled="disabled" style="width:270px;" />
+                                            <input type="hidden" asp-for="Code" id="Code" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2 text-gray-800">
+                                            <span class="text-sm font-semibold text-gray-700">Employee</span>
+                                        </td>
+                                        <td colspan="2" class="border border-gray-300 p-2 text-gray-800">
+                                            <input type="text" asp-for="EmployeeDescription" id="txtEmployeeDescription" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:270px;" placeholder="Use wildcard '%'" />
+                                            <input type="text" asp-for="EmpNo" id="txtEmployeeCode" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:110px;" readonly="readonly" />
+                                            <span asp-validation-for="EmployeeDescription" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                            <span asp-validation-for="EmpNo" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2 text-gray-800">
+                                            <span class="text-sm font-semibold text-gray-700">Division</span>
+                                        </td>
+                                        <td colspan="2" class="border border-gray-300 p-2 text-gray-800">
+                                            <select asp-for="BUID" asp-items="divisionsList" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:190px;" id="ddlBU"></select>
+                                            <span asp-validation-for="BUID" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2 text-gray-800">
+                                            <span class="text-sm font-semibold text-gray-700">Parent Department</span>
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">
+                                            <select asp-for="ParentDeptId" asp-items="departmentsList" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:190px;" id="ddldept"></select>
+                                            <span asp-validation-for="ParentDeptId" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">
+                                            <label class="text-sm font-semibold text-gray-700" style="margin-left: 10px; margin-right: 5px;">From Date</label>
+                                            <input type="date" asp-for="DeptFromDate" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:130px;" id="DeptFromDate" />
+                                            <span asp-validation-for="DeptFromDate" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2 text-gray-800">
+                                            <span class="text-sm font-semibold text-gray-700">Sub-Department</span>
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">
+                                            <select asp-for="SubDeptId" asp-items="subDepartmentsList" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:190px;" id="ddlSubDepartments"></select>
+                                            <span asp-validation-for="SubDeptId" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">
+                                            <label class="text-sm font-semibold text-gray-700" style="margin-left: 10px; margin-right: 21px;">To Date</label>
+                                            <input type="date" asp-for="DeptToDate" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:130px;" id="DeptToDate" disabled="disabled" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2 text-gray-800">
+                                            <span class="text-sm font-semibold text-gray-700">Designation</span>
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">
+                                            <select asp-for="JobCode" asp-items="designationsList" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:190px;" id="tab1DropDowndesignation"></select>
+                                            <span asp-validation-for="JobCode" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                        </td>
+                                        <td class="border border-gray-300 p-2 text-gray-800">
+                                            <input type="date" asp-for="EffectiveFrom" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:130px;" id="EffectiveFrom" />
+                                            <span asp-validation-for="EffectiveFrom" class="rfv text-red-500 text-xs mt-1 block"></span>
+                                            
+                                            <input type="date" asp-for="EffectiveTo" class="req bg-[#fdf4b5] border border-gray-300 rounded shadow-inner text-gray-700 text-sm h-[30px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" style="width:130px;" id="EffectiveTo" disabled="disabled" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fCaption font-semibold text-gray-700 text-sm align-middle py-2 border border-gray-300 p-2 text-gray-800">
+                                            <span class="text-sm font-semibold text-gray-700">Comments</span>
+                                        </td>
+                                        <td colspan="2" class="border border-gray-300 p-2 text-gray-800">
+                                            <input asp-for="Comments" style="width:270px;" maxlength="45" id="Comments" />
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </fieldset>
+
+                        <div class="buttonWrapper" style="margin-top:10px;">
+                            <button type="submit" name="action" value="Save" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnSave">Save</button>
+                            <button type="submit" name="action" value="Update" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnUpdate" disabled="disabled">Update</button>
+                            <button type="submit" name="action" value="Delete" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnDelete" disabled="disabled" onclick="return confirm('Do you want to delete?');">Delete</button>
+                            <button type="submit" name="action" value="Reset" class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-4 rounded text-sm transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" id="btnReset" formnovalidate>Reset</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            
+            // Re-populate search input if code exists
+            var initialEmpNo = $('#txtEmployeeCode').val();
+            var initialDesc = $('#txtEmployeeDescription').val();
+            if (initialEmpNo && initialDesc) {
+                $('#txtEmployeeDescription').val(initialDesc);
+            }
+
+            // Employee Autocomplete
+            $("#txtEmployeeDescription").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("SearchActiveEmployees", "Setup")',
+                        type: "GET",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.label, value: item.desc, id: item.value };
+                            }))
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    $("#txtEmployeeDescription").val(ui.item.value);
+                    $("#txtEmployeeCode").val(ui.item.id);
+                    
+                    // Fetch Employee BUID and auto-select
+                    $.ajax({
+                        url: '@Url.Action("GetEmployeeBU", "Transaction")',
+                        type: 'GET',
+                        data: { empNo: ui.item.id },
+                        success: function(res) {
+                            if(res && res.bUnit) {
+                                $('#ddlBU').val(res.bUnit).trigger('change');
+                            }
+                        }
+                    });
+
+                    return false;
+                },
+                minLength: 1
+            });
+            
+            $("#txtEmployeeDescription").keyup(function() {
+                if (!$(this).val()) {
+                    $("#txtEmployeeCode").val('');
+                }
+            });
+
+            // Cascading Dropdowns
+            $('#ddlBU').change(function() {
+                var buid = $(this).val();
+                if (buid && buid !== '00') {
+                    $.ajax({
+                        url: '@Url.Action("GetParentDepartmentsByBU", "Transaction")',
+                        type: 'GET',
+                        data: { buId: buid },
+                        success: function (data) {
+                            var ddl = $('#ddldept');
+                            ddl.empty();
+                            $.each(data, function (index, item) {
+                                ddl.append($('<option/>', { value: item.value, text: item.text }));
+                            });
+                            $('#ddlSubDepartments').empty().append('<option value="00">Please Select</option>');
+                            $('#tab1DropDowndesignation').empty().append('<option value="00">Please Select</option>');
+                            
+                            // Re-select if editing
+                            var selectedPdid = '@Model.ParentDeptId';
+                            if(selectedPdid && selectedPdid !== '00') {
+                                ddl.val(selectedPdid).trigger('change');
+                            }
+                        }
+                    });
+                } else {
+                    $('#ddldept').empty().append('<option value="00">Please Select</option>');
+                    $('#ddlSubDepartments').empty().append('<option value="00">Please Select</option>');
+                    $('#tab1DropDowndesignation').empty().append('<option value="00">Please Select</option>');
+                }
+            });
+
+            $('#ddldept').change(function() {
+                var pdid = $(this).val();
+                if (pdid && pdid !== '00') {
+                    $.ajax({
+                        url: '@Url.Action("GetSubDepartmentsAndJobsByParent", "Transaction")',
+                        type: 'GET',
+                        data: { parentId: pdid },
+                        success: function (data) {
+                            var ddlSub = $('#ddlSubDepartments');
+                            ddlSub.empty();
+                            $.each(data.subs, function (index, item) {
+                                ddlSub.append($('<option/>', { value: item.value, text: item.text }));
+                            });
+
+                            var ddlJob = $('#tab1DropDowndesignation');
+                            ddlJob.empty();
+                            $.each(data.jobs, function (index, item) {
+                                ddlJob.append($('<option/>', { value: item.value, text: item.text }));
+                            });
+
+                            var selectedSdid = '@Model.SubDeptId';
+                            if(selectedSdid && selectedSdid !== '00') {
+                                ddlSub.val(selectedSdid);
+                            }
+
+                            var selectedJob = '@Model.JobCode';
+                            if(selectedJob && selectedJob !== '00') {
+                                ddlJob.val(selectedJob);
+                            }
+                        }
+                    });
+                } else {
+                    $('#ddlSubDepartments').empty().append('<option value="00">Please Select</option>');
+                    $('#tab1DropDowndesignation').empty().append('<option value="00">Please Select</option>');
+                }
+            });
+
+            // Prevent link navigation if EffectiveTo is not null (as per legacy logic)
+            $('.job-link').click(function(e) {
+                var toDate = $(this).data('effectiveto');
+                if (toDate && toDate.trim() !== '') {
+                    e.preventDefault();
+                    alert("Selected Record Cannot Be Updated...!!!");
+                }
+            });
+
+            // If editing mode is active
+            var currentCode = $('#Code').val();
+            if (currentCode && currentCode !== 'Auto Generated') {
+                $('#btnSave').prop('disabled', true);
+                $('#btnUpdate').prop('disabled', false);
+                $('#btnDelete').prop('disabled', false);
+
+                // Manually trigger the cascade to populate dropdowns if editing
+                var currentBu = $('#ddlBU').val();
+                if (currentBu && currentBu !== '00') {
+                    $('#ddlBU').trigger('change');
+                }
+            }
+
+        });
+
+        function filterTable() {
+            var input = document.getElementById("txtsearch");
+            var filter = input.value.toUpperCase();
+            var table = document.getElementById("dg1");
+            var tr = table.getElementsByTagName("tr");
+
+            for (var i = 1; i < tr.length; i++) {
+                var tdEmp = tr[i].getElementsByTagName("td")[1];
+                var tdJob = tr[i].getElementsByTagName("td")[2];
+                if (tdEmp || tdJob) {
+                    var txtValueEmp = tdEmp.textContent || tdEmp.innerText;
+                    var txtValueJob = tdJob.textContent || tdJob.innerText;
+                    if (txtValueEmp.toUpperCase().indexOf(filter) > -1 || txtValueJob.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }       
+            }
+        }
+
+        function resetSearch() {
+            document.getElementById("txtsearch").value = "";
+            filterTable();
+        }
+    </script>
+}

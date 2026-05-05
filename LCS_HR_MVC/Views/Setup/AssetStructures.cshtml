@@ -1,0 +1,377 @@
+@model LCS_HR_MVC.Models.AssetStructureModel
+@{
+    ViewData["PageTitle"] = "Asset Properties";
+    var dataList = ViewBag.AssetStructuresList as IEnumerable<LCS_HR_MVC.Models.AssetStructureModel> ?? new List<LCS_HR_MVC.Models.AssetStructureModel>();
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Detail Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* DataTable Overrides - Modern & Balanced */
+        .dataTables_wrapper .dataTables_filter {
+            @@apply tw-relative tw-mb-5;
+        }
+        .dataTables_wrapper .dataTables_filter label {
+            @@apply tw-w-full sm:tw-w-auto;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            @@apply tw-w-full sm:tw-w-[300px] tw-border-2 tw-border-slate-100 tw-rounded-2xl tw-px-5 tw-py-2.5 tw-text-sm tw-outline-none tw-bg-slate-50 focus:tw-bg-white tw-text-slate-700 tw-shadow-inner tw-font-medium;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus { 
+            @@apply tw-border-amber-400 tw-ring-4 tw-ring-amber-400/20 tw-shadow-lg; 
+        }
+        
+        table.dataTable {
+            @@apply tw-border-collapse;
+        }
+        table.dataTable thead th {
+            @@apply tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-[0.15em] tw-py-4 tw-px-5 tw-border-b-2 tw-border-slate-100 !important;
+        }
+        
+        table.dataTable tbody tr {
+            @@apply tw-border-b tw-border-slate-50 tw-transition-colors hover:tw-bg-amber-50/30;
+        }
+        table.dataTable tbody td {
+            @@apply tw-py-4 tw-px-5 tw-align-middle;
+        }
+        
+        .dataTables_info {
+            @@apply tw-text-xs tw-font-semibold tw-text-slate-500 tw-mt-5;
+        }
+        
+        /* Modern Pagination */
+        .dataTables_wrapper .dataTables_paginate {
+            @@apply tw-flex tw-items-center tw-gap-1 tw-mt-5;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            @@apply tw-min-w-[32px] tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded-lg tw-text-xs tw-font-bold tw-text-slate-500 tw-border tw-border-slate-200 tw-bg-white tw-cursor-pointer tw-transition-all !important;
+            padding: 0 0.5rem !important;
+            margin: 0 !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            @@apply tw-bg-slate-100 tw-text-slate-800 tw-border-slate-300 !important;
+            background: none !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            @@apply tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-border-transparent tw-shadow-md tw-cursor-default !important;
+            background: none !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+            @@apply tw-opacity-50 tw-cursor-not-allowed hover:tw-bg-white hover:tw-text-slate-500 hover:tw-border-slate-200 !important;
+        }
+
+        /* Two-column layout specifically for property fields */
+        .property-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-cogs tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Setup</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Resource Layout</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Structure Node</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Define system property structures and attributes for dynamic company assets.</p>
+        </div>
+    </div>
+
+
+    <div class="tw-grid xl:tw-grid-cols-[1fr_0.9fr] tw-gap-6 xl:tw-gap-8 align-top">
+        
+        <!-- Left Side: Table View -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative tw-h-full">
+            <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none z-0"></div>
+
+            <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-4 tw-bg-slate-50/80">
+                <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-gradient-to-br tw-from-slate-900 tw-to-slate-800 tw-flex tw-items-center tw-justify-center tw-shadow-[0_4px_10px_rgba(15,23,42,0.3)]">
+                    <i class="fas fa-boxes tw-text-amber-400 tw-text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="tw-font-black tw-text-base tw-text-slate-800 tw-tracking-tight">Attributes Layout</h2>
+                    <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">Defined Models</p>
+                </div>
+            </div>
+
+            <div class="tw-relative tw-z-10 tw-p-6">
+                <div class="tw-overflow-x-auto custom-scrollbar">
+                    <table id="dg1" class="tw-w-full dataTable tw-text-xs">
+                        <thead>
+                            <tr>
+                                <th class="tw-w-20 tw-text-center">Asset Code</th>
+                                <th>Definition</th>
+                                <th class="tw-text-right tw-pr-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-100">
+                            @foreach (var item in dataList)
+                            {
+                                <tr class="hover:tw-bg-slate-50 tw-transition-colors group tw-text-sm">
+                                    <td class="tw-py-4 tw-text-center tw-align-middle">
+                                        <span class="tw-px-2.5 tw-py-1 tw-bg-slate-100 group-hover:tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-font-mono tw-font-black tw-text-slate-600 tw-shadow-sm tw-transition-colors">@item.Code</span>
+                                    </td>
+                                    <td class="tw-py-4 tw-align-middle">
+                                        <div class="tw-font-bold tw-text-slate-800 group-hover:tw-text-amber-500 tw-transition-colors">@item.Description</div>
+                                    </td>
+                                    <td class="tw-py-4 tw-text-right tw-pr-4 tw-align-middle">
+                                        <button class="struct-link tw-inline-flex tw-items-center tw-justify-center tw-w-8 tw-h-8 tw-rounded-lg tw-bg-slate-50 tw-border tw-border-slate-200 tw-text-slate-400 hover:tw-bg-amber-400 hover:tw-border-amber-400 hover:tw-text-slate-900 tw-shadow-sm hover:tw-shadow-md hover:tw--translate-y-0.5 tw-transition-all"
+                                                data-code="@item.Code" 
+                                                data-desc="@item.Description"
+                                                data-p1="@item.Prop1"
+                                                data-p2="@item.Prop2"
+                                                data-p3="@item.Prop3"
+                                                data-p4="@item.Prop4"
+                                                data-p5="@item.Prop5"
+                                                data-p6="@item.Prop6"
+                                                data-p7="@item.Prop7"
+                                                data-p8="@item.Prop8"
+                                                data-p9="@item.Prop9"
+                                                data-p10="@item.Prop10"
+                                                title="Edit Structure">
+                                            <i class="fas fa-edit tw-text-[11px]"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Config Form -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-sticky tw-top-24 tw-relative">
+            <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-amber-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none"></div>
+
+            <div class="tw-p-6 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-relative tw-z-10">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    Property Configurator
+                </h3>
+            </div>
+
+            <form asp-controller="Setup" asp-action="AssetStructures" method="post" id="structForm" class="tw-p-7 tw-space-y-5 tw-relative tw-z-10">
+                
+                <div class="tw-grid tw-grid-cols-[1fr_2fr] tw-gap-4">
+                    <div>
+                        <label class="tw-block tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mb-1.5">Model Code</label>
+                        <div class="tw-flex tw-items-center tw-bg-slate-50 tw-rounded-xl tw-px-3 tw-py-2.5 tw-border tw-border-slate-200 tw-shadow-inner opacity-80">
+                            <i class="fas fa-fingerprint tw-text-slate-400 tw-mr-2 tw-text-[10px]"></i>
+                            <input type="text" id="displayCode" value="@Model.Code" disabled 
+                                   class="tw-bg-transparent tw-w-full tw-text-sm tw-font-mono tw-font-bold tw-text-center tw-text-slate-600 tw-outline-none" />
+                            <input type="hidden" asp-for="Code" id="Code" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label asp-for="Description" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Asset Description <span class="tw-text-red-500">*</span></label>
+                        <div class="tw-relative">
+                            <i class="fas fa-boxes tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-sm"></i>
+                            <input asp-for="Description" id="Description" maxlength="99" 
+                                   class="tw-w-full tw-pl-10 tw-pr-3 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm" placeholder="e.g. Laptops" />
+                        </div>
+                        <span asp-validation-for="Description" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+                </div>
+
+                <div class="tw-relative">
+                    <div class="tw-absolute tw-inset-0 tw-flex tw-items-center" aria-hidden="true">
+                        <div class="tw-w-full tw-border-t tw-border-slate-100"></div>
+                    </div>
+                    <div class="tw-relative tw-flex tw-justify-start">
+                        <span class="tw-pr-3 tw-bg-white tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest">
+                            Dynamic Attributes
+                        </span>
+                    </div>
+                </div>
+
+                <div class="property-grid">
+                    <!-- Column 1 -->
+                    <div class="tw-space-y-3">
+                        <div class="tw-relative">
+                            <i class="fas fa-hashtag tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-300 tw-text-[10px]"></i>
+                            <input asp-for="Prop1" id="Prop1" maxlength="50" 
+                                   class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-font-bold tw-text-slate-800 placeholder-slate-400 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all" placeholder="Label 1 *" />
+                            <span asp-validation-for="Prop1" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                        </div>
+                        @for (int i = 3; i <= 9; i += 2)
+                        {
+                            <div class="tw-relative">
+                                <i class="fas fa-hashtag tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-300 tw-text-[10px]"></i>
+                                <input type="text" name="Prop@(i)" id="Prop@(i)" maxlength="50" value="@(Model.GetType().GetProperty($"Prop{i}")?.GetValue(Model))"
+                                       class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-font-bold tw-text-slate-800 placeholder-slate-300 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" placeholder="Label @i" />
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Column 2 -->
+                    <div class="tw-space-y-3">
+                        <div class="tw-relative">
+                            <i class="fas fa-hashtag tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-300 tw-text-[10px]"></i>
+                            <input asp-for="Prop2" id="Prop2" maxlength="50" 
+                                   class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-font-bold tw-text-slate-800 placeholder-slate-300 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" placeholder="Label 2" />
+                        </div>
+                        @for (int i = 4; i <= 10; i += 2)
+                        {
+                            <div class="tw-relative">
+                                <i class="fas fa-hashtag tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-300 tw-text-[10px]"></i>
+                                <input type="text" name="Prop@(i)" id="Prop@(i)" maxlength="50" value="@(Model.GetType().GetProperty($"Prop{i}")?.GetValue(Model))"
+                                       class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-xs tw-font-bold tw-text-slate-800 placeholder-slate-300 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" placeholder="Label @i" />
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="tw-border-t tw-border-slate-100 tw-pt-3 tw-mt-2"></div>
+
+                 <!-- Action Controls -->
+                <div class="tw-space-y-3">
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="submit" name="action" value="Save" id="btnSave" 
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-50 disabled:tw-cursor-not-allowed">
+                            <i class="fas fa-check-circle tw-text-sm"></i> Save Structure
+                        </button>
+                        <button type="submit" name="action" value="Update" id="btnUpdate" disabled="disabled"
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-slate-900 tw-text-white tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-800 hover:tw-shadow-[0_8px_20px_rgba(15,23,42,0.2)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-40 disabled:hover:tw-transform-none disabled:hover:tw-shadow-none">
+                            <i class="fas fa-sync-alt tw-text-sm"></i> Update Model
+                        </button>
+                    </div>
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="submit" name="action" value="Delete" id="btnDelete" disabled="disabled" onclick="return confirm('Are you sure you want to delete this structure model?');"
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-red-500 tw-border tw-border-red-100 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-red-50 hover:tw-border-red-200 tw-transition-all disabled:tw-opacity-40 disabled:tw-cursor-not-allowed">
+                            <i class="fas fa-trash-alt"></i> Purge
+                        </button>
+                        <button type="submit" name="action" value="Reset" id="btnReset" formnovalidate
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                            <i class="fas fa-undo-alt tw-opacity-60"></i> Release
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if ($.fn.DataTable) {
+                $('#dg1').DataTable({
+                    "pageLength": 10,
+                    "lengthChange": false,
+                    "dom": '<"tw-flex tw-flex-col sm:tw-flex-row tw-justify-between tw-items-center tw-mb-2"f>rt<"tw-flex tw-flex-col sm:tw-flex-row tw-justify-between tw-items-center"ip>',
+                    "language": { 
+                        "search": "", 
+                        "searchPlaceholder": "Trace models...",
+                        "paginate": {
+                            "previous": "<i class='fas fa-chevron-left tw-text-[10px]'></i>",
+                            "next": "<i class='fas fa-chevron-right tw-text-[10px]'></i>"
+                        }
+                    }
+                });
+
+                $('.dataTables_filter label').addClass('tw-relative tw-block tw-w-full');
+                $('.dataTables_filter input').addClass('tw-pl-10');
+                $('.dataTables_filter label').append('<i class="fas fa-search tw-absolute tw-left-4 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400"></i>');
+            }
+
+            $('.struct-link').click(function (e) {
+                e.preventDefault();
+                var code = $(this).data('code');
+                var desc = $(this).data('desc');
+                
+                $('#Code').val(code);
+                $('#displayCode').val(code);
+                $('#Description').val(desc);
+
+                for(var i=1; i<=10; i++) {
+                    $('#Prop' + i).val($(this).data('p' + i));
+                }
+
+                $('#btnSave').prop('disabled', true);
+                $('#btnUpdate').prop('disabled', false);
+                $('#btnDelete').prop('disabled', false);
+                
+                $('#Description').focus();
+            });
+
+            var currentCode = $('#Code').val();
+            if (currentCode && currentCode !== 'Auto Generated' && currentCode !== '0' && currentCode !== '') {
+                $('#displayCode').val(currentCode);
+                $('#btnSave').prop('disabled', true);
+                $('#btnUpdate').prop('disabled', false);
+                $('#btnDelete').prop('disabled', false);
+            }
+
+            $('#btnReset').click(function() {
+                setTimeout(function() {
+                    $('#btnSave').prop('disabled', false);
+                    $('#btnUpdate, #btnDelete').prop('disabled', true);
+                    $('#displayCode').val('Auto Generated');
+                }, 100);
+            });
+        });
+    </script>
+}

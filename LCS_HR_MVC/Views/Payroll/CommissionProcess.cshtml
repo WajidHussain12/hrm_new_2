@@ -1,0 +1,128 @@
+@model LCS_HR_MVC.Models.Payroll.CommissionProcessViewModel
+@{
+    ViewData["PageTitle"] = "Commission Process";
+    ViewData["Title"] = "Commission Process";
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+        .animate-main{animation:slideUp .4s ease-out}
+        .f-label{display:block;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+        .f-select{width:100%;padding:10px 32px 10px 12px;background:#fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right .75rem top 50%;background-size:.65rem;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;appearance:none;transition:border-color .15s,box-shadow .15s}
+        .f-select:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .btn-p{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#fbbf24,#f97316);color:#1e293b;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(245,197,24,.3);transition:all .15s}
+        .btn-p:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,197,24,.4)}
+        .btn-s{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;color:#475569;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #e2e8f0;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
+        .btn-s:hover{background:#f8fafc;transform:translateY(-1px)}
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5"></i><span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-check tw-mt-0.5"></i><span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-xl tw-text-amber-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-clock tw-mt-0.5"></i><span>@TempData["WarningMessage"]</span>
+        </div>
+    }
+
+    <div class="tw-mb-8">
+        <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+            <span class="tw-flex tw-items-center tw-gap-1"><i class="fas fa-calendar-check tw-text-[10px] tw-text-slate-300"></i> Payroll</span>
+            <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+            <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Commission Process</span>
+        </nav>
+        <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Commission Process</h1>
+        <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+        <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-2">Run after COD and Cash Commission have been executed for the selected period.</p>
+    </div>
+
+    <form asp-controller="Payroll" asp-action="CommissionProcess" method="post" id="commissionProcessForm"
+          data-cities-url="@Url.Action("GetCitiesByZone", "Payroll")">
+        @Html.AntiForgeryToken()
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-percentage"></i></div>
+                    Process Parameters
+                </h3>
+            </div>
+            <div class="tw-p-6">
+                <div class="tw-grid sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-5 tw-mb-6">
+                    <div>
+                        <label class="f-label">Year</label>
+                        <select asp-for="Year" class="f-select">
+                            @for (int i = DateTime.Now.Year - 5; i <= DateTime.Now.Year + 1; i++)
+                            {
+                                <option value="@i">@i</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="f-label">Month</label>
+                        <select asp-for="Month" class="f-select">
+                            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="f-label">Zone</label>
+                        <select asp-for="ZoneId" asp-items="ViewBag.Zones" class="f-select" id="ddlZone">
+                            <option value="00">Please Select</option>
+                        </select>
+                        <span asp-validation-for="ZoneId" class="tw-text-red-500 tw-text-xs tw-mt-1 tw-block"></span>
+                    </div>
+                    <div>
+                        <label class="f-label">City</label>
+                        <select asp-for="CityCode" asp-items="ViewBag.Cities" class="f-select" id="ddlCity">
+                            <option value="00">Please Select</option>
+                        </select>
+                        <span asp-validation-for="CityCode" class="tw-text-red-500 tw-text-xs tw-mt-1 tw-block"></span>
+                    </div>
+                </div>
+
+                <div class="tw-bg-amber-50 tw-rounded-2xl tw-border tw-border-amber-100 tw-p-4 tw-mb-6 tw-space-y-2">
+                    <p class="tw-text-[11px] tw-font-black tw-text-amber-600 tw-uppercase tw-tracking-widest tw-mb-3 tw-flex tw-items-center tw-gap-2">
+                        <i class="fas fa-check-double tw-text-amber-500"></i> Pre-Process Confirmations
+                    </p>
+                    <label class="tw-flex tw-items-center tw-gap-3 tw-text-sm tw-font-semibold tw-text-slate-700 tw-cursor-pointer">
+                        <input type="checkbox" asp-for="BillingStatusConfirmed" id="chkBillingStatus" class="tw-accent-amber-500 tw-w-4 tw-h-4" />
+                        I have confirmed, Billing is up to date.
+                    </label>
+                    <label class="tw-flex tw-items-center tw-gap-3 tw-text-sm tw-font-semibold tw-text-slate-700 tw-cursor-pointer">
+                        <input type="checkbox" asp-for="AttendanceStatusConfirmed" id="chkAttendanceStatus" class="tw-accent-amber-500 tw-w-4 tw-h-4" />
+                        I have executed Employee Attendance Process.
+                    </label>
+                    <label class="tw-flex tw-items-center tw-gap-3 tw-text-sm tw-font-semibold tw-text-slate-700 tw-cursor-pointer">
+                        <input type="checkbox" asp-for="AllCommissionTypesConfirmed" id="chkAllCommissionTypes" class="tw-accent-amber-500 tw-w-4 tw-h-4" />
+                        I have executed all commission types (COD, Cash, OLE, etc.).
+                    </label>
+                </div>
+
+                <div class="tw-flex tw-gap-3">
+                    <button type="submit" name="action" value="ProcessCommission" class="btn-p" id="btnUpload"><i class="fas fa-bolt tw-text-xs"></i> Process Data</button>
+                    <button type="submit" name="action" value="Reset" class="btn-s" formnovalidate><i class="fas fa-times tw-text-xs"></i> Reset</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/payroll/commission-process.js" asp-append-version="true"></script>
+}

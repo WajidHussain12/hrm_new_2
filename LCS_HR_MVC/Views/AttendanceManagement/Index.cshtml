@@ -1,0 +1,837 @@
+@model LCS_HR_MVC.Models.AttendanceManagementViewModel
+@{
+    ViewData["Title"]     = "Employee Attendance";
+    ViewData["PageTitle"] = "Employee Attendance Management";
+    var f = Model.Filter;
+    var s = Model.Stats;
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    <style>
+        /* ── Attendance badge colours ─────────────────────────────────── */
+        .att-badge { display:inline-flex; align-items:center; gap:4px;
+                     font-size:.72rem; font-weight:700; padding:2px 10px;
+                     border-radius:9999px; white-space:nowrap; }
+        .att-badge-present  { background:#dcfce7; color:#166534; }
+        .att-badge-wfh      { background:#dbeafe; color:#1e40af; }
+        .att-badge-absent   { background:#fee2e2; color:#991b1b; }
+        .att-badge-leave    { background:#fef9c3; color:#854d0e; }
+        .att-badge-holiday  { background:#ede9fe; color:#5b21b6; }
+        .att-badge-weekend  { background:#f1f5f9; color:#475569; }
+        .att-badge-late     { background:#ffedd5; color:#9a3412; }
+        .att-badge-radj     { background:#ecfdf5; color:#065f46; }
+        .att-badge-na       { background:#f8fafc; color:#94a3b8; }
+
+        .src-badge { display:inline-flex; align-items:center; gap:4px;
+                     font-size:.68rem; font-weight:600; padding:2px 8px;
+                     border-radius:6px; white-space:nowrap; }
+        .src-badge-bio    { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+        .src-badge-mob    { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+        .src-badge-manual { background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff; }
+
+        /* ── Stat card ───────────────────────────────────────────────── */
+        .stat-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+                     padding:14px 18px; transition:box-shadow .2s; }
+        .stat-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.08); }
+        .stat-card .stat-val { font-size:1.7rem; font-weight:800; line-height:1; }
+        .stat-card .stat-lbl { font-size:.7rem; font-weight:600; text-transform:uppercase;
+                               letter-spacing:.08em; color:#94a3b8; }
+
+        /* ── Table ───────────────────────────────────────────────────── */
+        .att-table thead tr { background:#0f172a; color:#f5c518; }
+        .att-table th { font-size:.72rem; font-weight:700; padding:10px 8px;
+                        text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+        .att-table td { font-size:.8rem; padding:8px; vertical-align:middle;
+                        border-bottom:1px solid #f1f5f9; }
+        .att-table tbody tr:hover { background:#fafafa; }
+
+        /* ── Filter card ─────────────────────────────────────────────── */
+        .filter-label { font-size:.72rem; font-weight:700; color:#475569;
+                        text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:4px; }
+        .filter-input { width:100%; font-size:.82rem; border:1px solid #cbd5e1;
+                        border-radius:8px; padding:6px 10px; color:#1e293b;
+                        transition:border-color .2s, box-shadow .2s; }
+        .filter-input:focus { outline:none; border-color:#f5c518;
+                              box-shadow:0 0 0 3px rgba(245,197,24,.12); }
+
+        /* ── Modals ──────────────────────────────────────────────────── */
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45);
+                         display:flex; align-items:center; justify-content:center;
+                         z-index:9999; }
+        .modal-box { background:#fff; border-radius:16px; padding:28px;
+                     width:min(540px,94vw); max-height:90vh; overflow-y:auto;
+                     box-shadow:0 24px 64px rgba(0,0,0,.18); }
+        .modal-title { font-size:1.05rem; font-weight:800; color:#0f172a; margin-bottom:16px; }
+
+        .form-label { font-size:.75rem; font-weight:700; color:#475569;
+                      text-transform:uppercase; letter-spacing:.06em;
+                      display:block; margin-bottom:4px; }
+        .form-input  { width:100%; font-size:.85rem; border:1px solid #cbd5e1;
+                       border-radius:8px; padding:8px 12px; color:#1e293b; }
+        .form-input:focus { outline:none; border-color:#f5c518;
+                            box-shadow:0 0 0 3px rgba(245,197,24,.12); }
+        .form-select { appearance:auto; }
+
+        .btn-p { background:linear-gradient(135deg,#f5c518,#f59e0b); color:#0f172a;
+                 font-weight:700; font-size:.82rem; padding:8px 18px; border-radius:8px;
+                 border:none; cursor:pointer; transition:opacity .2s; }
+        .btn-p:hover { opacity:.88; }
+        .btn-s { background:#f1f5f9; color:#475569; font-weight:600; font-size:.82rem;
+                 padding:8px 18px; border-radius:8px; border:1px solid #e2e8f0;
+                 cursor:pointer; transition:background .2s; }
+        .btn-s:hover { background:#e2e8f0; }
+        .btn-danger { background:#fee2e2; color:#991b1b; font-weight:700; font-size:.78rem;
+                      padding:5px 12px; border-radius:7px; border:1px solid #fecaca;
+                      cursor:pointer; transition:background .2s; }
+        .btn-danger:hover { background:#fecaca; }
+        .btn-edit { background:#eff6ff; color:#1d4ed8; font-weight:700; font-size:.78rem;
+                    padding:5px 12px; border-radius:7px; border:1px solid #bfdbfe;
+                    cursor:pointer; transition:background .2s; }
+        .btn-edit:hover { background:#bfdbfe; }
+
+        /* pagination */
+        .pg-btn { display:inline-flex; align-items:center; justify-content:center;
+                  min-width:32px; height:32px; padding:0 8px; border-radius:8px;
+                  font-size:.78rem; font-weight:600; border:1px solid #e2e8f0;
+                  color:#475569; text-decoration:none; transition:all .2s; }
+        .pg-btn:hover  { background:#f5c518; color:#0f172a; border-color:#f5c518; }
+        .pg-btn.active { background:#f5c518; color:#0f172a; border-color:#f5c518; font-weight:800; }
+        .pg-btn.disabled { pointer-events:none; opacity:.4; }
+    </style>
+}
+
+<div class="tw-max-w-full tw-px-2 tw-py-4 page-transition">
+
+    @* ── Toast messages ───────────────────────────────────────────────────── *@
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-center tw-gap-2 tw-bg-emerald-50 tw-text-emerald-800 tw-border tw-border-emerald-200 tw-rounded-xl tw-px-4 tw-py-3 tw-text-sm tw-font-semibold">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-center tw-gap-2 tw-bg-red-50 tw-text-red-800 tw-border tw-border-red-200 tw-rounded-xl tw-px-4 tw-py-3 tw-text-sm tw-font-semibold">
+            <i class="fas fa-circle-exclamation"></i> @TempData["ErrorMessage"]
+        </div>
+    }
+
+    @* ── Page header ──────────────────────────────────────────────────────── *@
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-mb-5">
+        <div>
+            <h2 class="tw-text-xl tw-font-black tw-text-slate-800">
+                <i class="fas fa-clipboard-user tw-text-[#f5c518] tw-mr-2"></i>Employee Attendance
+            </h2>
+            <p class="tw-text-xs tw-text-slate-500 tw-mt-0.5">
+                Full CRUD attendance management · Sources: Biometric, Mobile App, Manual Adjustments
+            </p>
+        </div>
+        <button onclick="document.getElementById('createModal').style.display='flex'"
+                class="btn-p tw-flex tw-items-center tw-gap-2">
+            <i class="fas fa-plus-circle"></i> Add Adjustment
+        </button>
+    </div>
+
+    @* ── FILTERS ──────────────────────────────────────────────────────────── *@
+    <form method="get" action="@Url.Action("Index","AttendanceManagement")"
+          class="tw-bg-white tw-border tw-border-slate-200 tw-rounded-2xl tw-p-4 tw-mb-5 tw-shadow-sm">
+        <div class="tw-grid tw-grid-cols-2 sm:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3 tw-mb-3">
+
+            <div>
+                <label class="filter-label">Year</label>
+                <select name="Year" class="filter-input form-select" asp-items="Model.YearList"></select>
+            </div>
+
+            <div>
+                <label class="filter-label">Month</label>
+                <select name="Month" class="filter-input form-select" asp-items="Model.MonthList"></select>
+            </div>
+
+            <div>
+                <label class="filter-label">City</label>
+                <select name="CityCode" class="filter-input form-select" asp-items="Model.CityList"></select>
+            </div>
+
+            <div>
+                <label class="filter-label">Att. Status</label>
+                <select name="AttStatus" class="filter-input form-select" asp-items="Model.StatusList"></select>
+            </div>
+
+            <div>
+                <label class="filter-label">Source / Device</label>
+                <select name="AttSource" class="filter-input form-select" asp-items="Model.SourceList"></select>
+            </div>
+
+            <div>
+                <label class="filter-label">Employee No</label>
+                <input type="text" name="EmpNo" id="txtEmpNo"
+                       value="@f.EmpNo" placeholder="Search employee…"
+                       class="filter-input" autocomplete="off" />
+            </div>
+
+        </div>
+
+        <div class="tw-grid tw-grid-cols-2 sm:tw-grid-cols-4 tw-gap-3 tw-mb-3">
+            <div>
+                <label class="filter-label">From Date</label>
+                <input type="date" name="FromDate" class="filter-input"
+                       value="@f.FromDate?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div>
+                <label class="filter-label">To Date</label>
+                <input type="date" name="ToDate" class="filter-input"
+                       value="@f.ToDate?.ToString("yyyy-MM-dd")" />
+            </div>
+        </div>
+
+        <div class="tw-flex tw-gap-2 tw-justify-end tw-border-t tw-border-slate-100 tw-pt-3 tw-mt-1">
+            <a href="@Url.Action("Index","AttendanceManagement")" class="btn-s">
+                <i class="fas fa-rotate-left tw-mr-1"></i> Reset
+            </a>
+            <button type="submit" class="btn-p">
+                <i class="fas fa-search tw-mr-1"></i> Search
+            </button>
+        </div>
+    </form>
+
+    @* ── SUMMARY CARDS ─────────────────────────────────────────────────────── *@
+    <div class="tw-grid tw-grid-cols-2 sm:tw-grid-cols-4 lg:tw-grid-cols-8 tw-gap-3 tw-mb-5">
+
+        <div class="stat-card">
+            <div class="stat-val tw-text-emerald-600">@s.TotalPresent</div>
+            <div class="stat-lbl">Present</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val tw-text-blue-600">@s.TotalWFH</div>
+            <div class="stat-lbl">Work From Home</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val tw-text-red-600">@s.TotalAbsent</div>
+            <div class="stat-lbl">Absent</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val tw-text-amber-600">@s.TotalLeave</div>
+            <div class="stat-lbl">On Leave</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val tw-text-purple-600">@s.TotalHoliday</div>
+            <div class="stat-lbl">Holiday</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val tw-text-slate-500">@s.TotalWeekend</div>
+            <div class="stat-lbl">Weekend</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val tw-text-orange-600">@s.TotalLate</div>
+            <div class="stat-lbl">Late / Early</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val tw-text-slate-700">@s.TotalRecords</div>
+            <div class="stat-lbl">Total Records</div>
+        </div>
+
+    </div>
+
+    @* ── Source breakdown mini-cards ─────────────────────────────────────── *@
+    <div class="tw-flex tw-flex-wrap tw-gap-3 tw-mb-4">
+        <span class="src-badge src-badge-bio tw-px-4 tw-py-1.5">
+            <i class="fas fa-fingerprint"></i> Biometric: <strong>@s.TotalBiometric</strong>
+        </span>
+        <span class="src-badge src-badge-mob tw-px-4 tw-py-1.5">
+            <i class="fas fa-mobile-alt"></i> Mobile App: <strong>@s.TotalMobile</strong>
+        </span>
+        <span class="src-badge src-badge-manual tw-px-4 tw-py-1.5">
+            <i class="fas fa-pen-to-square"></i> Manual Adj.: <strong>@s.TotalManual</strong>
+        </span>
+        <span class="tw-ml-auto tw-text-xs tw-text-slate-500 tw-self-center">
+            Showing page @f.Page of @Model.PageCount &nbsp;·&nbsp; @Model.TotalRecords total records
+        </span>
+    </div>
+
+    @* ── MAIN TABLE ──────────────────────────────────────────────────────── *@
+    @if (Model.Records.Count == 0)
+    {
+        <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-p-12 tw-text-center">
+            <i class="fas fa-calendar-xmark tw-text-5xl tw-text-slate-200 tw-mb-4"></i>
+            <p class="tw-text-slate-500 tw-font-semibold">No attendance records found for the selected filters.</p>
+            <p class="tw-text-xs tw-text-slate-400">Try changing the month/year or removing filters.</p>
+        </div>
+    }
+    else
+    {
+        <div class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200 tw-shadow-sm tw-overflow-x-auto">
+            <table class="att-table tw-w-full tw-border-collapse">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Emp No</th>
+                        <th>Employee Name</th>
+                        <th>City</th>
+                        <th>Department</th>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Status</th>
+                        <th>Source / Device</th>
+                        <th>WFH</th>
+                        <th>Weekend</th>
+                        <th>Holiday</th>
+                        <th>Leave</th>
+                        <th>Leave Category</th>
+                        <th>Leave Reason</th>
+                        <th>Adj. Type</th>
+                        <th>Adj. Reason</th>
+                        <th class="tw-text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int rowNum = (f.Page - 1) * f.PageSize + 1;
+                    }
+                    @foreach (var row in Model.Records)
+                    {
+                        var isAdj = row.AdjType != null;
+                        <tr>
+                            <td class="tw-text-slate-400 tw-font-mono tw-text-xs">@rowNum</td>
+                            <td class="tw-font-mono tw-font-bold tw-text-xs tw-text-slate-700">@row.EmpNo</td>
+                            <td class="tw-font-semibold tw-text-xs tw-text-slate-800 tw-whitespace-nowrap">@row.EmpName</td>
+                            <td class="tw-text-xs tw-text-slate-600">@row.City</td>
+                            <td class="tw-text-xs tw-text-slate-500 tw-max-w-[160px] tw-truncate" title="@row.Department">@row.Department</td>
+                            <td class="tw-font-mono tw-text-xs tw-font-semibold">@row.AttDate.ToString("dd MMM yyyy")</td>
+                            <td class="tw-text-xs">
+                                @if (row.IsWeekend)
+                                {
+                                    <span class="att-badge att-badge-weekend">@row.DayName</span>
+                                }
+                                else
+                                {
+                                    <span class="tw-text-slate-700 tw-font-medium">@row.DayName</span>
+                                }
+                            </td>
+                            @{
+                                bool canEditTime = row.AttSource == "Biometric" || row.AttSource == "Mobile App";
+                                string attDateStr = row.AttDate.ToString("yyyy-MM-dd");
+                                string checkInVal  = row.CheckIn.HasValue  ? row.CheckIn.Value.ToString(@"hh\:mm")  : "";
+                                string checkOutVal = row.CheckOut.HasValue ? row.CheckOut.Value.ToString(@"hh\:mm") : "";
+                            }
+                            <td class="tw-font-mono tw-text-xs tw-font-semibold tw-text-emerald-700">
+                                @if (canEditTime)
+                                {
+                                    <span class="time-cell tw-cursor-pointer tw-underline tw-decoration-dashed"
+                                          title="Click to edit Check-In time"
+                                          data-empno="@row.EmpNo"
+                                          data-date="@attDateStr"
+                                          data-checktype="I"
+                                          data-source="@row.AttSource"
+                                          data-current="@(row.CheckIn.HasValue ? row.CheckIn.Value.ToString(@"hh\:mm") : "")">
+                                        @if (row.CheckIn.HasValue) { @checkInVal } else { <span class="tw-text-slate-300">—</span> }
+                                    </span>
+                                }
+                                else
+                                {
+                                    @(row.CheckIn.HasValue ? checkInVal : "—")
+                                }
+                            </td>
+                            <td class="tw-font-mono tw-text-xs tw-font-semibold tw-text-slate-600">
+                                @if (canEditTime)
+                                {
+                                    <span class="time-cell tw-cursor-pointer tw-underline tw-decoration-dashed"
+                                          title="Click to edit Check-Out time"
+                                          data-empno="@row.EmpNo"
+                                          data-date="@attDateStr"
+                                          data-checktype="O"
+                                          data-source="@row.AttSource"
+                                          data-current="@(row.CheckOut.HasValue ? row.CheckOut.Value.ToString(@"hh\:mm") : "")">
+                                        @if (row.CheckOut.HasValue) { @checkOutVal } else { <span class="tw-text-slate-300">—</span> }
+                                    </span>
+                                }
+                                else
+                                {
+                                    @(row.CheckOut.HasValue ? checkOutVal : "—")
+                                }
+                            </td>
+                            <td>
+                                <span class="att-badge @row.StatusBadgeCss">@row.AttendanceStatus</span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(row.AttSource) && row.AttSource != "None")
+                                {
+                                    <span class="src-badge @row.SourceBadgeCss">
+                                        @if (row.AttSource == "Biometric")
+                                        { <i class="fas fa-fingerprint"></i> }
+                                        else if (row.AttSource == "Mobile App")
+                                        { <i class="fas fa-mobile-alt"></i> }
+                                        else
+                                        { <i class="fas fa-pen"></i> }
+                                        @row.AttSource
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="tw-text-slate-300 tw-text-xs">—</span>
+                                }
+                            </td>
+                            <td class="tw-text-center">
+                                @if (row.IsWFH)
+                                {
+                                    <span class="tw-text-blue-500" title="Work From Home"><i class="fas fa-house-laptop"></i></span>
+                                }
+                                else
+                                {
+                                    <span class="tw-text-slate-200">—</span>
+                                }
+                            </td>
+                            <td class="tw-text-center">
+                                @if (row.IsWeekend)
+                                {
+                                    <span class="tw-text-slate-500" title="Weekend"><i class="fas fa-moon"></i></span>
+                                }
+                                else
+                                {
+                                    <span class="tw-text-slate-200">—</span>
+                                }
+                            </td>
+                            <td class="tw-text-center">
+                                @if (row.IsHoliday)
+                                {
+                                    <span class="tw-text-purple-500" title="Holiday"><i class="fas fa-star-and-crescent"></i></span>
+                                }
+                                else
+                                {
+                                    <span class="tw-text-slate-200">—</span>
+                                }
+                            </td>
+                            <td class="tw-text-center">
+                                @if (row.IsLeave)
+                                {
+                                    <span class="tw-text-amber-500" title="@row.LeaveStatus"><i class="fas fa-umbrella-beach"></i></span>
+                                }
+                                else
+                                {
+                                    <span class="tw-text-slate-200">—</span>
+                                }
+                            </td>
+                            <td class="tw-text-xs tw-text-amber-700">
+                                @(string.IsNullOrEmpty(row.LeaveCategory) ? "—" : row.LeaveCategory)
+                            </td>
+                            <td class="tw-text-xs tw-text-slate-600 tw-max-w-[140px] tw-truncate"
+                                title="@row.LeaveReason">
+                                @(string.IsNullOrEmpty(row.LeaveReason) ? "—" : row.LeaveReason)
+                            </td>
+                            <td class="tw-text-xs">
+                                @if (!string.IsNullOrEmpty(row.AdjType))
+                                {
+                                    <span class="att-badge @row.StatusBadgeCss">@row.AdjTypeName</span>
+                                }
+                                else
+                                {
+                                    <span class="tw-text-slate-200">—</span>
+                                }
+                            </td>
+                            <td class="tw-text-xs tw-text-slate-600 tw-max-w-[140px] tw-truncate"
+                                title="@row.AdjReason">
+                                @(string.IsNullOrEmpty(row.AdjReason) ? "—" : row.AdjReason)
+                            </td>
+                            <td class="tw-text-center tw-whitespace-nowrap">
+                                @if (isAdj)
+                                {
+                                    <a href="@Url.Action("EditAdjustment","AttendanceManagement",new{empNo=row.EmpNo,date=row.AttDate.ToString("yyyy-MM-dd")})"
+                                       onclick="openEditModal(this.href); return false;"
+                                       class="btn-edit tw-mr-1" title="Edit adjustment">
+                                        <i class="fas fa-pencil"></i>
+                                    </a>
+                                    <form method="post" action="@Url.Action("DeleteAdjustment","AttendanceManagement")"
+                                          style="display:inline"
+                                          onsubmit="return confirm('Delete this adjustment for @row.EmpName on @row.AttDate.ToString("dd MMM yyyy")?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="empNo" value="@row.EmpNo" />
+                                        <input type="hidden" name="date"  value="@row.AttDate.ToString("yyyy-MM-dd")" />
+                                        <input type="hidden" name="year"  value="@f.Year" />
+                                        <input type="hidden" name="month" value="@f.Month" />
+                                        <button type="submit" class="btn-danger" title="Delete adjustment">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button class="btn-edit" title="Add adjustment for this employee/date"
+                                            onclick="openCreateForDate('@row.EmpNo','@row.EmpName','@row.AttDate.ToString("yyyy-MM-dd")')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                        rowNum++;
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* ── PAGINATION ──────────────────────────────────────────────────────── *@
+        @if (Model.PageCount > 1)
+        {
+            <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-center tw-gap-1 tw-mt-4">
+                @{
+                    var qBase = new Dictionary<string,string?>
+                    {
+                        ["Year"]      = f.Year.ToString(),
+                        ["Month"]     = f.Month.ToString(),
+                        ["EmpNo"]     = f.EmpNo,
+                        ["CityCode"]  = f.CityCode,
+                        ["AttSource"] = f.AttSource,
+                        ["AttStatus"] = f.AttStatus,
+                        ["FromDate"]  = f.FromDate?.ToString("yyyy-MM-dd"),
+                        ["ToDate"]    = f.ToDate?.ToString("yyyy-MM-dd"),
+                    };
+
+                    string PageUrl(int pg) {
+                        qBase["Page"] = pg.ToString();
+                        return Url.Action("Index","AttendanceManagement", qBase)!;
+                    }
+
+                    int prev = f.Page - 1;
+                    int next = f.Page + 1;
+                }
+
+                <a href="@(f.Page > 1 ? PageUrl(1) : "#")"
+                   class="pg-btn @(f.Page == 1 ? "disabled" : "")" title="First">
+                    <i class="fas fa-angles-left"></i>
+                </a>
+                <a href="@(f.Page > 1 ? PageUrl(prev) : "#")"
+                   class="pg-btn @(f.Page == 1 ? "disabled" : "")" title="Prev">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+
+                @for (int pg = Math.Max(1, f.Page - 2); pg <= Math.Min(Model.PageCount, f.Page + 2); pg++)
+                {
+                    <a href="@PageUrl(pg)" class="pg-btn @(pg == f.Page ? "active" : "")">@pg</a>
+                }
+
+                <a href="@(f.Page < Model.PageCount ? PageUrl(next) : "#")"
+                   class="pg-btn @(f.Page == Model.PageCount ? "disabled" : "")" title="Next">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+                <a href="@(f.Page < Model.PageCount ? PageUrl(Model.PageCount) : "#")"
+                   class="pg-btn @(f.Page == Model.PageCount ? "disabled" : "")" title="Last">
+                    <i class="fas fa-angles-right"></i>
+                </a>
+            </div>
+        }
+    }
+</div>
+
+@* ══════════════════════════════════════════════════════════════════════════ *@
+@*  CREATE ADJUSTMENT MODAL                                                  *@
+@* ══════════════════════════════════════════════════════════════════════════ *@
+<div id="createModal" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+        <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
+            <h3 class="modal-title"><i class="fas fa-plus-circle tw-text-[#f5c518] tw-mr-2"></i>Add Attendance Adjustment</h3>
+            <button onclick="document.getElementById('createModal').style.display='none'"
+                    class="tw-text-slate-400 hover:tw-text-red-500 tw-transition-colors">
+                <i class="fas fa-times tw-text-lg"></i>
+            </button>
+        </div>
+
+        <form method="post" action="@Url.Action("CreateAdjustment","AttendanceManagement")">
+            @Html.AntiForgeryToken()
+
+            <div class="tw-grid tw-grid-cols-1 tw-gap-4">
+
+                <div>
+                    <label class="form-label">Employee No <span class="tw-text-red-500">*</span></label>
+                    <div class="tw-flex tw-gap-2">
+                        <input type="text" name="EmpNo" id="createEmpNo"
+                               class="form-input tw-flex-1" placeholder="Enter employee no"
+                               required autocomplete="off" />
+                        <input type="text" id="createEmpName"
+                               class="form-input tw-flex-1 tw-bg-slate-50" placeholder="Name"
+                               readonly tabindex="-1" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">Adjustment Date <span class="tw-text-red-500">*</span></label>
+                    <input type="date" name="AdjustmentDate" id="createDate"
+                           class="form-input" required
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div>
+                    <label class="form-label">Adjustment Type <span class="tw-text-red-500">*</span></label>
+                    <select name="AdjustmentType" class="form-input form-select" required>
+                        <option value="A">Absent</option>
+                        <option value="RA">Reverse Absent (Mark Present)</option>
+                        <option value="L">Late</option>
+                        <option value="E">Early Leaving</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label">Reason</label>
+                    <textarea name="Reason" class="form-input" rows="2"
+                              placeholder="Reason for adjustment…" maxlength="100"></textarea>
+                </div>
+
+            </div>
+
+            <div class="tw-flex tw-gap-2 tw-justify-end tw-mt-5 tw-pt-4 tw-border-t tw-border-slate-100">
+                <button type="button" class="btn-s"
+                        onclick="document.getElementById('createModal').style.display='none'">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-p">
+                    <i class="fas fa-save tw-mr-1"></i> Save Adjustment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ══════════════════════════════════════════════════════════════════════════ *@
+@*  EDIT ADJUSTMENT MODAL                                                    *@
+@* ══════════════════════════════════════════════════════════════════════════ *@
+<div id="editModal" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+        <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
+            <h3 class="modal-title"><i class="fas fa-pencil tw-text-blue-500 tw-mr-2"></i>Edit Adjustment</h3>
+            <button onclick="document.getElementById('editModal').style.display='none'"
+                    class="tw-text-slate-400 hover:tw-text-red-500 tw-transition-colors">
+                <i class="fas fa-times tw-text-lg"></i>
+            </button>
+        </div>
+
+        <form method="post" action="@Url.Action("EditAdjustment","AttendanceManagement")" id="editForm">
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" name="OriginalDate" id="editOriginalDate" />
+            <input type="hidden" name="EmpNo"        id="editEmpNoHidden" />
+
+            <div class="tw-grid tw-grid-cols-1 tw-gap-4">
+
+                <div>
+                    <label class="form-label">Employee</label>
+                    <input type="text" id="editEmpDisplay" class="form-input tw-bg-slate-50" readonly />
+                </div>
+
+                <div>
+                    <label class="form-label">Adjustment Date <span class="tw-text-red-500">*</span></label>
+                    <input type="date" name="AdjustmentDate" id="editDate" class="form-input" required />
+                </div>
+
+                <div>
+                    <label class="form-label">Adjustment Type <span class="tw-text-red-500">*</span></label>
+                    <select name="AdjustmentType" id="editAdjType" class="form-input form-select" required>
+                        <option value="A">Absent</option>
+                        <option value="RA">Reverse Absent (Mark Present)</option>
+                        <option value="L">Late</option>
+                        <option value="E">Early Leaving</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label">Reason</label>
+                    <textarea name="Reason" id="editReason" class="form-input"
+                              rows="2" maxlength="100"></textarea>
+                </div>
+
+            </div>
+
+            <div class="tw-flex tw-gap-2 tw-justify-end tw-mt-5 tw-pt-4 tw-border-t tw-border-slate-100">
+                <button type="button" class="btn-s"
+                        onclick="document.getElementById('editModal').style.display='none'">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-p">
+                    <i class="fas fa-save tw-mr-1"></i> Update Adjustment
+                </button>
+            </div>
+        </form>
+        <div id="editLoading" class="tw-text-center tw-py-8 tw-text-slate-400 tw-hidden">
+            <i class="fas fa-spinner fa-spin tw-mr-2"></i> Loading…
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!--  TIME PICKER MODAL                                                  -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="timePickerModal" class="modal-overlay" style="display:none">
+    <div class="modal-box" style="max-width:380px">
+        <div class="tw-flex tw-justify-between tw-items-center tw-mb-4">
+            <h3 class="modal-title tw-mb-0">
+                <i class="fas fa-clock tw-text-amber-400 tw-mr-2"></i>
+                <span id="tpModalTitle">Edit Time</span>
+            </h3>
+            <button onclick="document.getElementById('timePickerModal').style.display='none'"
+                    class="tw-text-slate-400 hover:tw-text-red-500 tw-transition-colors">
+                <i class="fas fa-times tw-text-lg"></i>
+            </button>
+        </div>
+
+        <div class="tw-mb-4">
+            <label class="form-label">New Time <span class="tw-text-red-500">*</span></label>
+            <input type="time" id="tpTimeInput" class="form-input tw-text-lg tw-font-mono" step="60"
+                   style="font-size:1.3rem; text-align:center; letter-spacing:.1em;" />
+        </div>
+
+        <p id="tpError" class="tw-text-red-500 tw-text-sm tw-mb-3"></p>
+
+        <div class="tw-flex tw-gap-2 tw-justify-end tw-pt-3 tw-border-t tw-border-slate-100">
+            <button type="button" class="btn-s"
+                    onclick="document.getElementById('timePickerModal').style.display='none'">
+                Cancel
+            </button>
+            <button type="button" id="tpSaveBtn" class="btn-p">
+                <i class="fas fa-save tw-mr-1"></i> Save
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script>
+    /* ── employee autocomplete (create modal) ─────────────────────────── */
+    $('#createEmpNo').autocomplete({
+        source: function(req, cb) {
+            $.getJSON('@Url.Action("SearchEmployees","AttendanceManagement")',
+                { term: req.term }, cb);
+        },
+        minLength: 2,
+        select: function(e, ui) {
+            $('#createEmpNo').val(ui.item.value);
+            $('#createEmpName').val(ui.item.desc);
+            return false;
+        }
+    });
+
+    /* ── Main search employee autocomplete ───────────────────────────── */
+    $('#txtEmpNo').autocomplete({
+        source: function(req, cb) {
+            $.getJSON('@Url.Action("SearchEmployees","AttendanceManagement")',
+                { term: req.term }, cb);
+        },
+        minLength: 2,
+        select: function(e, ui) {
+            $('#txtEmpNo').val(ui.item.value);
+            return false;
+        }
+    });
+
+    /* ── open create modal pre-filled with a specific date/employee ─── */
+    function openCreateForDate(empNo, empName, date) {
+        document.getElementById('createEmpNo').value  = empNo;
+        document.getElementById('createEmpName').value = empName;
+        document.getElementById('createDate').value    = date;
+        document.getElementById('createModal').style.display = 'flex';
+    }
+
+    /* ── open edit modal via AJAX ─────────────────────────────────── */
+    async function openEditModal(href) {
+        const modal   = document.getElementById('editModal');
+        const loading = document.getElementById('editLoading');
+        const form    = document.getElementById('editForm');
+
+        modal.style.display = 'flex';
+        loading.classList.remove('tw-hidden');
+        form.classList.add('tw-hidden');
+
+        try {
+            const resp = await fetch(href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await resp.json();
+
+            if (data.success) {
+                document.getElementById('editEmpNoHidden').value   = data.empNo;
+                document.getElementById('editEmpDisplay').value    = data.empName + ' | ' + data.empNo;
+                document.getElementById('editDate').value          = data.date;
+                document.getElementById('editOriginalDate').value  = data.date;
+                document.getElementById('editAdjType').value       = data.adjType;
+                document.getElementById('editReason').value        = data.reason || '';
+            } else {
+                alert(data.message || 'Record not found.');
+                modal.style.display = 'none';
+            }
+        } catch {
+            alert('Error loading record.');
+            modal.style.display = 'none';
+        } finally {
+            loading.classList.add('tw-hidden');
+            form.classList.remove('tw-hidden');
+        }
+    }
+
+    /* ── close on overlay click ──────────────────────────────────────── */
+    ['createModal','editModal','timePickerModal'].forEach(function(id) {
+        document.getElementById(id).addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+    });
+
+    /* ── Time Picker ─────────────────────────────────────────────────── */
+    let _tpCell = null;
+
+    document.querySelectorAll('.time-cell').forEach(function(el) {
+        el.addEventListener('click', function() {
+            _tpCell = this;
+            const cur = this.dataset.current || '';
+            document.getElementById('tpTimeInput').value = cur;
+            const label = this.dataset.checktype === 'I' ? 'Check-In' : 'Check-Out';
+            document.getElementById('tpModalTitle').textContent =
+                'Edit ' + label + ' — ' + this.dataset.date;
+            document.getElementById('tpError').textContent = '';
+            document.getElementById('timePickerModal').style.display = 'flex';
+            document.getElementById('tpTimeInput').focus();
+        });
+    });
+
+    document.getElementById('tpSaveBtn').addEventListener('click', async function() {
+        const newTime = document.getElementById('tpTimeInput').value;
+        if (!newTime) {
+            document.getElementById('tpError').textContent = 'Please select a time.';
+            return;
+        }
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin tw-mr-1"></i> Saving…';
+        document.getElementById('tpError').textContent = '';
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        const body  = new URLSearchParams({
+            empNo:     _tpCell.dataset.empno,
+            date:      _tpCell.dataset.date,
+            checkType: _tpCell.dataset.checktype,
+            newTime:   newTime,
+            source:    _tpCell.dataset.source
+        });
+
+        try {
+            const resp = await fetch('@Url.Action("UpdateCheckTime","AttendanceManagement")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: body.toString()
+            });
+            const data = await resp.json();
+            if (data.success) {
+                /* update displayed text */
+                _tpCell.textContent = newTime;
+                _tpCell.dataset.current = newTime;
+                document.getElementById('timePickerModal').style.display = 'none';
+            } else {
+                document.getElementById('tpError').textContent = data.message || 'Update failed.';
+            }
+        } catch (err) {
+            document.getElementById('tpError').textContent = 'Network error. Please try again.';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save tw-mr-1"></i> Save';
+        }
+    });
+    </script>
+}

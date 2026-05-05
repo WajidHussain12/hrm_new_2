@@ -1,0 +1,408 @@
+@model LCS_HR_MVC.Models.Settlement.EmployeeTerminationModel
+@{
+    ViewData["Title"] = "Employee Termination";
+    ViewData["PageTitle"] = "Employee Termination";
+    var dataList = ViewBag.TerminationList as IEnumerable<LCS_HR_MVC.Models.Settlement.EmployeeTerminationModel> ?? new List<LCS_HR_MVC.Models.Settlement.EmployeeTerminationModel>();
+    var isNewRecord = Model.Code == "Auto Generated";
+}
+
+@section Styles {
+    <link href="~/lib/jquery-ui/jquery-ui.min.css" rel="stylesheet" />
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Detail Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Modern UI Autocomplete Override */
+        .ui-autocomplete {
+            @@apply tw-max-h-60 tw-overflow-y-auto tw-rounded-xl tw-border-slate-200 tw-shadow-xl tw-text-sm tw-font-medium tw-font-sans tw-bg-white !important;
+            z-index: 1000 !important;
+        }
+        .ui-menu-item-wrapper {
+            @@apply tw-py-2 tw-px-3 tw-transition-colors tw-text-slate-700 !important;
+        }
+        .ui-menu-item-wrapper.ui-state-active {
+            @@apply tw-bg-amber-400 tw-text-slate-900 tw-border-transparent tw-rounded-md tw-font-bold !important;
+            margin: 0 !important;
+        }
+        
+        /* DataTable Overrides - Modern & Balanced */
+        .dataTables_wrapper .dataTables_filter {
+            @@apply tw-relative tw-mb-5;
+        }
+        .dataTables_wrapper .dataTables_filter label {
+            @@apply tw-w-full sm:tw-w-auto;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            @@apply tw-w-full sm:tw-w-[300px] tw-border-2 tw-border-slate-100 tw-rounded-2xl tw-px-5 tw-py-2.5 tw-text-sm tw-outline-none tw-bg-slate-50 focus:tw-bg-white tw-text-slate-700 tw-shadow-inner tw-font-medium;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus { 
+            @@apply tw-border-amber-400 tw-ring-4 tw-ring-amber-400/20 tw-shadow-lg; 
+        }
+        
+        table.dataTable {
+            @@apply tw-border-collapse;
+        }
+        table.dataTable thead th {
+            @@apply tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-[0.15em] tw-py-4 tw-px-5 tw-border-b-2 tw-border-slate-100 !important;
+        }
+        
+        table.dataTable tbody tr {
+            @@apply tw-border-b tw-border-slate-50 tw-transition-colors hover:tw-bg-amber-50/30;
+        }
+        table.dataTable tbody td {
+            @@apply tw-py-4 tw-px-5 tw-align-middle;
+        }
+        
+        .dataTables_info {
+            @@apply tw-text-xs tw-font-semibold tw-text-slate-500 tw-mt-5;
+        }
+        
+        /* Modern Pagination */
+        .dataTables_wrapper .dataTables_paginate {
+            @@apply tw-flex tw-items-center tw-gap-1 tw-mt-5;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            @@apply tw-min-w-[32px] tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded-lg tw-text-xs tw-font-bold tw-text-slate-500 tw-border tw-border-slate-200 tw-bg-white tw-cursor-pointer tw-transition-all !important;
+            padding: 0 0.5rem !important;
+            margin: 0 !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            @@apply tw-bg-slate-100 tw-text-slate-800 tw-border-slate-300 !important;
+            background: none !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            @@apply tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-border-transparent tw-shadow-md tw-cursor-default !important;
+            background: none !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+            @@apply tw-opacity-50 tw-cursor-not-allowed hover:tw-bg-white hover:tw-text-slate-500 hover:tw-border-slate-200 !important;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-handshake tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Settlements</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Employee Termination</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Termination Node</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Process and record employee separations, manage final settlements.</p>
+        </div>
+    </div>
+
+
+    <div class="tw-grid xl:tw-grid-cols-[1fr_0.9fr] tw-gap-6 xl:tw-gap-8 align-top">
+        
+        <!-- Left Side: Table View -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative tw-h-full">
+            <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none z-0"></div>
+
+            <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-4 tw-bg-slate-50/80">
+                <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-gradient-to-br tw-from-slate-900 tw-to-slate-800 tw-flex tw-items-center tw-justify-center tw-shadow-[0_4px_10px_rgba(15,23,42,0.3)]">
+                    <i class="fas fa-user-slash tw-text-amber-400 tw-text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="tw-font-black tw-text-base tw-text-slate-800 tw-tracking-tight">Separation Log</h2>
+                    <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">Historical Records Grid</p>
+                </div>
+            </div>
+
+            <div class="tw-relative tw-z-10 tw-p-6">
+                <div class="tw-overflow-x-auto custom-scrollbar">
+                    <table id="dg1" class="tw-w-full dataTable tw-text-xs">
+                        <thead>
+                            <tr>
+                                <th class="tw-w-20 tw-text-center">Code</th>
+                                <th>Personnel Vector</th>
+                                <th>Leaving Reason</th>
+                                <th>Comments</th>
+                                <th class="tw-text-center">Termination Date</th>
+                                <th class="tw-text-right tw-pr-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tw-divide-y tw-divide-slate-100">
+                            @foreach (var item in dataList)
+                            {
+                                <tr class="hover:tw-bg-slate-50 tw-transition-colors group tw-text-sm">
+                                    <td class="tw-py-4 tw-text-center tw-align-top">
+                                        <span class="tw-px-2.5 tw-py-1 tw-bg-slate-100 group-hover:tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-font-mono tw-font-black tw-text-slate-600 tw-shadow-sm tw-transition-colors">@item.Code</span>
+                                    </td>
+                                    <td class="tw-py-4 tw-align-top">
+                                        <div class="tw-font-bold tw-text-slate-800 group-hover:tw-text-red-600 tw-transition-colors">@item.EmployeeName</div>
+                                    </td>
+                                    <td class="tw-py-4 tw-align-top">
+                                        <span class="tw-text-xs tw-font-bold tw-text-slate-600">@item.LeavingReason</span>
+                                    </td>
+                                    <td class="tw-py-4 tw-align-top">
+                                        <span class="tw-text-xs tw-font-medium tw-text-slate-500">@item.Comments</span>
+                                    </td>
+                                    <td class="tw-py-4 tw-align-top tw-text-center">
+                                        <span class="tw-text-xs tw-font-black tw-text-slate-500 tw-bg-slate-50 tw-border tw-border-slate-200 tw-px-2 tw-py-1 tw-rounded-md">@(item.TerminationDate?.ToString("dd/MM/yyyy"))</span>
+                                    </td>
+                                    <td class="tw-py-4 tw-text-right tw-pr-4 tw-align-top">
+                                        <a href="@Url.Action("EmployeeTermination", "Settlement", new { code = item.Code })"
+                                           class="tw-inline-flex tw-items-center tw-justify-center tw-w-8 tw-h-8 tw-rounded-lg tw-bg-slate-50 tw-border tw-border-slate-200 tw-text-slate-400 hover:tw-bg-amber-400 hover:tw-border-amber-400 hover:tw-text-slate-900 tw-shadow-sm hover:tw-shadow-md hover:tw--translate-y-0.5 tw-transition-all"
+                                           title="Manage Record">
+                                            <i class="fas fa-edit tw-text-[11px]"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Config Form -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-sticky tw-top-24 tw-relative">
+            <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-red-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none"></div>
+
+            <div class="tw-p-6 tw-bg-gradient-to-r tw-from-red-500 tw-to-red-600 tw-relative tw-z-10">
+                <h3 class="tw-text-white tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-black/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    Termination Blueprint
+                </h3>
+            </div>
+
+            <form asp-controller="Settlement" asp-action="EmployeeTermination" method="post" id="terminationForm" enctype="multipart/form-data" class="tw-p-7 tw-space-y-5 tw-relative tw-z-10">
+                
+                <!-- ID Banner -->
+                <div>
+                     <label class="tw-block tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest tw-mb-1.5">Trace Code #</label>
+                     <div class="tw-flex tw-items-center tw-bg-slate-50 tw-rounded-xl tw-px-3 tw-py-2.5 tw-border tw-border-slate-200 tw-shadow-inner opacity-80">
+                         <i class="fas fa-fingerprint tw-text-slate-400 tw-mr-1.5 tw-text-[10px]"></i>
+                         <input type="text" value="@Model.Code" disabled class="tw-bg-transparent tw-w-full tw-text-sm tw-font-mono tw-font-bold tw-text-slate-600 tw-outline-none" />
+                         <input type="hidden" asp-for="Code" id="Code" />
+                     </div>
+                </div>
+
+                <div class="tw-grid xl:tw-grid-cols-[1fr_auto] tw-gap-4">
+                    <!-- Employee Picker -->
+                    <div>
+                        <label asp-for="EmployeeDescription" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Authorized Personnel <span class="tw-text-red-500">*</span></label>
+                        <div class="tw-relative">
+                            <i class="fas fa-user-tag tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-red-500 tw-text-sm"></i>
+                            <input type="text" asp-for="EmployeeDescription" id="txtEmployeeDescription" placeholder="Search wildcard '%'" 
+                                   class="tw-w-full tw-pl-10 tw-pr-3 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm" />
+                        </div>
+                        <span asp-validation-for="EmployeeDescription" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+
+                    <!-- Emp Code -->
+                    <div>
+                        <label asp-for="EmpNo" class="tw-block tw-text-[10px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-1.5">Pers ID</label>
+                        <input type="text" asp-for="EmpNo" id="txtEmployeeCode" readonly 
+                               class="tw-w-full xl:tw-w-28 tw-px-3 tw-py-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-text-center tw-font-mono tw-font-bold tw-text-slate-500 focus:tw-outline-none tw-cursor-not-allowed" />
+                        <span asp-validation-for="EmpNo" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+                </div>
+
+                <div class="tw-grid tw-grid-cols-2 tw-gap-4">
+                    <!-- Leaving Reason -->
+                    <div>
+                         <label asp-for="LeavingReason" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Leaving Reason <span class="tw-text-red-500">*</span></label>
+                         <select asp-for="LeavingReason" class="tw-w-full tw-px-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none tw-shadow-sm"
+                               style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                             <option value="00">Select Reason</option>
+                             <option value="Voluntarily Resigned">Voluntarily Resigned</option>
+                             <option value="Laid off/ Terminated">Laid off/ Terminated</option>
+                             <option value="Death">Death</option>
+                             <option value="Disease">Disease</option>
+                             <option value="Retired">Retired</option>
+                         </select>
+                         <span asp-validation-for="LeavingReason" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+
+                    <!-- Final Settlement -->
+                    <div>
+                         <label asp-for="Settlement" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Final Settlement <span class="tw-text-red-500">*</span></label>
+                         <select asp-for="Settlement" class="tw-w-full tw-px-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none tw-shadow-sm"
+                               style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                             <option value="Y">Yes</option>
+                             <option value="N">No</option>
+                         </select>
+                         <span asp-validation-for="Settlement" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+                </div>
+
+                <div class="tw-grid tw-grid-cols-[2fr_1fr] tw-gap-4">
+                    <!-- Comments -->
+                    <div>
+                        <label asp-for="Comments" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-800 tw-uppercase tw-tracking-wide tw-mb-1.5">Comments</label>
+                         <div class="tw-relative">
+                             <i class="fas fa-align-left tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                             <input type="text" asp-for="Comments" maxlength="45" placeholder="Additional details..."
+                                    class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2 tw-bg-white tw-border tw-border-slate-300 tw-rounded-lg tw-text-sm tw-font-medium tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" />
+                         </div>
+                    </div>
+
+                    <!-- Termination Date -->
+                    <div>
+                         <label asp-for="TerminationDate" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Action Date <span class="tw-text-red-500">*</span></label>
+                         <div class="tw-relative">
+                             <i class="fas fa-calendar-times tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                             <input type="date" asp-for="TerminationDate" 
+                                    class="tw-w-full tw-pl-8 tw-pr-3 tw-py-2 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-transition-all tw-shadow-sm" />
+                         </div>
+                         <span asp-validation-for="TerminationDate" class="tw-text-[9px] tw-font-bold tw-text-red-500 tw-mt-1 tw-block"></span>
+                    </div>
+                </div>
+
+                @if(isNewRecord)
+                {
+                    <!-- CSV Upload -->
+                    <div class="tw-mt-4 tw-p-4 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl">
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-2">Bulk Termination Upload</label>
+                        <div class="tw-flex tw-items-center tw-gap-3">
+                            <input type="file" asp-for="BulkUploadFile" accept=".xlsx,.csv" class="tw-flex-1 tw-text-sm tw-text-slate-500 file:tw-mr-4 file:tw-py-2 file:tw-px-4 file:tw-rounded-lg file:tw-border-0 file:tw-text-xs file:tw-font-bold file:tw-bg-indigo-50 file:tw-text-indigo-700 hover:file:tw-bg-indigo-100 tw-transition-all tw-cursor-pointer" />
+                            <button type="submit" name="action" value="BulkUpload" formnovalidate
+                                    class="tw-px-4 tw-py-2.5 tw-bg-indigo-600 tw-text-white tw-rounded-lg tw-text-xs tw-font-bold hover:tw-bg-indigo-700 tw-transition-colors tw-shadow-sm">
+                                <i class="fas fa-file-upload tw-mr-1.5"></i> Process
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                <div class="tw-border-t tw-border-slate-100 tw-pt-3 tw-mt-2"></div>
+
+                 <!-- Action Controls -->
+                <div class="tw-space-y-3">
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="submit" name="action" value="Save" id="btnSave" @(!isNewRecord ? "disabled" : null)
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-50 disabled:tw-cursor-not-allowed">
+                            <i class="fas fa-check-circle tw-text-sm"></i> File Intent
+                        </button>
+                        <button type="submit" name="action" value="Update" id="btnUpdate" @(isNewRecord ? "disabled" : null)
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-slate-900 tw-text-white tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-800 hover:tw-shadow-[0_8px_20px_rgba(15,23,42,0.2)] hover:tw--translate-y-0.5 tw-transition-all disabled:tw-opacity-40 disabled:hover:tw-transform-none disabled:hover:tw-shadow-none">
+                            <i class="fas fa-sync-alt tw-text-sm"></i> Edit Target
+                        </button>
+                    </div>
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="submit" name="action" value="Delete" id="btnDelete" @(isNewRecord ? "disabled" : null) onclick="return confirm('Are you sure you want to completely erase request pipeline?');"
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-red-500 tw-border tw-border-red-100 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-red-50 hover:tw-border-red-200 tw-transition-all disabled:tw-opacity-40 disabled:tw-cursor-not-allowed">
+                            <i class="fas fa-trash-alt"></i> Revoke
+                        </button>
+                        <button type="submit" name="action" value="Reset" id="btnReset" formnovalidate
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-shadow-sm tw-rounded-xl tw-font-extrabold tw-text-[11px] tw-tracking-wider tw-uppercase hover:tw-bg-slate-50 hover:tw-text-slate-900 tw-transition-all">
+                            <i class="fas fa-undo-alt tw-opacity-60"></i> Deselect
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if ($.fn.DataTable) {
+                $('#dg1').DataTable({
+                    "pageLength": 10,
+                    "lengthChange": false,
+                    "dom": '<"tw-flex tw-flex-col sm:tw-flex-row tw-justify-between tw-items-center tw-mb-2"f>rt<"tw-flex tw-flex-col sm:tw-flex-row tw-justify-between tw-items-center"ip>',
+                    "language": { 
+                        "search": "", 
+                        "searchPlaceholder": "Search terminations...",
+                        "paginate": {
+                            "previous": "<i class='fas fa-chevron-left tw-text-[10px]'></i>",
+                            "next": "<i class='fas fa-chevron-right tw-text-[10px]'></i>"
+                        }
+                    }
+                });
+
+                $('.dataTables_filter label').addClass('tw-relative tw-block tw-w-full');
+                $('.dataTables_filter input').addClass('tw-pl-10');
+                $('.dataTables_filter label').append('<i class="fas fa-search tw-absolute tw-left-4 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400"></i>');
+            }
+
+            // Employee Autocomplete
+            $("#txtEmployeeDescription").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("SearchActiveEmployees", "Setup")',
+                        type: "GET",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.label, value: item.desc, id: item.value };
+                            }))
+                        }
+                    })
+                },
+                select: function (event, ui) {
+                    $("#txtEmployeeDescription").val(ui.item.value);
+                    $("#txtEmployeeCode").val(ui.item.id);
+                    return false;
+                },
+                minLength: 1
+            });
+            
+            $("#txtEmployeeDescription").keyup(function() {
+                if (!$(this).val()) {
+                    $("#txtEmployeeCode").val('');
+                }
+            });
+        });
+    </script>
+}

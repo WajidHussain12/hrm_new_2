@@ -1,0 +1,180 @@
+@{
+    ViewData["Title"] = "Privacy Policy";
+    ViewData["PageTitle"] = "Privacy Policy";
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp { from { opacity:0; transform:translateY(15px); } to { opacity:1; transform:translateY(0); } }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Page Header -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-home tw-text-[10px] tw-text-slate-300"></i><span>Home</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Privacy Policy</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Privacy Policy</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Data usage, retention, access control, and compliance information for the LCS HR application.</p>
+        </div>
+    </div>
+
+    <!-- Overview Card -->
+    <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-mb-5">
+        <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+            <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-shield-alt"></i></div>
+                Overview
+            </h3>
+        </div>
+        <div class="tw-p-6">
+            <p class="tw-text-slate-600 tw-text-sm tw-leading-relaxed">
+                This HR Management System ("System") is operated by <span class="tw-font-bold tw-text-slate-800">Leopard Courier Services (Pvt.) Ltd.</span>
+                and is intended exclusively for authorized internal use. By accessing this system, you agree to comply with all applicable
+                data protection policies and organizational guidelines.
+            </p>
+        </div>
+    </div>
+
+    <!-- Policy Sections Grid -->
+    <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-5 tw-mb-5">
+
+        <!-- Data Collection -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-700 tw-to-slate-900">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-database"></i></div>
+                    Data Collection
+                </h3>
+            </div>
+            <div class="tw-p-6">
+                <ul class="tw-space-y-3">
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Employee personal and professional details entered during onboarding and updates.</span>
+                    </li>
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Attendance, leave, payroll, and performance records generated through system use.</span>
+                    </li>
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Login activity and audit trail logs for system security and compliance.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Data Usage -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-700 tw-to-slate-900">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-chart-bar"></i></div>
+                    Data Usage
+                </h3>
+            </div>
+            <div class="tw-p-6">
+                <ul class="tw-space-y-3">
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Internal HR operations including payroll processing, leave management, and reporting.</span>
+                    </li>
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Regulatory and statutory compliance with labor laws and government requirements.</span>
+                    </li>
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Data is never shared with third parties without explicit authorization.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Access Control -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-700 tw-to-slate-900">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-lock"></i></div>
+                    Access Control
+                </h3>
+            </div>
+            <div class="tw-p-6">
+                <ul class="tw-space-y-3">
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Access is restricted to authorized personnel based on assigned roles and privileges.</span>
+                    </li>
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">All sessions are authenticated and monitored; sharing credentials is strictly prohibited.</span>
+                    </li>
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Unauthorized access attempts are logged and subject to disciplinary action.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Data Retention -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-700 tw-to-slate-900">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-archive"></i></div>
+                    Data Retention
+                </h3>
+            </div>
+            <div class="tw-p-6">
+                <ul class="tw-space-y-3">
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Employee records are retained for the duration of employment and as required by law post-separation.</span>
+                    </li>
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Audit logs and transactional data are archived for a minimum of 7 years.</span>
+                    </li>
+                    <li class="tw-flex tw-items-start tw-gap-3">
+                        <span class="tw-mt-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400 tw-shrink-0"></span>
+                        <span class="tw-text-slate-600 tw-text-sm">Data deletion requests are processed through IT in accordance with company policy.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Contact / Footer Note -->
+    <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+        <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+            <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-envelope"></i></div>
+                Contact & Compliance
+            </h3>
+        </div>
+        <div class="tw-p-6 tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-center tw-justify-between tw-gap-4">
+            <p class="tw-text-slate-600 tw-text-sm tw-leading-relaxed">
+                For questions regarding this policy, data access requests, or compliance concerns, contact the
+                <span class="tw-font-bold tw-text-slate-800">IT or HR Department</span>.
+                This policy is subject to change; continued use of the system constitutes acceptance of any updates.
+            </p>
+            <div class="tw-shrink-0 tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2 tw-bg-slate-100 tw-rounded-xl tw-border tw-border-slate-200">
+                <i class="fas fa-calendar-alt tw-text-amber-500 tw-text-xs"></i>
+                <span class="tw-text-[11px] tw-font-black tw-text-slate-500 tw-uppercase tw-tracking-widest">Last Updated: @DateTime.Now.Year</span>
+            </div>
+        </div>
+    </div>
+
+</div>

@@ -1,0 +1,153 @@
+@model LCS_HR_MVC.Models.Closing.UnlockSalaryViewModel
+@{
+    ViewData["Title"] = "Un-Lock Salary";
+    ViewData["PageTitle"] = "Un-Lock Salary";
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Custom Select Arrow */
+        .field-select {
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.75rem top 50%;
+            background-size: 0.65rem auto;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Notification Banners -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(239,68,68,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold tw-shadow-[0_2px_10px_rgba(16,185,129,0.1)]">
+            <div class="tw-w-6 tw-h-6 tw-bg-emerald-100 tw-text-emerald-600 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-check tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Page Header -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-[#eab308] tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-calendar-times tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Payroll Operations</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Salary Unlock</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Un-Lock Salary</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-[#f5c518] tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Reopen a locked salary period when correction or controlled reprocessing is required.</p>
+        </div>
+    </div>
+
+    <!-- Centered Form Card -->
+    <div class="tw-max-w-2xl">
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+
+            <!-- Decorative blobs -->
+            <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-amber-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none" style="z-index:0"></div>
+            <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-amber-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none"></div>
+
+            <!-- Panel Header -->
+            <div class="tw-p-6 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-relative tw-z-10">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                        <i class="fas fa-lock-open"></i>
+                    </div>
+                    Salary Unlock Engine
+                </h3>
+                <p class="tw-text-slate-400 tw-text-xs tw-font-medium tw-mt-2 tw-leading-relaxed">Select the zone and period to reopen for controlled reprocessing.</p>
+            </div>
+
+            <form asp-controller="Closing" asp-action="UnlockSalary" method="post" id="unlockForm" class="tw-p-7 tw-space-y-5 tw-relative tw-z-10">
+
+                <!-- Zone -->
+                <div>
+                    <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">
+                        Zone <span class="tw-text-red-500">*</span>
+                    </label>
+                    <div class="tw-relative">
+                        <i class="fas fa-map-marked-alt tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-amber-500 tw-text-sm tw-pointer-events-none" style="z-index:1"></i>
+                        <select asp-for="ZoneCode" asp-items="ViewBag.Zones" id="ddlZone"
+                                class="field-select tw-w-full tw-pl-10 tw-pr-8 tw-py-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm tw-appearance-none">
+                            <option value="00">Please Select</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Year / Month Row -->
+                <div class="tw-grid tw-grid-cols-2 tw-gap-4">
+                    <div>
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Fiscal Year</label>
+                        <div class="tw-relative">
+                            <i class="fas fa-calendar-alt tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                            <select asp-for="Year"
+                                    class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                @for (int i = DateTime.Now.Year - 5; i <= DateTime.Now.Year + 1; i++)
+                                {
+                                    <option value="@i">@i</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Period Month</label>
+                        <div class="tw-relative">
+                            <i class="fas fa-clock tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none" style="z-index:1"></i>
+                            <select asp-for="Month"
+                                    class="field-select tw-w-full tw-pl-9 tw-pr-6 tw-py-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tw-pt-2 tw-border-t tw-border-slate-100"></div>
+
+                <!-- Submit Button -->
+                <button type="submit" name="action" value="Process"
+                        onclick="return confirm('Do you want to unlock salary for this period?');"
+                        class="tw-w-full tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3.5 tw-bg-gradient-to-r tw-from-amber-400 tw-to-orange-500 tw-text-slate-900 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-[0_8px_20px_rgba(245,197,24,0.25)] hover:tw-shadow-[0_8px_25px_rgba(245,197,24,0.35)] hover:tw--translate-y-0.5 tw-transition-all">
+                    <i class="fas fa-lock-open tw-text-sm"></i> Un-Lock Salary
+                </button>
+
+            </form>
+        </div>
+    </div>
+
+</div>

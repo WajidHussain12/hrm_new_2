@@ -1,0 +1,147 @@
+@model LCS_HR_MVC.Models.LeaveRequestApprovalViewModel
+@{
+    ViewData["Title"] = "Employee Leave Request Approval";
+    ViewData["PageTitle"] = "Employee Leave Request Approval";
+}
+
+@section Styles {
+    <style>
+        @@keyframes slideUp { from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)} }
+        .animate-main{animation:slideUp .4s ease-out}
+        .f-label{display:block;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+        .f-input{width:100%;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;font-size:.875rem;font-weight:700;color:#1e293b;outline:none;transition:border-color .15s,box-shadow .15s}
+        .f-input:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+        .btn-p{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,#fbbf24,#f97316);color:#1e293b;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(245,197,24,.3);transition:all .15s}
+        .btn-p:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,197,24,.4)}
+        .btn-s{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;color:#475569;border-radius:12px;font-weight:900;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #e2e8f0;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
+        .btn-s:hover{background:#f8fafc;transform:translateY(-1px)}
+        #dg1 thead th{background:linear-gradient(135deg,#475569,#334155)!important;color:#f1f5f9!important;font-size:.65rem!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.08em!important;padding:.625rem .75rem!important;border:none!important;white-space:nowrap}
+        #dg1 tbody tr:hover td{background:#fffbeb!important}
+        #dg1 tbody td{padding:.5rem .75rem!important;font-size:.8rem;color:#334155;border-bottom:1px solid #f1f5f9!important;border-top:none!important;border-left:none!important;border-right:none!important}
+        .val-err{display:block;margin-top:4px;font-size:.75rem;font-weight:600;color:#dc2626}
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold">
+            <i class="fas fa-exclamation-triangle tw-mt-0.5"></i><span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-xl tw-text-emerald-700 tw-text-sm tw-font-bold">
+            <i class="fas fa-check tw-mt-0.5"></i><span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Page Header -->
+    <div class="tw-mb-8">
+        <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+            <span class="hover:tw-text-amber-500 tw-cursor-pointer tw-transition-colors tw-flex tw-items-center tw-gap-1"><i class="fas fa-umbrella-beach tw-text-[10px] tw-text-slate-300"></i> Leaves</span>
+            <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i>
+            <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Leave Approval</span>
+        </nav>
+        <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">Leave Request Approval</h1>
+        <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-amber-400 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+        <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-2">Review and approve or reject employee leave requests.</p>
+    </div>
+
+    <form asp-controller="Leaves" asp-action="EmployeeLeaveRequestApproval" method="post" id="approvalForm">
+
+        <!-- Filter Card -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-mb-5">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-filter"></i></div>
+                    Date Range Filter
+                </h3>
+            </div>
+            <div class="tw-p-5">
+                <div class="tw-flex tw-flex-wrap tw-items-end tw-gap-4">
+                    <div>
+                        <label class="f-label">From Date</label>
+                        <input type="date" asp-for="FromDate" class="f-input tw-min-w-[170px]" />
+                        <span asp-validation-for="FromDate" class="val-err"></span>
+                    </div>
+                    <div>
+                        <label class="f-label">To Date</label>
+                        <input type="date" asp-for="ToDate" class="f-input tw-min-w-[170px]" />
+                        <span asp-validation-for="ToDate" class="val-err"></span>
+                    </div>
+                    <div class="tw-flex tw-flex-wrap tw-gap-2">
+                        <button type="submit" name="action" value="Show" class="btn-p"><i class="fas fa-eye tw-text-xs"></i> Show</button>
+                        <button type="submit" name="action" value="Approve" class="btn-s" id="btnApprove" onclick="return confirm('Do you want to Approve selected requests?');"><i class="fas fa-check tw-text-xs"></i> Approve</button>
+                        <button type="submit" name="action" value="Reject" class="btn-s" id="btnReject" onclick="return confirm('Do you want to Reject selected requests?');"><i class="fas fa-times tw-text-xs"></i> Reject</button>
+                        <button type="submit" name="action" value="Reset" class="btn-s" formnovalidate><i class="fas fa-redo tw-text-xs"></i> Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden">
+            <div class="tw-p-4 tw-bg-gradient-to-r tw-from-slate-700 tw-to-slate-900">
+                <h3 class="tw-text-amber-400 tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center"><i class="fas fa-clipboard-check"></i></div>
+                    Pending Leave Requests
+                </h3>
+            </div>
+            <div class="tw-p-5">
+                <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-mb-4">
+                    <div class="tw-relative tw-flex-1 tw-min-w-[180px]">
+                        <i class="fas fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs tw-pointer-events-none"></i>
+                        <input type="text" id="txtsearch" class="f-input tw-pl-9" placeholder="Search by employee name..." />
+                    </div>
+                    <button type="button" class="btn-p" onclick="filterTable()"><i class="fas fa-search tw-text-xs"></i> Search</button>
+                    <button type="button" class="btn-s" onclick="resetSearch()"><i class="fas fa-times tw-text-xs"></i> Clear</button>
+                </div>
+                <div class="tw-overflow-x-auto tw-max-h-[32rem] tw-overflow-y-auto">
+                    <table id="dg1" class="tw-w-full">
+                        <thead>
+                            <tr>
+                                <th><div class="tw-flex tw-items-center tw-gap-2"><input type="checkbox" id="chkheader" class="tw-w-4 tw-h-4 tw-accent-amber-500" /><span>Code</span></div></th>
+                                <th>Employee</th><th>Request Date</th><th>From</th><th>To</th><th>Reason</th><th>Authenticator</th><th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Requests != null)
+                            {
+                                @foreach (var item in Model.Requests)
+                                {
+                                    <tr>
+                                        <td><div class="tw-flex tw-items-center tw-gap-2"><input type="checkbox" name="SelectedRequestCodes" value="@item.RequestNo" class="chkvid tw-w-4 tw-h-4 tw-accent-amber-500" /><span class="tw-text-amber-600 tw-font-black">@item.RequestNo</span></div></td>
+                                        <td>@item.EmployeeName</td>
+                                        <td>@(item.RequestDate?.ToString("dd/MM/yyyy"))</td>
+                                        <td>@(item.LeaveFromDate?.ToString("dd/MM/yyyy"))</td>
+                                        <td>@(item.LeaveToDate?.ToString("dd/MM/yyyy"))</td>
+                                        <td>@item.Reason</td>
+                                        <td>@item.AppAuthPersonName</td>
+                                        <td><span class="tw-px-2 tw-py-0.5 tw-rounded-full tw-text-[10px] tw-font-black tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200">@item.Status</span></td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            function checkHeaderStatus() { var t = $('.chkvid').length, c = $('.chkvid:checked').length; $('#chkheader').prop('checked', t === c && t > 0); }
+            $('#chkheader').click(function () { $('.chkvid').prop('checked', $(this).is(':checked')); });
+            $(document).on('change', '.chkvid', checkHeaderStatus);
+        });
+        function filterTable() {
+            var f = document.getElementById("txtsearch").value.toUpperCase();
+            var tr = document.getElementById("dg1").getElementsByTagName("tr");
+            for (var i = 1; i < tr.length; i++) { var td = tr[i].getElementsByTagName("td")[1]; if (td) tr[i].style.display = (td.textContent || td.innerText).toUpperCase().indexOf(f) > -1 ? "" : "none"; }
+        }
+        function resetSearch() { document.getElementById("txtsearch").value = ""; filterTable(); }
+    </script>
+}

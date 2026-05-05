@@ -1,0 +1,288 @@
+@model LCS_HR_MVC.Models.Support.ErrorLogsViewModel
+@{
+    ViewData["Title"] = "System Error Logs";
+    ViewData["PageTitle"] = "Error Logs";
+}
+
+@section Styles {
+    <style>
+        /* Modern Fade Animation */
+        @@keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-main { animation: slideUp 0.4s ease-out; }
+
+        /* Detail Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* High density log table styling */
+        .log-table thead th {
+            @@apply tw-bg-slate-50 tw-text-slate-400 tw-font-black tw-uppercase tw-text-[10px] tw-tracking-[0.15em] tw-py-4 tw-px-5 tw-border-b-2 tw-border-slate-100 !important;
+        }
+        .log-table tbody tr {
+            @@apply tw-border-b tw-border-slate-50 tw-transition-colors hover:tw-bg-red-50/30;
+        }
+        .log-table tbody td {
+            @@apply tw-py-4 tw-px-5 tw-align-middle tw-text-sm;
+        }
+    </style>
+}
+
+<div class="tw-p-4 sm:tw-p-6 tw-bg-transparent tw-min-h-screen animate-main">
+
+    <!-- Messages -->
+    @if (!string.IsNullOrWhiteSpace(Model.WarningMessage))
+    {
+        <div class="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-xl tw-text-red-600 tw-text-sm tw-font-bold tw-shadow-sm">
+            <div class="tw-w-6 tw-h-6 tw-bg-red-100 tw-text-red-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fas fa-exclamation-triangle tw-text-[10px]"></i>
+            </div>
+            <span class="tw-pt-0.5">@Model.WarningMessage</span>
+        </div>
+    }
+
+    <!-- Header Map -->
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end tw-justify-between tw-gap-4 tw-mb-8">
+        <div>
+            <nav class="tw-flex tw-items-center tw-gap-2.5 tw-text-[11px] tw-font-bold tw-text-slate-400 tw-mb-2 tw-uppercase tw-tracking-widest">
+                <div class="tw-flex tw-items-center tw-gap-1.5 hover:tw-text-red-500 tw-transition-colors tw-cursor-pointer">
+                    <i class="fas fa-bug tw-text-[10px] tw-text-slate-300"></i>
+                    <span>Diagnostics</span>
+                </div>
+                <i class="fas fa-chevron-right tw-text-[8px] tw-text-slate-300"></i> 
+                <span class="tw-text-slate-600 tw-bg-white tw-px-2 tw-py-0.5 tw-rounded-md tw-border tw-border-slate-200 tw-shadow-sm">Exception Logs</span>
+            </nav>
+            <div class="tw-flex tw-flex-col">
+                <h1 class="tw-text-3xl tw-font-black tw-text-slate-900 tw-leading-tight tw-tracking-tight">System Health</h1>
+                <div class="tw-h-1.5 tw-w-10 tw-bg-gradient-to-r tw-from-red-500 tw-to-transparent tw-rounded-full tw-mt-1"></div>
+            </div>
+            <p class="tw-text-slate-500 tw-text-sm tw-font-medium tw-mt-3 tw-leading-relaxed">Monitor application stability and trace unhandled exceptions across the operational ecosystem.</p>
+        </div>
+    </div>
+
+    <div class="tw-grid xl:tw-grid-cols-[1fr_0.8fr] tw-gap-6 xl:tw-gap-8 align-top">
+        
+        <!-- Left Side: Log Map -->
+        <div class="tw-space-y-6">
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+                <div class="tw-absolute tw-top-0 tw-right-0 tw-w-64 tw-h-64 tw-bg-gradient-to-bl tw-from-red-50/50 tw-to-transparent tw-rounded-bl-full tw-pointer-events-none z-0"></div>
+
+                <div class="tw-relative tw-z-10 tw-px-6 tw-py-5 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-bg-slate-50/80">
+                    <div class="tw-flex tw-items-center tw-gap-4">
+                        <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-gradient-to-br tw-from-slate-900 tw-to-slate-800 tw-flex tw-items-center tw-justify-center tw-shadow-lg">
+                            <i class="fas fa-microchip tw-text-red-400 tw-text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="tw-font-black tw-text-base tw-text-slate-800 tw-tracking-tight">Exception Pipeline</h2>
+                            <p class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase tw-tracking-widest">Active Incident Grid</p>
+                        </div>
+                    </div>
+                    <div class="tw-text-right">
+                        <span class="tw-text-[10px] tw-font-black tw-text-slate-400 tw-uppercase tw-tracking-widest">Node Metrics</span>
+                        <div class="tw-text-sm tw-font-mono tw-font-bold tw-text-slate-700">TOTAL: @Model.TotalCount</div>
+                    </div>
+                </div>
+
+                <div class="tw-relative tw-z-10 tw-p-6">
+                    <div class="tw-overflow-x-auto custom-scrollbar">
+                        <table class="tw-w-full log-table">
+                            <thead>
+                                <tr>
+                                    <th class="tw-w-20 tw-text-center">Error ID</th>
+                                    <th>Timestamp</th>
+                                    <th>Logic Message</th>
+                                    <th>Origin</th>
+                                    <th class="tw-text-right tw-pr-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="tw-divide-y tw-divide-slate-100">
+                                @if (Model.Rows.Count == 0)
+                                {
+                                    <tr><td colspan="5" class="tw-py-12 tw-text-center tw-text-slate-400 tw-font-bold tw-italic">System healthy. No incidents detected within parameters.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var row in Model.Rows)
+                                    {
+                                        <tr class="hover:tw-bg-slate-50 tw-transition-colors group">
+                                            <td class="tw-text-center tw-align-top">
+                                                <span class="tw-px-2 tw-py-1 tw-bg-slate-100 group-hover:tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-font-mono tw-font-black tw-text-slate-600 tw-shadow-sm">@row.ErrorID</span>
+                                            </td>
+                                            <td class="tw-align-top">
+                                                <div class="tw-text-xs tw-font-black tw-text-slate-700">@row.LogDateTime</div>
+                                            </td>
+                                            <td class="tw-align-top">
+                                                <div class="tw-max-w-md tw-truncate tw-font-bold tw-text-slate-800 group-hover:tw-text-red-600" title="@row.Message">@row.Message</div>
+                                                <div class="tw-text-[10px] tw-text-slate-400 tw-mt-1">@row.UserName @@ @row.UserLocation</div>
+                                            </td>
+                                            <td class="tw-align-top">
+                                                <span class="tw-font-mono tw-text-[10px] tw-font-bold tw-text-indigo-600">@row.UserIP</span>
+                                            </td>
+                                            <td class="tw-text-right tw-pr-4 tw-align-top">
+                                                <a class="tw-inline-flex tw-items-center tw-justify-center tw-w-8 tw-h-8 tw-rounded-lg tw-bg-slate-50 tw-border tw-border-slate-200 tw-text-slate-400 hover:tw-bg-slate-900 hover:tw-border-slate-900 hover:tw-text-red-400 tw-shadow-sm hover:tw-shadow-md hover:tw--translate-y-0.5 tw-transition-all"
+                                                   asp-action="ErrorLogs"
+                                                   asp-route-SelectedUserId="@Model.SelectedUserId"
+                                                   asp-route-SearchColumn="@Model.SearchColumn"
+                                                   asp-route-SearchText="@Model.SearchText"
+                                                   asp-route-Page="@Model.Page"
+                                                   asp-route-SelectedErrorId="@row.ErrorID"
+                                                   title="View Incident Breakdown">
+                                                    <i class="fas fa-eye tw-text-[11px]"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Pipeline -->
+                    @if (Model.TotalPages > 1)
+                    {
+                        <div class="tw-mt-8 tw-flex tw-items-center tw-justify-center tw-gap-1.5">
+                            @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+                            {
+                                if (pageNumber == Model.Page)
+                                {
+                                    <span class="tw-min-w-[36px] tw-h-9 tw-flex tw-items-center tw-justify-center tw-rounded-xl tw-bg-gradient-to-r tw-from-red-500 tw-to-orange-600 tw-text-white tw-text-xs tw-font-black tw-shadow-md cursor-default">@pageNumber</span>
+                                }
+                                else
+                                {
+                                    <a class="tw-min-w-[36px] tw-h-9 tw-flex tw-items-center tw-justify-center tw-rounded-xl tw-bg-white tw-border tw-border-slate-200 tw-text-slate-500 tw-text-xs tw-font-bold hover:tw-bg-slate-50 hover:tw-border-slate-300 hover:tw-text-slate-800 tw-transition-all"
+                                       asp-action="ErrorLogs"
+                                       asp-route-SelectedUserId="@Model.SelectedUserId"
+                                       asp-route-SearchColumn="@Model.SearchColumn"
+                                       asp-route-SearchText="@Model.SearchText"
+                                       asp-route-Page="@pageNumber">@pageNumber</a>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (Model.SelectedDetail != null)
+            {
+                <!-- Selected Incident Detail -->
+                <div class="tw-bg-white tw-rounded-3xl tw-shadow-xl tw-border tw-border-red-100 tw-overflow-hidden tw-relative tw-ring-4 tw-ring-red-50/50">
+                    <div class="tw-p-6 tw-bg-gradient-to-r tw-from-red-600 tw-to-red-700 tw-flex tw-items-center tw-justify-between">
+                        <div class="tw-flex tw-items-center tw-gap-4">
+                            <div class="tw-w-10 tw-h-10 tw-rounded-xl tw-bg-white/10 tw-flex tw-items-center tw-justify-center">
+                                <i class="fas fa-search-minus tw-text-white tw-text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="tw-text-white tw-font-black tw-text-base tw-tracking-tight">Incident Breakdown: #@Model.SelectedDetail.ErrorID</h3>
+                                <p class="tw-text-[10px] tw-font-bold tw-text-red-200 tw-uppercase tw-tracking-widest">Deep Stack Trace Analysis</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tw-p-6">
+                        <div class="tw-relative group">
+                            <textarea readonly="readonly" class="tw-w-full tw-p-5 tw-bg-slate-900 tw-text-red-400 tw-font-mono tw-text-xs tw-rounded-2xl tw-border tw-border-slate-800 tw-shadow-inner tw-min-h-[300px] focus:tw-outline-none custom-scrollbar leading-relaxed">@Model.SelectedDetail.DetailText</textarea>
+                            <div class="tw-absolute tw-top-4 tw-right-4 tw-opacity-0 group-hover:tw-opacity-100 tw-transition-opacity">
+                                <span class="tw-bg-red-500/20 tw-text-red-400 tw-text-[9px] tw-px-2 tw-py-1 tw-rounded tw-uppercase tw-font-black">Forensic Snapshot</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Right Side: Filter Configuration -->
+        <div class="tw-space-y-6 lg:tw-sticky lg:tw-top-24">
+            <div class="tw-bg-white tw-rounded-3xl tw-shadow-[0_8px_30px_rgb(0,0,0,0.04)] tw-border tw-border-slate-200/80 tw-overflow-hidden tw-relative">
+                <div class="tw-absolute tw-top-[-50px] tw-right-[-50px] tw-w-40 tw-h-40 tw-bg-red-100/40 tw-blur-2xl tw-rounded-full tw-pointer-events-none"></div>
+
+                <div class="tw-p-6 tw-bg-gradient-to-r tw-from-slate-900 tw-to-slate-800 tw-relative tw-z-10">
+                    <h3 class="tw-text-white tw-font-black tw-text-xs tw-uppercase tw-tracking-[0.2em] tw-flex tw-items-center tw-gap-2">
+                        <div class="tw-w-6 tw-h-6 tw-bg-white/10 tw-rounded-md tw-flex tw-items-center tw-justify-center">
+                            <i class="fas fa-filter tw-text-red-400"></i>
+                        </div>
+                        Observation Filter
+                    </h3>
+                </div>
+
+                <form method="get" asp-action="ErrorLogs" class="tw-p-7 tw-space-y-5 tw-relative tw-z-10">
+                    
+                    <div>
+                        <label asp-for="SelectedUserId" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Observer Identity</label>
+                        <div class="tw-relative">
+                            <i class="fas fa-user-shield tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                            <select asp-for="SelectedUserId" asp-items="Model.Users" 
+                                    class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none"
+                                    style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label asp-for="SearchColumn" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Logic Vector</label>
+                        <div class="tw-relative">
+                            <i class="fas fa-microscope tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                            <select asp-for="SearchColumn" asp-items="Model.SearchColumns" 
+                                    class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-700 focus:tw-bg-white focus:tw-border-amber-400 focus:tw-ring-2 focus:tw-ring-amber-400/20 tw-outline-none tw-appearance-none"
+                                    style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.75rem top 50%; background-size: 0.65rem auto;">
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label asp-for="SearchText" class="tw-block tw-text-[11px] tw-font-black tw-text-slate-700 tw-uppercase tw-tracking-wide tw-mb-1.5">Logic Query</label>
+                        <div class="tw-relative">
+                            <i class="fas fa-search tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+                            <input asp-for="SearchText" placeholder="Exception string..."
+                                   class="tw-w-full tw-pl-9 tw-pr-3 tw-py-2.5 tw-bg-white tw-border tw-border-slate-200 tw-rounded-xl tw-text-sm tw-font-bold tw-text-slate-800 placeholder-slate-400 focus:tw-border-amber-400 focus:tw-ring-4 focus:tw-ring-amber-400/10 tw-outline-none tw-transition-all tw-shadow-sm" />
+                        </div>
+                    </div>
+
+                    <div class="tw-pt-3 tw-border-t tw-border-slate-100"></div>
+
+                    <div class="tw-grid tw-grid-cols-2 tw-gap-3">
+                        <button type="submit" 
+                                class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-gradient-to-r tw-from-red-500 tw-to-orange-600 tw-text-white tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase tw-shadow-lg hover:tw--translate-y-0.5 tw-transition-all">
+                            <i class="fas fa-search tw-text-sm"></i> Query
+                        </button>
+                        <a asp-action="ErrorLogs"
+                           class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-3 tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 tw-rounded-xl tw-font-black tw-text-[11px] tw-tracking-widest tw-uppercase hover:tw-bg-slate-50 tw-transition-all">
+                            <i class="fas fa-undo tw-text-sm"></i> Release
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Health Status Panel -->
+            <div class="tw-p-6 tw-bg-slate-900 tw-rounded-3xl tw-shadow-lg tw-border tw-border-slate-800">
+                <h4 class="tw-text-red-400 tw-font-black tw-text-[10px] tw-uppercase tw-tracking-widest tw-mb-3 tw-flex tw-items-center tw-gap-2">
+                    <i class="fas fa-heartbeat"></i> Ecosystem Vitals
+                </h4>
+                <div class="tw-space-y-3">
+                    <div class="tw-flex tw-items-center tw-justify-between">
+                        <span class="tw-text-slate-500 tw-text-[10px] tw-font-bold tw-uppercase">Critical Threads</span>
+                        <span class="tw-text-red-400 tw-font-mono tw-text-xs">MONITORED</span>
+                    </div>
+                    <div class="tw-flex tw-items-center tw-justify-between">
+                        <span class="tw-text-slate-500 tw-text-[10px] tw-font-bold tw-uppercase">Stack Depth</span>
+                        <span class="tw-text-slate-300 tw-font-mono tw-text-xs">FULL TRACE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
