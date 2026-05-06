@@ -31,6 +31,9 @@
     };
 
     var commTypes = pipeline.Select(p => p.Key).ToArray();
+    var currentJobEntries = !string.IsNullOrWhiteSpace(Model.JobRunId)
+    ? Model.Entries.Where(e => e.JobRunId == Model.JobRunId).ToList()
+    : Model.Entries.ToList();
 
     // Status priority: when a city has duplicate entries for the same commission type
     // (e.g. a Failed row from bulk-update + a re-attempted row), keep the most relevant one.
@@ -45,29 +48,29 @@
         ["NoData"]           = 2,
         ["Failed"]           = 1,
     };
-    var entryMap = Model.Entries
-        .GroupBy(e => e.CityCode)
-        .ToDictionary(g => g.Key, g => g
-            .GroupBy(e => e.CommissionType)
-            .ToDictionary(
-                cg => cg.Key,
-                cg => cg.OrderByDescending(e => statusPriority.GetValueOrDefault(e.Status, 0))
-                         .ThenByDescending(e => e.UpdatedAt)
-                         .First()));
+ var entryMap = currentJobEntries
+    .GroupBy(e => e.CityCode)
+    .ToDictionary(g => g.Key, g => g
+        .GroupBy(e => e.CommissionType)
+        .ToDictionary(
+            cg => cg.Key,
+            cg => cg.OrderByDescending(e => statusPriority.GetValueOrDefault(e.Status, 0))
+                     .ThenByDescending(e => e.UpdatedAt)
+                     .First()));
 
-    var cities = Model.Entries
-        .Select(e => new { e.CityCode, e.CityName })
-        .Distinct()
-        .OrderBy(c => c.CityName)
-        .ToList();
+ var cities = currentJobEntries
+    .Select(e => new { e.CityCode, e.CityName })
+    .Distinct()
+    .OrderBy(c => c.CityName)
+    .ToList();
 
-    var totalCount            = Model.Entries.Count;
-    var completedCount        = Model.Entries.Count(e => e.Status == "Completed");
-    var alreadyProcessedCount = Model.Entries.Count(e => e.Status == "AlreadyProcessed");
-    var noDataCount           = Model.Entries.Count(e => e.Status == "NoData");
-    var failedCount           = Model.Entries.Count(e => e.Status == "Failed");
-    var runningCount          = Model.Entries.Count(e => e.Status == "Running");
-    var pendingCount          = Model.Entries.Count(e => e.Status == "Pending");
+ var totalCount            = currentJobEntries.Count;
+var completedCount        = currentJobEntries.Count(e => e.Status == "Completed");
+var alreadyProcessedCount = currentJobEntries.Count(e => e.Status == "AlreadyProcessed");
+var noDataCount           = currentJobEntries.Count(e => e.Status == "NoData");
+var failedCount           = currentJobEntries.Count(e => e.Status == "Failed");
+var runningCount          = currentJobEntries.Count(e => e.Status == "Running");
+var pendingCount          = currentJobEntries.Count(e => e.Status == "Pending");
     var overallPct            = totalCount > 0 ? (int)(((completedCount + alreadyProcessedCount) * 100.0) / totalCount) : 0;
 
     // City-level stats (a city is "done" when ALL 6 commissions are Completed or AlreadyProcessed).
@@ -89,7 +92,10 @@
     bool inWindow = today.Day >= 26 || today.Day <= 3;
 
     // Currently-running entry (for the live banner)
-    var runningEntry = Model.Entries.FirstOrDefault(e => e.Status == "Running");
+    // Currently-running entry for the current/latest job only.
+var runningEntry = currentJobEntries
+    .OrderByDescending(e => e.UpdatedAt)
+    .FirstOrDefault(e => e.Status == "Running");
 
     // Data processing window for the selected commission period
     // Rule: From = 21st of previous month, To = 20th of selected month
@@ -310,13 +316,13 @@
                         <i class="fas fa-spinner fa-spin mr-1"></i>Running…
                     </button>
                 }
-                else if (!Model.Entries.Any())
+                else if (!currentJobEntries.Any())
                 {
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 px-5 rounded shadow">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-var historyEntries = Model.Entries text-white text-sm font-bold py-2 px-5 rounded shadow">
                         <i class="fas fa-play mr-1"></i>Start Automation
                     </button>
                 }
-                else if (Model.Entries.All(e => e.Status == "Completed"))
+                else if (currentJobEntries.Any() && currentJobEntries.All(e => e.Status == "Completed"))
                 {
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-2 px-5 rounded shadow">
                         <i class="fas fa-redo mr-1"></i>Re-run Automation
@@ -387,7 +393,7 @@
         </div>
     </div>
 
-    @if (Model.Entries.Any())
+    @if (currentJobEntries.Any())
     {
         <!-- ══════════════════════════════════════════════════════════ -->
         <!-- SECTION 3 — LIVE RUNNING BANNER                           -->
@@ -814,12 +820,13 @@
          style="height:20rem; line-height:1.7">
 
         @{
-            // Pre-populate with historical entries from the current job (non-pending)
-            var historyEntries = Model.Entries
-                .Where(e => e.Status is "Completed" or "Failed" or "Running" or "AlreadyProcessed")
-                .OrderBy(e => e.UpdatedAt)
-                .ThenBy(e => e.Id)
-                .ToList();
+        // Pre-populate with historical entries from the current/latest job only.
+// Do not mix old job_run_id rows into the live terminal display.
+var historyEntries = currentJobEntries
+    .Where(e => e.Status is "Completed" or "Failed" or "Running" or "AlreadyProcessed" or "NoData" or "Skipped")
+    .OrderBy(e => e.UpdatedAt)
+    .ThenBy(e => e.Id)
+    .ToList();
 
             string LevelCss(string level) => level switch
             {
@@ -850,7 +857,7 @@
         @if (!historyEntries.Any())
         {
             <div id="commLogEmpty" style="color:#4b5563; font-style:italic; font-size:10px">
-                @(Model.IsRunning ? "Connecting to log stream..." : Model.Entries.Any() ? "Run completed. Start a new run to see live logs." : "No activity yet. Start automation to see real-time logs here.")
+                @(Model.IsRunning ? "Connecting to log stream..." : currentJobEntries.Any() ? "Run completed. Start a new run to see live logs." : "No activity yet. Start automation to see real-time logs here.")
             </div>
         }
 
