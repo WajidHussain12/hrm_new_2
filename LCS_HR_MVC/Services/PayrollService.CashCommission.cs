@@ -15,6 +15,7 @@ namespace LCS_HR_MVC.Services
 {
     public partial class PayrollService
     {
+        private const int CashAutomationSourceTimeoutSeconds = 600;
         public async Task<CashCommissionViewModel> GetCashCommissionPageAsync(
             DateTime workingDate,
             string currentUserId,
@@ -44,9 +45,9 @@ namespace LCS_HR_MVC.Services
         }
 
         public async Task<CashCommissionProcessResult> ProcessCashCommissionAsync(
-            CashCommissionViewModel model,
-            string currentUserId,
-            Func<int, int, Task>? onProgress = null)
+      CashCommissionViewModel model,
+      string currentUserId,
+      Func<int, int, Task>? onProgress = null)
         {
             try
             {
@@ -54,8 +55,18 @@ namespace LCS_HR_MVC.Services
                     ?? throw new ArgumentException("Database error");
 
                 await connection.OpenAsync();
-                var cashConnId = await LogConnectionIdAsync(connection, "CashCommission", model.CityCode, "ProcessCashCommissionAsync_Start");
-                var cashOverallStart = System.Diagnostics.Stopwatch.StartNew();
+                var cashConnId = await LogConnectionIdAsync(
+                    connection,
+                    "CashCommission",
+                    model.CityCode,
+                    "ProcessCashCommissionAsync_Start");
+
+                var cashOverallStart = Stopwatch.StartNew();
+
+                if (onProgress != null)
+                {
+                    await onProgress(1, 100);
+                }
 
                 CashCommissionExecutionContext context = await PrepareCashCommissionExecutionContextAsync(
                     connection,
@@ -63,6 +74,11 @@ namespace LCS_HR_MVC.Services
                     model.Month,
                     model.CityCode,
                     currentUserId);
+
+                if (onProgress != null)
+                {
+                    await onProgress(5, 100);
+                }
 
                 List<CashCommissionSourceRow> cashSourceRows;
                 using (var billingConnection = await OpenExternalCodConnectionAsync("LHR_Billing"))
@@ -72,9 +88,16 @@ namespace LCS_HR_MVC.Services
                         context.StartDate,
                         context.EndDate,
                         context.StationIds,
-                        context.Cfg);
+                        context.Cfg,
+                        onProgress: onProgress);
                 }
+
                 await KeepConnectionAliveAsync(connection);
+
+                if (onProgress != null)
+                {
+                    await onProgress(25, 100);
+                }
 
                 List<CashVasCommissionRow> vasSourceRows;
                 using (var operationsConnection = await OpenExternalCodConnectionAsync("Central_OPS"))
@@ -86,32 +109,96 @@ namespace LCS_HR_MVC.Services
                         context.StationIds,
                         cfg: context.Cfg);
                 }
+
                 await KeepConnectionAliveAsync(connection);
 
+                if (onProgress != null)
+                {
+                    await onProgress(40, 100);
+                }
+
                 int totalSourceRows = cashSourceRows.Count + vasSourceRows.Count;
-                if (onProgress != null) await onProgress(0, totalSourceRows); // source data loaded — total now known
+                if (totalSourceRows <= 0)
+                {
+                    totalSourceRows = 100;
+                }
 
                 int cashRowsInserted;
                 int vasRowsInserted;
+
                 using (var transaction = await connection.BeginTransactionAsync())
                 {
                     try
                     {
-                        cashRowsInserted = await SaveCashCommissionRowsAsync(connection, transaction as MySqlTransaction, context, cashSourceRows, onProgress, totalSourceRows);
-                        vasRowsInserted = await SaveCashVasRowsAsync(connection, transaction as MySqlTransaction, context, vasSourceRows, onProgress, cashRowsInserted, totalSourceRows);
-                        await InsertCashCommissionAcknowledgmentAsync(connection, transaction as MySqlTransaction, currentUserId, model.BillingStatus);
+                        cashRowsInserted = await SaveCashCommissionRowsAsync(
+                            connection,
+                            transaction as MySqlTransaction,
+                            context,
+                            cashSourceRows,
+                            onProgress,
+                            totalSourceRows);
+
+                        if (onProgress != null)
+                        {
+                            await onProgress(70, 100);
+                        }
+
+                        vasRowsInserted = await SaveCashVasRowsAsync(
+                            connection,
+                            transaction as MySqlTransaction,
+                            context,
+                            vasSourceRows,
+                            onProgress,
+                            cashRowsInserted,
+                            totalSourceRows);
+
+                        if (onProgress != null)
+                        {
+                            await onProgress(90, 100);
+                        }
+
+                        await InsertCashCommissionAcknowledgmentAsync(
+                            connection,
+                            transaction as MySqlTransaction,
+                            currentUserId,
+                            model.BillingStatus);
+
                         await transaction.CommitAsync();
                     }
                     catch
                     {
-                        await transaction.RollbackAsync();
+                        try
+                        {
+                            await transaction.RollbackAsync();
+                        }
+                        catch (Exception rollbackEx)
+                        {
+                            _logger?.LogError(
+                                rollbackEx,
+                                "CashCommission rollback failed for City={CityCode}, Year={Year}, Month={Month}",
+                                model.CityCode,
+                                model.Year,
+                                model.Month);
+                        }
+
                         throw;
                     }
                 }
-                if (onProgress != null) await onProgress(cashRowsInserted + vasRowsInserted, totalSourceRows); // all rows committed
+
+                if (onProgress != null)
+                {
+                    await onProgress(100, 100);
+                }
 
                 cashOverallStart.Stop();
-                LogOperationComplete("CashCommission", model.CityCode, "ProcessCashCommission_TOTAL", cashConnId, cashOverallStart.Elapsed, cashRowsInserted + vasRowsInserted);
+
+                LogOperationComplete(
+                    "CashCommission",
+                    model.CityCode,
+                    "ProcessCashCommission_TOTAL",
+                    cashConnId,
+                    cashOverallStart.Elapsed,
+                    cashRowsInserted + vasRowsInserted);
 
                 return new CashCommissionProcessResult
                 {
@@ -134,8 +221,22 @@ namespace LCS_HR_MVC.Services
                     Message = ex.Message
                 };
             }
-        }
+            catch (Exception ex)
+            {
+                _logger?.LogError(
+                    ex,
+                    "CashCommission failed for City={CityCode}, Year={Year}, Month={Month}",
+                    model.CityCode,
+                    model.Year,
+                    model.Month);
 
+                return new CashCommissionProcessResult
+                {
+                    Success = false,
+                    Message = ex.GetBaseException().Message
+                };
+            }
+        }
         public async Task<CashCommissionPreviewResult> PreviewCashCommissionAsync(
             int year,
             int month,
@@ -589,12 +690,13 @@ namespace LCS_HR_MVC.Services
         }
 
         private async Task<List<CashCommissionSourceRow>> LoadCashCommissionSourceRowsAsync(
-            MySqlConnection connection,
-            DateTime startDate,
-            DateTime endDate,
-            IReadOnlyCollection<string> stationIds,
-            CommissionConfig cfg,
-            bool logProgress = false)
+          MySqlConnection connection,
+          DateTime startDate,
+          DateTime endDate,
+          IReadOnlyCollection<string> stationIds,
+          CommissionConfig cfg,
+          bool logProgress = false,
+          Func<int, int, Task>? onProgress = null)
         {
             const string queryPrefix = @"
 SELECT Billing_Type,cn_number,Station_id,Station,billing_date,no_of_peices,weight,Weight_KG,Weight_Type,Weight_Bucket,
@@ -716,18 +818,22 @@ WHERE da.express_city_id IN @StationIds AND da.ec_number NOT IN ({cfg.ExcludedEx
                     Console.WriteLine($"[CashPreview] Cash source branch {name} starting...");
                     Console.Out.Flush();
                 }
-
                 int insertedRows = await connection.ExecuteAsync(
                     @"INSERT INTO tmp_cash_commission_source
-                    (Billing_Type,cn_number,Station_id,billing_date,no_of_peices,weight,Weight_KG,shipment_id,dest_City_id,Leopard_id,Leopard_Name,ec_number,remarks,client_id,company_id,activity_date,rate,Gross_Amount)
+    (Billing_Type,cn_number,Station_id,billing_date,no_of_peices,weight,Weight_KG,shipment_id,dest_City_id,Leopard_id,Leopard_Name,ec_number,remarks,client_id,company_id,activity_date,rate,Gross_Amount)
 " + sourceQuery,
                     parameters,
-                    commandTimeout: 1800);
+                    commandTimeout: CashAutomationSourceTimeoutSeconds);
                 _logger?.LogInformation(
                     "Cash source {Branch} staged {Rows} row(s) in {Seconds:F1}s",
                     name,
                     insertedRows,
                     (DateTime.UtcNow - startedAt).TotalSeconds);
+
+                if (onProgress != null)
+                {
+                    await onProgress(10, 100);
+                }
 
                 if (logProgress)
                 {
@@ -737,9 +843,13 @@ WHERE da.express_city_id IN @StationIds AND da.ec_number NOT IN ({cfg.ExcludedEx
             }
 
             var rows = (await connection.QueryAsync<CashCommissionSourceRow>(
-                queryPrefix + "SELECT * FROM tmp_cash_commission_source" + querySuffix,
-                parameters,
-                commandTimeout: 1800)).ToList();
+       queryPrefix + "SELECT * FROM tmp_cash_commission_source" + querySuffix,
+       parameters,
+       commandTimeout: CashAutomationSourceTimeoutSeconds)).ToList();
+            if (onProgress != null)
+            {
+                await onProgress(20, 100);
+            }
             _logger?.LogInformation(
                 "Cash source final query returned {Rows} raw row(s)",
                 rows.Count);
