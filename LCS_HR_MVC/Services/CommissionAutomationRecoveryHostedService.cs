@@ -15,16 +15,20 @@ namespace LCS_HR_MVC.Services
     ///
     /// If the local app is stopped/rebuilt/crashes while a commission step is Running,
     /// the DB row remains Running because the worker process is gone. This service
-    /// marks orphaned/stale Running rows as Failed automatically so Start/Resume
-    /// Automation can retry from the incomplete step without manual SQL.
+    /// marks orphaned/stale/over-time Running rows as Failed automatically so
+    /// Start/Resume Automation can retry from the incomplete step without manual SQL.
     ///
     /// The hosted-service path is preferred when registered in DI. The module
     /// initializer below is an additional safety net for the current local project:
-    /// it runs once when the app assembly loads and performs startup recovery even
-    /// if Program.cs registration is missed.
+    /// it runs once when the app assembly loads and continues scanning periodically
+    /// even if Program.cs registration is missed.
     /// </summary>
     public sealed class CommissionAutomationRecoveryHostedService : BackgroundService
     {
+        private const int DefaultHeartbeatStaleSeconds = 90;
+        private const int DefaultHardStepTimeoutSeconds = 12 * 60;
+        private const int DefaultScanSeconds = 60;
+
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<CommissionAutomationRecoveryHostedService> _logger;
         private readonly IConfiguration _configuration;
@@ -54,7 +58,7 @@ namespace LCS_HR_MVC.Services
 
             int scanSeconds = _configuration.GetValue(
                 "CommissionSettings:RecoveryScanSeconds",
-                60);
+                DefaultScanSeconds);
 
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(scanSeconds));
 
@@ -76,21 +80,27 @@ namespace LCS_HR_MVC.Services
 
                 int staleSeconds = _configuration.GetValue(
                     "CommissionSettings:RunningStepRecoverySeconds",
-                    90);
+                    DefaultHeartbeatStaleSeconds);
+
+                int hardTimeoutSeconds = _configuration.GetValue(
+                    "CommissionSettings:HardStepTimeoutSeconds",
+                    DefaultHardStepTimeoutSeconds);
 
                 int affected = await RecoverRunningRowsCoreAsync(
                     connection,
                     forceAllRunningRows,
                     staleSeconds,
+                    hardTimeoutSeconds,
                     cancellationToken);
 
                 if (affected > 0)
                 {
                     _logger.LogWarning(
-                        "[CommissionRecovery] Auto-marked {AffectedRows} orphaned/stale Running automation row(s) as Failed. ForceAll={ForceAllRunningRows}, StaleSeconds={StaleSeconds}",
+                        "[CommissionRecovery] Auto-marked {AffectedRows} Running automation row(s) as Failed. ForceAll={ForceAllRunningRows}, StaleSeconds={StaleSeconds}, HardTimeoutSeconds={HardTimeoutSeconds}",
                         affected,
                         forceAllRunningRows,
-                        staleSeconds);
+                        staleSeconds,
+                        hardTimeoutSeconds);
                 }
             }
             catch (OperationCanceledException)
@@ -107,11 +117,12 @@ namespace LCS_HR_MVC.Services
             IDbConnection connection,
             bool forceAllRunningRows,
             int staleSeconds,
+            int hardTimeoutSeconds,
             CancellationToken cancellationToken)
         {
             string reason = forceAllRunningRows
                 ? "Auto recovery: application started while commission automation had orphaned Running row(s). Marked Failed so automation can resume/retry automatically."
-                : $"Auto recovery: commission automation Running row had no heartbeat for {staleSeconds}+ seconds. Marked Failed so automation can resume/retry automatically.";
+                : $"Auto recovery: commission automation Running row was stale or exceeded hard timeout ({hardTimeoutSeconds} seconds). Marked Failed so automation can resume/retry automatically.";
 
             string sql = forceAllRunningRows
                 ? @"
@@ -130,7 +141,10 @@ SET status = 'Failed',
     completed_at = NOW(),
     updated_at = NOW()
 WHERE status = 'Running'
-  AND TIMESTAMPDIFF(SECOND, updated_at, NOW()) >= @StaleSeconds;";
+  AND (
+        TIMESTAMPDIFF(SECOND, updated_at, NOW()) >= @StaleSeconds
+        OR TIMESTAMPDIFF(SECOND, started_at, NOW()) >= @HardTimeoutSeconds
+      );";
 
             return await connection.ExecuteAsync(
                 new CommandDefinition(
@@ -138,7 +152,8 @@ WHERE status = 'Running'
                     new
                     {
                         Reason = reason,
-                        StaleSeconds = staleSeconds
+                        StaleSeconds = staleSeconds,
+                        HardTimeoutSeconds = hardTimeoutSeconds
                     },
                     cancellationToken: cancellationToken));
         }
@@ -175,18 +190,71 @@ WHERE status = 'Running'
                     return;
                 }
 
-                using var connection = new MySqlConnection(connectionString);
-                await connection.OpenAsync();
+                int staleSeconds = configuration.GetValue(
+                    "CommissionSettings:RunningStepRecoverySeconds",
+                    DefaultHeartbeatStaleSeconds);
 
-                int affected = await RecoverRunningRowsCoreAsync(
-                    connection,
-                    forceAllRunningRows: true,
-                    staleSeconds: configuration.GetValue("CommissionSettings:RunningStepRecoverySeconds", 90),
-                    cancellationToken: CancellationToken.None);
+                int hardTimeoutSeconds = configuration.GetValue(
+                    "CommissionSettings:HardStepTimeoutSeconds",
+                    DefaultHardStepTimeoutSeconds);
 
-                if (affected > 0)
+                int scanSeconds = configuration.GetValue(
+                    "CommissionSettings:RecoveryScanSeconds",
+                    DefaultScanSeconds);
+
+                while (true)
                 {
-                    Console.WriteLine($"[CommissionRecovery] Startup auto-marked {affected} orphaned Running automation row(s) as Failed.");
+                    try
+                    {
+                        using var connection = new MySqlConnection(connectionString);
+                        await connection.OpenAsync();
+
+                        int affected = await RecoverRunningRowsCoreAsync(
+                            connection,
+                            forceAllRunningRows: true,
+                            staleSeconds,
+                            hardTimeoutSeconds,
+                            cancellationToken: CancellationToken.None);
+
+                        if (affected > 0)
+                        {
+                            Console.WriteLine($"[CommissionRecovery] Startup auto-marked {affected} orphaned Running automation row(s) as Failed.");
+                        }
+
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[CommissionRecovery] Startup recovery failed: {ex.Message}");
+                        break;
+                    }
+                }
+
+                while (true)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(scanSeconds));
+
+                    try
+                    {
+                        using var connection = new MySqlConnection(connectionString);
+                        await connection.OpenAsync();
+
+                        int affected = await RecoverRunningRowsCoreAsync(
+                            connection,
+                            forceAllRunningRows: false,
+                            staleSeconds,
+                            hardTimeoutSeconds,
+                            cancellationToken: CancellationToken.None);
+
+                        if (affected > 0)
+                        {
+                            Console.WriteLine($"[CommissionRecovery] Periodic auto-marked {affected} stale/over-time Running automation row(s) as Failed.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[CommissionRecovery] Periodic recovery failed: {ex.Message}");
+                    }
                 }
             });
         }
