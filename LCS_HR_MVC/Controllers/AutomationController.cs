@@ -34,6 +34,7 @@ namespace LCS_HR_MVC.Controllers
             var selectedMonth = month ?? now.Month;
 
             var model = await _automationService.GetDashboardAsync(selectedYear, selectedMonth);
+            model.JobRunId = GetLatestDashboardJobRunId(model);
 
             // Do not filter Entries by jobRunId.
             // Resume creates new job_run_id only for incomplete work,
@@ -86,6 +87,17 @@ namespace LCS_HR_MVC.Controllers
             }
         }
 
+        private static string? GetLatestDashboardJobRunId(CommissionAutomationDashboardViewModel model)
+        {
+            return model.Entries
+                .OrderByDescending(entry => entry.Status == "Running")
+                .ThenByDescending(entry => entry.UpdatedAt)
+                .ThenByDescending(entry => entry.Id)
+                .Select(entry => entry.JobRunId)
+                .FirstOrDefault(jobRunId => !string.IsNullOrWhiteSpace(jobRunId))
+                ?? model.JobRunId;
+        }
+
         private async Task<string?> FindActiveRunningJobRunIdAsync(int year, int month)
         {
             try
@@ -128,6 +140,7 @@ namespace LCS_HR_MVC.Controllers
         public async Task<IActionResult> Status(int year, int month)
         {
             var model = await _automationService.GetDashboardAsync(year, month);
+            model.JobRunId = GetLatestDashboardJobRunId(model);
             return Json(model);
         }
 
