@@ -21,7 +21,6 @@ namespace LCS_HR_MVC.Controllers
         }
 
         [HttpGet]
-        [HttpGet]
         public async Task<IActionResult> Commission(int? year, int? month, string? jobRunId)
         {
             var now = DateTime.Now;
@@ -30,13 +29,10 @@ namespace LCS_HR_MVC.Controllers
 
             var model = await _automationService.GetDashboardAsync(selectedYear, selectedMonth);
 
-            if (!string.IsNullOrWhiteSpace(jobRunId))
-            {
-                model.JobRunId = jobRunId;
-                model.Entries = model.Entries
-                    .Where(e => e.JobRunId == jobRunId)
-                    .ToList();
-            }
+            // Do not filter Entries by jobRunId.
+            // Resume creates new job_run_id only for incomplete work,
+            // while completed city steps remain under previous job_run_id values.
+            // Dashboard must show full month-level progress.
 
             return View(model);
         }
@@ -66,8 +62,8 @@ namespace LCS_HR_MVC.Controllers
             try
             {
                 var jobRunId = await _automationService.StartAutomationAsync(year, month, triggeredBy, currentUserId);
-                TempData["SuccessMessage"] = $"Automation started. Job ID: {jobRunId}";
-                return RedirectToAction(nameof(Commission), new { year, month, jobRunId });
+                TempData["SuccessMessage"] = $"Automation request accepted. Job ID: {jobRunId}";
+                return RedirectToAction(nameof(Commission), new { year, month });
             }
             catch (Exception ex)
             {

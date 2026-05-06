@@ -31,9 +31,7 @@
     };
 
     var commTypes = pipeline.Select(p => p.Key).ToArray();
-    var currentJobEntries = !string.IsNullOrWhiteSpace(Model.JobRunId)
-    ? Model.Entries.Where(e => e.JobRunId == Model.JobRunId).ToList()
-    : Model.Entries.ToList();
+  var currentJobEntries = Model.Entries.ToList();
 
     // Status priority: when a city has duplicate entries for the same commission type
     // (e.g. a Failed row from bulk-update + a re-attempted row), keep the most relevant one.
@@ -276,7 +274,7 @@ var runningEntry = currentJobEntries
 
             <!-- Year / Month picker -->
             <form method="get" asp-action="Commission" class="flex flex-wrap items-end gap-3" id="viewCommissionForm">
-                @if (!string.IsNullOrWhiteSpace(Model.JobRunId))
+                
 {
     <input type="hidden" name="jobRunId" value="@Model.JobRunId" />
 }
