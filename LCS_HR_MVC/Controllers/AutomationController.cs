@@ -35,6 +35,7 @@ namespace LCS_HR_MVC.Controllers
 
             var model = await _automationService.GetDashboardAsync(selectedYear, selectedMonth);
             model.JobRunId = GetLatestDashboardJobRunId(model);
+            ApplyDashboardCacheHeaders(model);
 
             // Do not filter Entries by jobRunId.
             // Resume creates new job_run_id only for incomplete work,
@@ -84,6 +85,20 @@ namespace LCS_HR_MVC.Controllers
                 _logger.LogError(ex, "Failed to start commission automation for {Year}/{Month}", year, month);
                 TempData["ErrorMessage"] = $"Failed to start automation: {ex.Message}";
                 return RedirectToAction(nameof(Commission), new { year, month });
+            }
+        }
+
+        private void ApplyDashboardCacheHeaders(CommissionAutomationDashboardViewModel model)
+        {
+            Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+
+            if (model.IsRunning || model.Entries.Any(entry => entry.Status == "Running"))
+            {
+                // Safety net for missed SignalR events or stale browser DOM.
+                // While automation is running, force a server-render refresh every 30 seconds.
+                Response.Headers["Refresh"] = "30";
             }
         }
 
