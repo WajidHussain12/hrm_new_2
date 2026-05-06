@@ -163,22 +163,27 @@ namespace LCS_HR_MVC.Services
                 new { Year = year, Month = month })).ToList();
 
             string jobRunId;
-            var pendingFreshThreshold = DateTime.Now.AddHours(-ActiveAutomationPendingWindowHours);
-            var activeEntries = existingEntries
-                .Where(e => e.Status == "Running"
-                    || (e.Status == "Pending" && e.UpdatedAt >= pendingFreshThreshold))
+
+            // Important:
+            // Only true Running rows should block a new automation enqueue.
+            // Pending rows must NOT block restart/resume, because after an IIS recycle,
+            // crash, or Hangfire worker death, many Pending rows can remain from the old
+            // job. Treat them as retryable/incomplete work, not as an active run.
+            var activeRunningEntries = existingEntries
+                .Where(e => e.Status == "Running")
                 .ToList();
 
-            if (activeEntries.Any())
+            if (activeRunningEntries.Any())
             {
-                string activeJobRunId = activeEntries
+                string activeJobRunId = activeRunningEntries
                     .OrderByDescending(e => e.UpdatedAt)
                     .Select(e => e.JobRunId)
                     .First();
 
                 _logger.LogWarning(
-                    "Commission automation for {Year}/{Month} already has an active or freshly queued run ({JobRunId}) — skipping duplicate enqueue.",
+                    "Commission automation for {Year}/{Month} already has Running entries ({JobRunId}) — skipping duplicate enqueue.",
                     year, month, activeJobRunId);
+
                 return activeJobRunId;
             }
 
@@ -191,8 +196,8 @@ namespace LCS_HR_MVC.Services
                 // "Incomplete" = anything that is not a terminal done/skip state.
                 // AlreadyProcessed / Skipped are treated as "done" — re-running them is pointless.
                 var incompleteEntries = existingEntries
-                    .Where(e => e.Status is not ("Completed" or "AlreadyProcessed" or "Skipped"))
-                    .ToList();
+       .Where(e => e.Status is not ("Completed" or "AlreadyProcessed" or "Skipped" or "NoData"))
+       .ToList();
 
                 if (incompleteEntries.Any())
                 {
