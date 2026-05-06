@@ -18,10 +18,12 @@ namespace LCS_HR_MVC.Services
     /// marks orphaned/stale/over-time Running rows as Failed automatically so
     /// Start/Resume Automation can retry from the incomplete step without manual SQL.
     ///
-    /// The hosted-service path is preferred when registered in DI. The module
-    /// initializer below is an additional safety net for the current local project:
-    /// it runs once when the app assembly loads and continues scanning periodically
-    /// even if Program.cs registration is missed.
+    /// It also cleans dashboard-confusing duplicate rows:
+    /// - Pending/Running rows superseded by a later Completed/AlreadyProcessed row
+    /// - Failed rows created only because a duplicate job was blocked by the in-process gate
+    ///
+    /// This keeps the Automation dashboard from showing old duplicate entries as if they
+    /// are still active, while preserving the historical row as Skipped with explanation.
     /// </summary>
     public sealed class CommissionAutomationRecoveryHostedService : BackgroundService
     {
@@ -93,6 +95,8 @@ namespace LCS_HR_MVC.Services
                     hardTimeoutSeconds,
                     cancellationToken);
 
+                int cleaned = await CleanupSupersededDashboardRowsAsync(connection, cancellationToken);
+
                 if (affected > 0)
                 {
                     _logger.LogWarning(
@@ -101,6 +105,13 @@ namespace LCS_HR_MVC.Services
                         forceAllRunningRows,
                         staleSeconds,
                         hardTimeoutSeconds);
+                }
+
+                if (cleaned > 0)
+                {
+                    _logger.LogWarning(
+                        "[CommissionRecovery] Cleaned {CleanedRows} superseded/duplicate automation dashboard row(s) as Skipped.",
+                        cleaned);
                 }
             }
             catch (OperationCanceledException)
@@ -156,6 +167,46 @@ WHERE status = 'Running'
                         HardTimeoutSeconds = hardTimeoutSeconds
                     },
                     cancellationToken: cancellationToken));
+        }
+
+        private static async Task<int> CleanupSupersededDashboardRowsAsync(
+            IDbConnection connection,
+            CancellationToken cancellationToken)
+        {
+            const string supersededSql = @"
+UPDATE lcs_hr.hr_commission_automation_log stale
+JOIN lcs_hr.hr_commission_automation_log done
+  ON done.year = stale.year
+ AND done.month = stale.month
+ AND done.city_code = stale.city_code
+ AND done.commission_type = stale.commission_type
+ AND done.status IN ('Completed', 'AlreadyProcessed')
+ AND done.updated_at IS NOT NULL
+ AND stale.updated_at IS NOT NULL
+ AND done.updated_at > stale.updated_at
+SET stale.status = 'Skipped',
+    stale.progress_pct = 0,
+    stale.error_message = 'Auto cleanup: superseded by a later Completed/AlreadyProcessed entry for the same city and commission type.',
+    stale.completed_at = COALESCE(stale.completed_at, NOW()),
+    stale.updated_at = NOW()
+WHERE stale.status IN ('Pending', 'Running');";
+
+            const string duplicateGateSql = @"
+UPDATE lcs_hr.hr_commission_automation_log
+SET status = 'Skipped',
+    progress_pct = 0,
+    error_message = 'Auto cleanup: duplicate job row skipped because another automation job was already executing.',
+    completed_at = COALESCE(completed_at, NOW()),
+    updated_at = NOW()
+WHERE status = 'Failed'
+  AND error_message LIKE 'Blocked by in-process concurrency gate%';";
+
+            int affected = 0;
+            affected += await connection.ExecuteAsync(
+                new CommandDefinition(supersededSql, cancellationToken: cancellationToken));
+            affected += await connection.ExecuteAsync(
+                new CommandDefinition(duplicateGateSql, cancellationToken: cancellationToken));
+            return affected;
         }
 
         [ModuleInitializer]
@@ -216,9 +267,18 @@ WHERE status = 'Running'
                             hardTimeoutSeconds,
                             cancellationToken: CancellationToken.None);
 
+                        int cleaned = await CleanupSupersededDashboardRowsAsync(
+                            connection,
+                            cancellationToken: CancellationToken.None);
+
                         if (affected > 0)
                         {
                             Console.WriteLine($"[CommissionRecovery] Startup auto-marked {affected} orphaned Running automation row(s) as Failed.");
+                        }
+
+                        if (cleaned > 0)
+                        {
+                            Console.WriteLine($"[CommissionRecovery] Startup cleaned {cleaned} superseded/duplicate automation dashboard row(s) as Skipped.");
                         }
 
                         break;
@@ -246,9 +306,18 @@ WHERE status = 'Running'
                             hardTimeoutSeconds,
                             cancellationToken: CancellationToken.None);
 
+                        int cleaned = await CleanupSupersededDashboardRowsAsync(
+                            connection,
+                            cancellationToken: CancellationToken.None);
+
                         if (affected > 0)
                         {
                             Console.WriteLine($"[CommissionRecovery] Periodic auto-marked {affected} stale/over-time Running automation row(s) as Failed.");
+                        }
+
+                        if (cleaned > 0)
+                        {
+                            Console.WriteLine($"[CommissionRecovery] Periodic cleaned {cleaned} superseded/duplicate automation dashboard row(s) as Skipped.");
                         }
                     }
                     catch (Exception ex)
