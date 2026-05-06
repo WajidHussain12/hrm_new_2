@@ -518,16 +518,16 @@ namespace LCS_HR_MVC.Services
                     using var transaction = await connection.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
                     try
                     {
-                        await ProcessCommissionInternalAsync(
-                            connection,
-                            transaction,
-                            model.Year,
-                            model.Month,
-                            model.CityCode,
-                            currentUserId,
-                            model.BillingStatusConfirmed,
-                            model.AttendanceStatusConfirmed,
-                            model.AllCommissionTypesConfirmed);
+                        await ProcessCommissionInternalWithWatchdogAsync(
+      connection,
+      transaction,
+      model.Year,
+      model.Month,
+      model.CityCode,
+      currentUserId,
+      model.BillingStatusConfirmed,
+      model.AttendanceStatusConfirmed,
+      model.AllCommissionTypesConfirmed);
                         await transaction.CommitAsync();
                         cpOverallStart.Stop();
                         LogOperationComplete("CommissionProcess", model.CityCode, "ProcessCommission_TOTAL", cpConnId, cpOverallStart.Elapsed, 0);
