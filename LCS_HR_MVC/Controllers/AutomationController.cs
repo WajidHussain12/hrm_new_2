@@ -1,8 +1,11 @@
 using System.Security.Claims;
+using Dapper;
+using LCS_HR_MVC.Data;
 using LCS_HR_MVC.Models;
 using LCS_HR_MVC.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MySql.Data.MySqlClient;
 
 namespace LCS_HR_MVC.Controllers
 {
@@ -10,13 +13,16 @@ namespace LCS_HR_MVC.Controllers
     public class AutomationController : Controller
     {
         private readonly ICommissionAutomationService _automationService;
+        private readonly IDbConnectionFactory _connectionFactory;
         private readonly ILogger<AutomationController> _logger;
 
         public AutomationController(
             ICommissionAutomationService automationService,
+            IDbConnectionFactory connectionFactory,
             ILogger<AutomationController> logger)
         {
             _automationService = automationService;
+            _connectionFactory = connectionFactory;
             _logger = logger;
         }
 
@@ -47,6 +53,13 @@ namespace LCS_HR_MVC.Controllers
                 return RedirectToAction(nameof(Commission), new { year, month });
             }
 
+            string? activeJobRunId = await FindActiveRunningJobRunIdAsync(year, month);
+            if (!string.IsNullOrWhiteSpace(activeJobRunId))
+            {
+                TempData["SuccessMessage"] = $"Automation already running. Current Job ID: {activeJobRunId}";
+                return RedirectToAction(nameof(Commission), new { year, month });
+            }
+
             // Server-side pre-flight guard — prevents automation from starting if base data is missing.
             // The JS pre-check normally catches this first; this is the authoritative safety net.
             var validation = await _automationService.ValidateBaseDataAsync(year, month);
@@ -70,6 +83,34 @@ namespace LCS_HR_MVC.Controllers
                 _logger.LogError(ex, "Failed to start commission automation for {Year}/{Month}", year, month);
                 TempData["ErrorMessage"] = $"Failed to start automation: {ex.Message}";
                 return RedirectToAction(nameof(Commission), new { year, month });
+            }
+        }
+
+        private async Task<string?> FindActiveRunningJobRunIdAsync(int year, int month)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection() as MySqlConnection
+                    ?? throw new InvalidOperationException("Cannot create database connection.");
+                await connection.OpenAsync();
+
+                return await connection.ExecuteScalarAsync<string?>(
+                    @"SELECT job_run_id
+                      FROM lcs_hr.hr_commission_automation_log
+                      WHERE year = @Year
+                        AND month = @Month
+                        AND status = 'Running'
+                      ORDER BY updated_at DESC, id DESC
+                      LIMIT 1;",
+                    new { Year = year, Month = month });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Could not check active commission automation job for {Year}/{Month}. Continuing with normal start flow.",
+                    year,
+                    month);
+                return null;
             }
         }
 
