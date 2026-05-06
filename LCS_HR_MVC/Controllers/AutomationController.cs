@@ -21,13 +21,23 @@ namespace LCS_HR_MVC.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Commission(int? year, int? month)
+        [HttpGet]
+        public async Task<IActionResult> Commission(int? year, int? month, string? jobRunId)
         {
             var now = DateTime.Now;
             var selectedYear = year ?? now.Year;
             var selectedMonth = month ?? now.Month;
 
             var model = await _automationService.GetDashboardAsync(selectedYear, selectedMonth);
+
+            if (!string.IsNullOrWhiteSpace(jobRunId))
+            {
+                model.JobRunId = jobRunId;
+                model.Entries = model.Entries
+                    .Where(e => e.JobRunId == jobRunId)
+                    .ToList();
+            }
+
             return View(model);
         }
 
@@ -57,7 +67,7 @@ namespace LCS_HR_MVC.Controllers
             {
                 var jobRunId = await _automationService.StartAutomationAsync(year, month, triggeredBy, currentUserId);
                 TempData["SuccessMessage"] = $"Automation started. Job ID: {jobRunId}";
-                return RedirectToAction(nameof(Commission), new { year, month });
+                return RedirectToAction(nameof(Commission), new { year, month, jobRunId });
             }
             catch (Exception ex)
             {

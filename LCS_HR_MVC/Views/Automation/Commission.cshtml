@@ -276,6 +276,10 @@ var runningEntry = currentJobEntries
 
             <!-- Year / Month picker -->
             <form method="get" asp-action="Commission" class="flex flex-wrap items-end gap-3" id="viewCommissionForm">
+                @if (!string.IsNullOrWhiteSpace(Model.JobRunId))
+{
+    <input type="hidden" name="jobRunId" value="@Model.JobRunId" />
+}
                 <div>
                     <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Year</label>
                     <select name="year" class="bg-[#fdf4b5] border border-gray-300 rounded text-gray-700 text-xs h-[30px] px-2 shadow-inner w-[90px]">
