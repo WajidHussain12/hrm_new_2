@@ -10,26 +10,14 @@ using MySql.Data.MySqlClient;
 
 namespace LCS_HR_MVC.Services
 {
-    /// <summary>
-    /// Self-heals orphaned commission automation rows.
-    ///
-    /// If the local app is stopped/rebuilt/crashes while a commission step is Running,
-    /// the DB row remains Running because the worker process is gone. This service
-    /// marks orphaned/stale/over-time Running rows as Failed automatically so
-    /// Start/Resume Automation can retry from the incomplete step without manual SQL.
-    ///
-    /// It also cleans dashboard-confusing duplicate rows:
-    /// - Pending/Running rows superseded by a later Completed/AlreadyProcessed row
-    /// - Failed rows created only because a duplicate job was blocked by the in-process gate
-    ///
-    /// This keeps the Automation dashboard from showing old duplicate entries as if they
-    /// are still active, while preserving the historical row as Skipped with explanation.
-    /// </summary>
     public sealed class CommissionAutomationRecoveryHostedService : BackgroundService
     {
         private const int DefaultHeartbeatStaleSeconds = 90;
         private const int DefaultHardStepTimeoutSeconds = 12 * 60;
         private const int DefaultScanSeconds = 60;
+        private const int DefaultAutoResumeRecentHours = 24;
+        private const int DefaultAutoResumeCooldownSeconds = 180;
+        private const string AutoRecoveryUserId = "210";
 
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<CommissionAutomationRecoveryHostedService> _logger;
@@ -113,10 +101,46 @@ namespace LCS_HR_MVC.Services
                         "[CommissionRecovery] Cleaned {CleanedRows} superseded/duplicate automation dashboard row(s) as Skipped.",
                         cleaned);
                 }
+
+                bool autoResumeEnabled = _configuration.GetValue(
+                    "CommissionSettings:AutoResumeAfterRecoveryFailure",
+                    true);
+
+                if (!forceAllRunningRows && affected > 0 && autoResumeEnabled)
+                {
+                    int recentHours = _configuration.GetValue(
+                        "CommissionSettings:AutoResumeRecentHours",
+                        DefaultAutoResumeRecentHours);
+
+                    int cooldownSeconds = _configuration.GetValue(
+                        "CommissionSettings:AutoResumeCooldownSeconds",
+                        DefaultAutoResumeCooldownSeconds);
+
+                    AutoResumeCandidate? candidate = await FindAutoResumeCandidateAsync(
+                        connection,
+                        recentHours,
+                        cooldownSeconds,
+                        cancellationToken);
+
+                    if (candidate != null)
+                    {
+                        var automationService = scope.ServiceProvider.GetRequiredService<ICommissionAutomationService>();
+                        string jobRunId = await automationService.StartAutomationAsync(
+                            candidate.Year,
+                            candidate.Month,
+                            "AutoRecovery",
+                            AutoRecoveryUserId);
+
+                        _logger.LogWarning(
+                            "[CommissionRecovery] Auto-resumed commission automation after recovered stale row(s). NewJobRunId={JobRunId}, Period={Year}/{Month}",
+                            jobRunId,
+                            candidate.Year,
+                            candidate.Month);
+                    }
+                }
             }
             catch (OperationCanceledException)
             {
-                // Normal shutdown.
             }
             catch (Exception ex)
             {
@@ -207,6 +231,56 @@ WHERE status = 'Failed'
             affected += await connection.ExecuteAsync(
                 new CommandDefinition(duplicateGateSql, cancellationToken: cancellationToken));
             return affected;
+        }
+
+        private static async Task<AutoResumeCandidate?> FindAutoResumeCandidateAsync(
+            IDbConnection connection,
+            int recentHours,
+            int cooldownSeconds,
+            CancellationToken cancellationToken)
+        {
+            const string sql = @"
+SELECT year AS Year,
+       month AS Month
+FROM lcs_hr.hr_commission_automation_log candidate
+WHERE candidate.status = 'Failed'
+  AND candidate.retry_count < 3
+  AND candidate.error_message LIKE 'Auto recovery:%'
+  AND candidate.updated_at >= DATE_SUB(NOW(), INTERVAL @RecentHours HOUR)
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lcs_hr.hr_commission_automation_log running
+      WHERE running.year = candidate.year
+        AND running.month = candidate.month
+        AND running.status = 'Running'
+  )
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lcs_hr.hr_commission_automation_log pending
+      WHERE pending.year = candidate.year
+        AND pending.month = candidate.month
+        AND pending.status = 'Pending'
+        AND COALESCE(pending.updated_at, pending.created_at) >= DATE_SUB(NOW(), INTERVAL @CooldownSeconds SECOND)
+  )
+GROUP BY year, month
+ORDER BY MAX(candidate.updated_at) DESC
+LIMIT 1;";
+
+            return await connection.QueryFirstOrDefaultAsync<AutoResumeCandidate>(
+                new CommandDefinition(
+                    sql,
+                    new
+                    {
+                        RecentHours = recentHours,
+                        CooldownSeconds = cooldownSeconds
+                    },
+                    cancellationToken: cancellationToken));
+        }
+
+        private sealed class AutoResumeCandidate
+        {
+            public int Year { get; set; }
+            public int Month { get; set; }
         }
 
         [ModuleInitializer]
