@@ -33,16 +33,54 @@ namespace LCS_HR_MVC.Controllers
             var selectedYear = year ?? now.Year;
             var selectedMonth = month ?? now.Month;
 
-            var model = await _automationService.GetDashboardAsync(selectedYear, selectedMonth);
-            model.JobRunId = GetLatestDashboardJobRunId(model);
-            ApplyDashboardCacheHeaders(model);
+            try
+            {
+                var model = await _automationService.GetDashboardAsync(selectedYear, selectedMonth);
+                model.JobRunId = GetLatestDashboardJobRunId(model);
+                ApplyDashboardCacheHeaders(model);
+                return View(model);
+            }
+            catch (MySqlException ex)
+            {
+                return DatabaseConnectionProblem(selectedYear, selectedMonth, ex);
+            }
+        }
 
-            // Do not filter Entries by jobRunId.
-            // Resume creates new job_run_id only for incomplete work,
-            // while completed city steps remain under previous job_run_id values.
-            // Dashboard must show full month-level progress.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RetryDatabaseConnection(int year, int month)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection() as MySqlConnection
+                    ?? throw new InvalidOperationException("Cannot create database connection.");
+                await connection.OpenAsync();
 
-            return View(model);
+                var activeJobRunId = await FindActiveRunningJobRunIdAsync(year, month);
+                if (string.IsNullOrWhiteSpace(activeJobRunId))
+                {
+                    try
+                    {
+                        var jobRunId = await _automationService.StartAutomationAsync(year, month, "AutoRecovery", "210");
+                        TempData["SuccessMessage"] = $"Database connection established. Automation resumed. Job ID: {jobRunId}";
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Auto resume failed after database reconnect for {Year}/{Month}", year, month);
+                        TempData["ErrorMessage"] = $"Database connection established, but auto resume failed: {ex.Message}";
+                    }
+                }
+                else
+                {
+                    TempData["SuccessMessage"] = $"Database connection established. Automation is already running. Current Job ID: {activeJobRunId}";
+                }
+
+                return RedirectToAction(nameof(Commission), new { year, month });
+            }
+            catch (MySqlException ex)
+            {
+                return DatabaseConnectionProblem(year, month, ex);
+            }
         }
 
         [HttpPost]
@@ -62,8 +100,6 @@ namespace LCS_HR_MVC.Controllers
                 return RedirectToAction(nameof(Commission), new { year, month });
             }
 
-            // Server-side pre-flight guard — prevents automation from starting if base data is missing.
-            // The JS pre-check normally catches this first; this is the authoritative safety net.
             var validation = await _automationService.ValidateBaseDataAsync(year, month);
             if (!validation.IsValid)
             {
@@ -88,6 +124,23 @@ namespace LCS_HR_MVC.Controllers
             }
         }
 
+        private IActionResult DatabaseConnectionProblem(int year, int month, Exception ex)
+        {
+            _logger.LogError(ex, "Automation database connection failed for {Year}/{Month}", year, month);
+            Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+
+            ViewData["Year"] = year;
+            ViewData["Month"] = month;
+            ViewData["PeriodLabel"] = new DateTime(year, month, 1).ToString("MMMM yyyy");
+            ViewData["ErrorTitle"] = "Database Connection Not Established";
+            ViewData["ErrorMessage"] = "The automation dashboard could not connect to the database server. Your progress is preserved. Please retry after the database or network is available.";
+            ViewData["TechnicalMessage"] = ex.Message;
+            return View("DatabaseConnectionError");
+        }
+
         private void ApplyDashboardCacheHeaders(CommissionAutomationDashboardViewModel model)
         {
             Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
@@ -96,8 +149,6 @@ namespace LCS_HR_MVC.Controllers
 
             if (model.IsRunning || model.Entries.Any(entry => entry.Status == "Running"))
             {
-                // Safety net for missed SignalR events or stale browser DOM.
-                // While automation is running, force a server-render refresh every 30 seconds.
                 Response.Headers["Refresh"] = "30";
             }
         }
@@ -154,9 +205,17 @@ namespace LCS_HR_MVC.Controllers
         [HttpGet]
         public async Task<IActionResult> Status(int year, int month)
         {
-            var model = await _automationService.GetDashboardAsync(year, month);
-            model.JobRunId = GetLatestDashboardJobRunId(model);
-            return Json(model);
+            try
+            {
+                var model = await _automationService.GetDashboardAsync(year, month);
+                model.JobRunId = GetLatestDashboardJobRunId(model);
+                return Json(model);
+            }
+            catch (MySqlException ex)
+            {
+                Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                return Json(new { databaseConnectionError = true, message = "Database connection not established.", detail = ex.Message });
+            }
         }
 
         [HttpGet]
