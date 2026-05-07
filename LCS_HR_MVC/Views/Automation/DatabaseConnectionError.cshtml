@@ -1,0 +1,70 @@
+@{
+    ViewData["Title"] = "Database Connection";
+    var year = (int)(ViewData["Year"] ?? DateTime.Now.Year);
+    var month = (int)(ViewData["Month"] ?? DateTime.Now.Month);
+    var periodLabel = ViewData["PeriodLabel"]?.ToString() ?? new DateTime(year, month, 1).ToString("MMMM yyyy");
+    var errorTitle = ViewData["ErrorTitle"]?.ToString() ?? "Database Connection Not Established";
+    var errorMessage = ViewData["ErrorMessage"]?.ToString() ?? "The automation dashboard could not connect to the database. Your progress is preserved.";
+    var technicalMessage = ViewData["TechnicalMessage"]?.ToString();
+}
+
+<div class="min-h-[70vh] flex items-center justify-center bg-slate-50 px-4 py-10">
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
+
+    <div class="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-600 to-orange-500 px-6 py-5 text-white">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shadow-inner">
+                    <i class="fas fa-database text-2xl"></i>
+                </div>
+                <div>
+                    <div class="text-xs uppercase tracking-[0.25em] text-white/80 font-bold">Automation Commission</div>
+                    <h1 class="text-xl font-extrabold mt-1">@errorTitle</h1>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 space-y-5">
+            <div class="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800 leading-relaxed">
+                @errorMessage
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div class="text-[11px] uppercase tracking-wider font-bold text-slate-500">Selected Period</div>
+                    <div class="font-extrabold text-slate-800 mt-1">@periodLabel</div>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div class="text-[11px] uppercase tracking-wider font-bold text-slate-500">Recovery Action</div>
+                    <div class="font-extrabold text-slate-800 mt-1">Retry and auto-resume</div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(technicalMessage))
+            {
+                <details class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                    <summary class="cursor-pointer font-bold text-slate-700">Technical detail</summary>
+                    <div class="mt-2 break-words font-mono">@technicalMessage</div>
+                </details>
+            }
+
+            <form method="post" action="/Automation/RetryDatabaseConnection" class="flex flex-wrap items-center gap-3 pt-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="year" value="@year" />
+                <input type="hidden" name="month" value="@month" />
+                <button type="submit" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-lg shadow">
+                    <i class="fas fa-rotate-right"></i>
+                    Retry Connection
+                </button>
+                <a href="/Automation/Commission?year=@year&month=@month" class="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold px-5 py-2.5 rounded-lg border border-slate-200">
+                    <i class="fas fa-refresh"></i>
+                    Refresh Page
+                </a>
+            </form>
+
+            <div class="text-[11px] text-slate-500 leading-relaxed border-t border-dashed border-slate-200 pt-4">
+                When the database connection is restored, the retry action will open the dashboard and attempt to continue the selected automation period from the saved database progress.
+            </div>
+        </div>
+    </div>
+</div>
