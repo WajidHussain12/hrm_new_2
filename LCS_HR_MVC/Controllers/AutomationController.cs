@@ -37,6 +37,7 @@ namespace LCS_HR_MVC.Controllers
             {
                 var model = await _automationService.GetDashboardAsync(selectedYear, selectedMonth);
                 model.JobRunId = GetLatestDashboardJobRunId(model);
+                ApplyAutomationButtonState(model);
                 ApplyDashboardCacheHeaders(model);
                 return View(model);
             }
@@ -153,6 +154,34 @@ namespace LCS_HR_MVC.Controllers
             }
         }
 
+        private static void ApplyAutomationButtonState(CommissionAutomationDashboardViewModel model)
+        {
+            if (model.IsRunning || model.Entries.Any(entry => entry.Status == "Running"))
+            {
+                model.IsRunning = true;
+                return;
+            }
+
+            if (!model.Entries.Any())
+            {
+                return;
+            }
+
+            bool allDone = model.Entries.All(entry =>
+                entry.Status == "Completed" || entry.Status == "AlreadyProcessed");
+            if (allDone)
+            {
+                return;
+            }
+
+            DateTime latestUpdate = model.Entries.Max(entry => entry.UpdatedAt);
+            bool recentAutomationActivity = latestUpdate >= DateTime.Now.AddMinutes(-15);
+            if (recentAutomationActivity)
+            {
+                model.IsRunning = true;
+            }
+        }
+
         private static string? GetLatestDashboardJobRunId(CommissionAutomationDashboardViewModel model)
         {
             return model.Entries
@@ -209,6 +238,7 @@ namespace LCS_HR_MVC.Controllers
             {
                 var model = await _automationService.GetDashboardAsync(year, month);
                 model.JobRunId = GetLatestDashboardJobRunId(model);
+                ApplyAutomationButtonState(model);
                 return Json(model);
             }
             catch (MySqlException ex)
