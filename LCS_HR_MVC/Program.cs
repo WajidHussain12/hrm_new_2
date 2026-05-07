@@ -42,13 +42,11 @@ builder.Services.AddScoped<ISupportService, SupportService>();
 builder.Services.AddScoped<ICommissionInvestigationService, CommissionInvestigationService>();
 builder.Services.AddScoped<IAttendanceManagementService, AttendanceManagementService>();
 
-// ── Bootstrap: sync app-required tables from live if missing locally ──────────
+// Bootstrap: sync app-required tables from live if missing locally
 {
     var localConn = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
     var liveConn  = builder.Configuration.GetSection("LiveConnections")["DefaultConnection"] ?? "";
 
-    // Use a short probe timeout so a dead/unreachable server never stalls startup.
-    // The global Connection Timeout (60 s) is only for real app queries.
     static string WithProbeTimeout(string cs) =>
         System.Text.RegularExpressions.Regex.Replace(
             cs, @"(?i)Connection Timeout\s*=\s*\d+", "Connection Timeout=5");
@@ -56,28 +54,22 @@ builder.Services.AddScoped<IAttendanceManagementService, AttendanceManagementSer
     var localProbe = WithProbeTimeout(localConn);
     var liveProbe  = WithProbeTimeout(liveConn);
 
-    // All lcs_hr tables required for the app to function.
-    // Add more here if a new "table doesn't exist" error appears.
     var requiredTables = new[]
     {
-        // Auth & users
         "lcs_users",
         "lcs_users_roles",
         "lcs_user_location",
-        // Navigation menu
         "lcs_menu",
         "lcs_submenu",
         "lcs_submenu_det",
         "lcs_roles_privileges",
-        // Setup master data
         "hr_regionalzones",
         "hr_city",
     };
 
-    // Sync each required table (skip entirely if it already has data locally)
     if (string.IsNullOrEmpty(liveProbe))
     {
-        Console.WriteLine("[Bootstrap] No LiveConnections:DefaultConnection configured — skipping table sync.");
+        Console.WriteLine("[Bootstrap] No LiveConnections:DefaultConnection configured - skipping table sync.");
     }
     else
     {
@@ -85,7 +77,6 @@ builder.Services.AddScoped<IAttendanceManagementService, AttendanceManagementSer
         {
             try
             {
-                // Check local (with short probe timeout)
                 long localCount = 0;
                 bool exists = false;
                 using (var local = new MySqlConnection(localProbe))
@@ -103,14 +94,12 @@ builder.Services.AddScoped<IAttendanceManagementService, AttendanceManagementSer
                     }
                 }
 
-                // If table already has data locally, skip without touching the live server
                 if (exists && localCount > 0)
                 {
-                    Console.WriteLine($"[Bootstrap] {tableName,-30} local:{localCount,5}  → already populated, skipped.");
+                    Console.WriteLine($"[Bootstrap] {tableName,-30} local:{localCount,5}  already populated, skipped.");
                     continue;
                 }
 
-                // Check live (only needed when local table is missing or empty)
                 long liveCount = 0;
                 using (var live = new MySqlConnection(liveProbe))
                 {
@@ -120,9 +109,8 @@ builder.Services.AddScoped<IAttendanceManagementService, AttendanceManagementSer
                     liveCount = Convert.ToInt64(cnt.ExecuteScalar());
                 }
 
-                Console.Write($"[Bootstrap] {tableName,-30} local:{localCount,5}  live:{liveCount,5}  → ");
+                Console.Write($"[Bootstrap] {tableName,-30} local:{localCount,5}  live:{liveCount,5}  ");
 
-                // Create table from live DDL if missing locally
                 if (!exists || localCount == 0)
                 {
                     string ddl;
@@ -148,7 +136,6 @@ builder.Services.AddScoped<IAttendanceManagementService, AttendanceManagementSer
                     createCmd.ExecuteNonQuery();
                 }
 
-                // INSERT IGNORE all live rows (duplicates auto-skipped, only new rows inserted)
                 var inserted = SyncTableFromLive(liveConn, localConn, "lcs_hr", tableName);
                 Console.WriteLine($"synced ({inserted} row(s) inserted).");
             }
@@ -159,12 +146,7 @@ builder.Services.AddScoped<IAttendanceManagementService, AttendanceManagementSer
         }
     }
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
-// Commission Automation (Hangfire + SignalR)
-// MySqlConnector (used by Hangfire.MySqlStorage) uses SslMode=None instead of SslMode=Disabled
-// MySqlConnector (Hangfire) rejects "Default Command Timeout" (with spaces) — strip it.
-// MySql.Data uses that keyword; MySqlConnector uses "DefaultCommandTimeout" (no spaces).
 var hangfireConnStr = System.Text.RegularExpressions.Regex.Replace(
         builder.Configuration.GetConnectionString("DefaultConnection") ?? "",
         @"(?i)Default\s+Command\s+Timeout\s*=\s*\d+\s*;?", "")
@@ -179,23 +161,18 @@ builder.Services.AddHangfire(config =>
     })));
 builder.Services.AddHangfireServer();
 builder.Services.AddScoped<ICommissionAutomationService, CommissionAutomationService>();
-// Singleton: service uses a static ConcurrentDictionary for in-memory migration state.
-// Singleton lifetime keeps the service instance alive for the app's lifetime, which
-// matches the static field — preventing state loss on per-request scoped teardown
-// and ensuring Hangfire workers share the same in-memory state as web requests.
+builder.Services.AddHostedService<CommissionAutomationRecoveryHostedService>();
 builder.Services.AddSingleton<ITestDataMigrationService, TestDataMigrationService>();
 builder.Services.AddScoped<IDataSyncService, DataSyncService>();
 builder.Services.AddScoped<AcTestComparisonService>();
 
-// Configure Session
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(40); // Matching the old 40 min timeout
+    options.IdleTimeout = TimeSpan.FromMinutes(40);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
-// Configure Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -205,12 +182,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
     });
 
-// Configure HttpContextAccessor for accessing Session/User in services if needed
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -222,12 +197,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// Order is important: UseSession, UseAuthentication, UseAuthorization
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Custom Routes for Transaction HR replacing 404s
 app.MapControllerRoute(
     name: "TransactionHR_Termination",
     pattern: "Transaction/HR/EmployeeTermination",
@@ -237,7 +210,6 @@ app.MapControllerRoute(
     pattern: "Transaction/HR/{action}",
     defaults: new { controller = "Transaction" });
 
-// Custom Routes for Transaction/Employee Details
 app.MapControllerRoute(
     name: "TransactionED_EmpADDetails",
     pattern: "Transaction/EmployeeDetails/EmpADDetails",
@@ -259,7 +231,6 @@ app.MapControllerRoute(
     pattern: "Transaction/EmployeeDetails/{action}",
     defaults: new { controller = "Transaction" });
 
-// Custom Routes for Transaction/EmployeeAdjustments
 app.MapControllerRoute(
     name: "TransactionEA_EmpExtra",
     pattern: "Transaction/EmployeeAdjustments/EmployeeExtra",
@@ -289,7 +260,6 @@ app.MapControllerRoute(
     pattern: "Transaction/EmployeeAdjustments/AdvanceSalaryApprove",
     defaults: new { controller = "AdvanceSalary", action = "AdvanceSalaryApprove" });
 
-// Custom Routes for Transaction/EmployeeLoan
 app.MapControllerRoute(
     name: "TransactionEL_LoanReq",
     pattern: "Transaction/EmployeeLoan/EmpLoanRequest",
@@ -307,7 +277,6 @@ app.MapControllerRoute(
     pattern: "Transaction/EmployeeLoan/LoanDeduction",
     defaults: new { controller = "Loans", action = "LoanDeduction" });
 
-// Custom Routes for Transaction/EmployeeRequest
 app.MapControllerRoute(
     name: "TransactionER_LeaveReq",
     pattern: "Transaction/EmployeeRequest/EmployeeLeaveRequest",
@@ -317,7 +286,6 @@ app.MapControllerRoute(
     pattern: "Transaction/EmployeeRequest/EmployeeLeaveRequestApproval",
     defaults: new { controller = "Leaves", action = "EmployeeLeaveRequestApproval" });
 
-// Custom Routes for Transaction/SalaryProcess
 var spPayrollActions = new[] { "FuelPrices", "EmployeeAttendanceProccess", "CodCommission", "ReturnCodCommission", "CashCommission", "OverLandCommission", "CommissionProcess", "SalariesProcess", "SalaryReprocess", "DeathCompensation", "SalaryVouchers", "LeaveProcess", "ExcludeCodCN" };
 foreach(var spAction in spPayrollActions)
 {
@@ -341,7 +309,6 @@ app.MapControllerRoute(
     pattern: "Transaction/SalaryProcess/TagCommission",
     defaults: new { controller = "Commission", action = "TagCommission" });
 
-// Custom Routes for Setup/Locations
 var setupLocationsActions = new[] { "Countries", "Provinces", "RegionalZones", "Cities" };
 foreach(var action in setupLocationsActions)
 {
@@ -355,7 +322,6 @@ app.MapControllerRoute(
     pattern: "Setup/Locations/UserLocation",
     defaults: new { controller = "Admin", action = "UserLocation" });
 
-// Custom Routes for Setup/Hr
 var setupHrActions = new[] { "Jobs", "Departments", "EmployeeTypes", "LeaveStructures", "AttendanceRules", "Divisions", "DepartmentStrength", "DefineHRHierarchy" };
 foreach(var action in setupHrActions)
 {
@@ -365,7 +331,6 @@ foreach(var action in setupHrActions)
         defaults: new { controller = "Setup", action = action });
 }
 
-// Custom Routes for Setup/Payroll
 var setupPayrollActions = new[] { "LoanTypes", "CommissionRates", "Shifts", "Taxes", "Routes", "GazettedHolidays", "SalaryBanks", "CommissionEligibility" };
 foreach(var action in setupPayrollActions)
 {
@@ -379,18 +344,14 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Hangfire dashboard (requires authentication — admin only)
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
     Authorization = new[] { new HangfireAuthorizationFilter() }
 });
 
-// SignalR hub
 app.MapHub<CommissionProgressHub>("/hubs/commission-progress");
 app.MapHub<LCS_HR_MVC.Hubs.DataMigrationHub>("/hubs/data-migration");
 
-// Monthly recurring job: 1 AM on the 26th of every month
-// Wrapped in try-catch — Hangfire storage write can timeout if MySQL is under load at startup.
 try
 {
     RecurringJob.AddOrUpdate<ICommissionAutomationService>(
@@ -401,10 +362,9 @@ try
 catch (Exception ex)
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogWarning(ex, "RecurringJob.AddOrUpdate failed at startup — job will be registered on next restart.");
+    logger.LogWarning(ex, "RecurringJob.AddOrUpdate failed at startup - job will be registered on next restart.");
 }
 
-// Every-6-hours config validation: verifies all commission/salary tables and restores if deleted.
 try
 {
     RecurringJob.AddOrUpdate<IDataSyncService>(
@@ -418,17 +378,12 @@ catch (Exception ex)
         .LogWarning(ex, "[Hangfire] config-validation-job registration failed.");
 }
 
-// ── ORDER 1: Initialize AC_Test table name resolver ──────────────────────────
-// Must be FIRST — before DbInitializer, CommissionTablesBootstrapper, and
-// AcTestTablesBootstrapper so that IsTestMode is set for all subsequent checks.
 {
     var useTestTables = app.Configuration
         .GetValue<bool>("CommissionSettings:UseTestTables");
     AcTestTableNames.Initialize(useTestTables);
 }
 
-// Ensure required tables exist (creates TakenLeaves and TotalLeaves if missing).
-// Hard 30-second timeout so a MySQL metadata lock can never hang the entire startup.
 try
 {
     var connStr = app.Configuration.GetConnectionString("DefaultConnection")!;
@@ -438,7 +393,7 @@ try
 catch (OperationCanceledException)
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogWarning("DbInitializer timed out after 30 s — MySQL may have a metadata lock. App will continue; some tables may be missing.");
+    logger.LogWarning("DbInitializer timed out after 30 s - MySQL may have a metadata lock. App will continue; some tables may be missing.");
 }
 catch (Exception ex)
 {
@@ -446,9 +401,6 @@ catch (Exception ex)
     logger.LogWarning(ex, "DbInitializer: failed to ensure tables exist. Some features may be unavailable.");
 }
 
-// Ensure commission/salary config tables exist and contain baseline seed data.
-// INSERT IGNORE semantics: existing HR-modified values are never overwritten.
-// Hard 60-second timeout — ALTER TABLE on large log tables can take a few seconds.
 try
 {
     var connStr = app.Configuration.GetConnectionString("DefaultConnection")!;
@@ -459,24 +411,19 @@ try
 catch (OperationCanceledException)
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogWarning("[Bootstrap] CommissionTablesBootstrapper timed out after 60 s — some config tables may be missing.");
+    logger.LogWarning("[Bootstrap] CommissionTablesBootstrapper timed out after 60 s - some config tables may be missing.");
 }
 catch (Exception ex)
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogWarning(ex, "[Bootstrap] CommissionTablesBootstrapper failed — some config tables may be missing.");
+    logger.LogWarning(ex, "[Bootstrap] CommissionTablesBootstrapper failed - some config tables may be missing.");
 }
 
-// ── ORDER 4: AC_Test Tables Startup Check ────────────────────────────────────
-// Runs only when UseTestTables = true.
-// Checks each test table individually — skips existing ones.
-// Creates missing ones using CREATE TABLE ... LIKE.
-// (AcTestTableNames.Initialize already called at ORDER 1 above)
 if (AcTestTableNames.IsTestMode)
 {
     app.Services.GetRequiredService<ILogger<Program>>()
         .LogWarning(
-            "[ACTest] TEST MODE ACTIVE — Commission inserts will go to _AC_Test tables. " +
+            "[ACTest] TEST MODE ACTIVE - Commission inserts will go to _AC_Test tables. " +
             "Set CommissionSettings:UseTestTables=false for production.");
 
     try
@@ -496,8 +443,7 @@ if (AcTestTableNames.IsTestMode)
     catch (OperationCanceledException)
     {
         app.Services.GetRequiredService<ILogger<Program>>()
-            .LogWarning(
-            "[ACTest] Startup check timed out after 60s.");
+            .LogWarning("[ACTest] Startup check timed out after 60s.");
     }
     catch (Exception ex)
     {
@@ -510,14 +456,11 @@ if (AcTestTableNames.IsTestMode)
 else
 {
     app.Services.GetRequiredService<ILogger<Program>>()
-        .LogInformation(
-            "[ACTest] PRODUCTION MODE — Commission inserts will go to real tables.");
+        .LogInformation("[ACTest] PRODUCTION MODE - Commission inserts will go to real tables.");
 }
 
 app.Run();
 
-// ── Bootstrap helper: INSERT IGNORE all rows from a live table into local ─────
-// Duplicate PKs are silently ignored — only genuinely new rows get inserted.
 static long SyncTableFromLive(string liveConnStr, string localConnStr, string schema, string tableName)
 {
     const int batchSize = 500;
