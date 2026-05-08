@@ -11,6 +11,7 @@ namespace LCS_HR_MVC.Services
     {
         private const string ToggleOnlyUrl = "#";
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly ILogger<MenuService>? _logger;
         
         // Dictionary mapping old webforms URLs stored in DB to new MVC routes
         private readonly Dictionary<string, string> _routeMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -181,9 +182,10 @@ namespace LCS_HR_MVC.Services
             { "automation/commission", "/Automation/Commission" }
         };
 
-        public MenuService(IDbConnectionFactory connectionFactory)
+        public MenuService(IDbConnectionFactory connectionFactory, ILogger<MenuService>? logger = null)
         {
             _connectionFactory = connectionFactory;
+            _logger = logger;
         }
 
         private static string NormalizeLegacyUrl(string? url)
@@ -241,11 +243,39 @@ namespace LCS_HR_MVC.Services
 
         public async Task<string> GetMenuHtmlAsync(string userRole)
         {
+            try
+            {
+                return await GetMenuHtmlFromDatabaseAsync(userRole);
+            }
+            catch (MySqlException ex)
+            {
+                _logger?.LogError(ex, "Menu database connection failed. Rendering fallback navigation.");
+                return BuildFallbackMenuHtml();
+            }
+            catch (ArgumentException ex) when (IsDatabaseConnectionException(ex))
+            {
+                _logger?.LogError(ex, "Menu database host/connection string is invalid. Rendering fallback navigation.");
+                return BuildFallbackMenuHtml();
+            }
+            catch (InvalidOperationException ex) when (IsDatabaseConnectionException(ex))
+            {
+                _logger?.LogError(ex, "Menu database connection is not available. Rendering fallback navigation.");
+                return BuildFallbackMenuHtml();
+            }
+            catch (TimeoutException ex)
+            {
+                _logger?.LogError(ex, "Menu database connection timed out. Rendering fallback navigation.");
+                return BuildFallbackMenuHtml();
+            }
+        }
+
+        private async Task<string> GetMenuHtmlFromDatabaseAsync(string userRole)
+        {
             var menuHtml = new StringBuilder();
 
             using (var connection = _connectionFactory.CreateConnection() as MySqlConnection)
             {
-                if (connection == null) return string.Empty;
+                if (connection == null) return BuildFallbackMenuHtml();
                 await connection.OpenAsync();
 
                 string lvl1Query = "SELECT * FROM lcs_menu where active = '1' order by sort asc";
@@ -331,6 +361,29 @@ namespace LCS_HR_MVC.Services
             }
 
             return menuHtml.ToString();
+        }
+
+        private static string BuildFallbackMenuHtml()
+        {
+            var menuHtml = new StringBuilder();
+            menuHtml.Append("<li><a href='/Home/Index'>Home</a></li>");
+            menuHtml.Append("<li><a href='/Automation/Commission'>Automation Commission</a></li>");
+            menuHtml.Append("<li><a href='/Account/Logout'>Logout</a></li>");
+            return menuHtml.ToString();
+        }
+
+        private static bool IsDatabaseConnectionException(Exception ex)
+        {
+            if (ex is MySqlException)
+            {
+                return true;
+            }
+
+            string message = ex.Message ?? string.Empty;
+            return message.Contains("Unable to connect", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("host name or IP address is invalid", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("connection", StringComparison.OrdinalIgnoreCase)
+                || IsDatabaseConnectionException(ex.InnerException);
         }
     }
 }
