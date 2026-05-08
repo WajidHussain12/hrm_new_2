@@ -76,14 +76,20 @@ namespace LCS_HR_MVC.Services
                     "CommissionSettings:HardStepTimeoutSeconds",
                     DefaultHardStepTimeoutSeconds);
 
-                int affected = await RecoverRunningRowsCoreAsync(
-                    connection,
-                    forceAllRunningRows,
-                    staleSeconds,
-                    hardTimeoutSeconds,
+                int affected = await ExecuteRecoveryCommandWithRetryAsync(
+                    () => RecoverRunningRowsCoreAsync(
+                        connection,
+                        forceAllRunningRows,
+                        staleSeconds,
+                        hardTimeoutSeconds,
+                        cancellationToken),
+                    "recover stale Running rows",
                     cancellationToken);
 
-                int cleaned = await CleanupSupersededDashboardRowsAsync(connection, cancellationToken);
+                int cleaned = await ExecuteRecoveryCommandWithRetryAsync(
+                    () => CleanupSupersededDashboardRowsAsync(connection, cancellationToken),
+                    "cleanup superseded/duplicate dashboard rows",
+                    cancellationToken);
 
                 if (affected > 0)
                 {
@@ -97,7 +103,7 @@ namespace LCS_HR_MVC.Services
 
                 if (cleaned > 0)
                 {
-                    _logger.LogWarning(
+                    _logger.LogInformation(
                         "[CommissionRecovery] Cleaned {CleanedRows} superseded/duplicate automation dashboard row(s) as Skipped.",
                         cleaned);
                 }
@@ -116,10 +122,13 @@ namespace LCS_HR_MVC.Services
                         "CommissionSettings:AutoResumeCooldownSeconds",
                         DefaultAutoResumeCooldownSeconds);
 
-                    AutoResumeCandidate? candidate = await FindAutoResumeCandidateAsync(
-                        connection,
-                        recentHours,
-                        cooldownSeconds,
+                    AutoResumeCandidate? candidate = await ExecuteRecoveryQueryWithRetryAsync(
+                        () => FindAutoResumeCandidateAsync(
+                            connection,
+                            recentHours,
+                            cooldownSeconds,
+                            cancellationToken),
+                        "find auto-resume candidate",
                         cancellationToken);
 
                     if (candidate != null)
@@ -142,10 +151,87 @@ namespace LCS_HR_MVC.Services
             catch (OperationCanceledException)
             {
             }
+            catch (Exception ex) when (IsTransientRecoveryDatabaseException(ex))
+            {
+                _logger.LogWarning(
+                    ex,
+                    "[CommissionRecovery] Transient database conflict while recovering stale automation rows. It will retry on the next scan.");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[CommissionRecovery] Failed to recover stale commission automation rows.");
             }
+        }
+
+        private async Task<int> ExecuteRecoveryCommandWithRetryAsync(
+            Func<Task<int>> operation,
+            string operationName,
+            CancellationToken cancellationToken)
+        {
+            const int maxAttempts = 3;
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    return await operation();
+                }
+                catch (Exception ex) when (IsTransientRecoveryDatabaseException(ex) && attempt < maxAttempts)
+                {
+                    int delayMs = 250 * attempt;
+                    _logger.LogInformation(
+                        ex,
+                        "[CommissionRecovery] Transient database conflict during {OperationName}; retrying attempt {Attempt}/{MaxAttempts} after {DelayMs} ms.",
+                        operationName,
+                        attempt + 1,
+                        maxAttempts,
+                        delayMs);
+                    await Task.Delay(delayMs, cancellationToken);
+                }
+            }
+
+            return await operation();
+        }
+
+        private async Task<T?> ExecuteRecoveryQueryWithRetryAsync<T>(
+            Func<Task<T?>> operation,
+            string operationName,
+            CancellationToken cancellationToken)
+            where T : class
+        {
+            const int maxAttempts = 3;
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    return await operation();
+                }
+                catch (Exception ex) when (IsTransientRecoveryDatabaseException(ex) && attempt < maxAttempts)
+                {
+                    int delayMs = 250 * attempt;
+                    _logger.LogInformation(
+                        ex,
+                        "[CommissionRecovery] Transient database conflict during {OperationName}; retrying attempt {Attempt}/{MaxAttempts} after {DelayMs} ms.",
+                        operationName,
+                        attempt + 1,
+                        maxAttempts,
+                        delayMs);
+                    await Task.Delay(delayMs, cancellationToken);
+                }
+            }
+
+            return await operation();
+        }
+
+        private static bool IsTransientRecoveryDatabaseException(Exception ex)
+        {
+            if (ex is MySqlException mysqlException)
+            {
+                return mysqlException.Number is 1205 or 1213;
+            }
+
+            return ex.InnerException != null && IsTransientRecoveryDatabaseException(ex.InnerException);
         }
 
         private static async Task<int> RecoverRunningRowsCoreAsync(
@@ -300,6 +386,15 @@ LIMIT 1;";
                     .AddEnvironmentVariables()
                     .Build();
 
+                bool enableLegacyModuleRecoveryLoop = configuration.GetValue(
+                    "CommissionSettings:EnableLegacyModuleRecoveryLoop",
+                    false);
+
+                if (!enableLegacyModuleRecoveryLoop)
+                {
+                    return;
+                }
+
                 bool autoRecoverOnStartup = configuration.GetValue(
                     "CommissionSettings:AutoRecoverRunningOnStartup",
                     true);
@@ -350,11 +445,16 @@ LIMIT 1;";
                             Console.WriteLine($"[CommissionRecovery] Startup auto-marked {affected} orphaned Running automation row(s) as Failed.");
                         }
 
-                        if (cleaned > 0)
+                        if (cleaned > 25)
                         {
                             Console.WriteLine($"[CommissionRecovery] Startup cleaned {cleaned} superseded/duplicate automation dashboard row(s) as Skipped.");
                         }
 
+                        break;
+                    }
+                    catch (Exception ex) when (IsTransientRecoveryDatabaseException(ex))
+                    {
+                        Console.WriteLine($"[CommissionRecovery] Startup recovery transient DB conflict: {ex.Message}");
                         break;
                     }
                     catch (Exception ex)
@@ -389,10 +489,14 @@ LIMIT 1;";
                             Console.WriteLine($"[CommissionRecovery] Periodic auto-marked {affected} stale/over-time Running automation row(s) as Failed.");
                         }
 
-                        if (cleaned > 0)
+                        if (cleaned > 25)
                         {
                             Console.WriteLine($"[CommissionRecovery] Periodic cleaned {cleaned} superseded/duplicate automation dashboard row(s) as Skipped.");
                         }
+                    }
+                    catch (Exception ex) when (IsTransientRecoveryDatabaseException(ex))
+                    {
+                        Console.WriteLine($"[CommissionRecovery] Periodic recovery transient DB conflict: {ex.Message}");
                     }
                     catch (Exception ex)
                     {
