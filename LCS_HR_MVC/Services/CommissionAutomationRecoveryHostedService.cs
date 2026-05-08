@@ -94,11 +94,10 @@ namespace LCS_HR_MVC.Services
                 if (affected > 0)
                 {
                     _logger.LogWarning(
-                        "[CommissionRecovery] Auto-marked {AffectedRows} Running automation row(s) as Failed. ForceAll={ForceAllRunningRows}, StaleSeconds={StaleSeconds}, HardTimeoutSeconds={HardTimeoutSeconds}",
+                        "[CommissionRecovery] Auto-marked {AffectedRows} Running automation row(s) as Failed. ForceAll={ForceAllRunningRows}, StaleSeconds={StaleSeconds}. Live long-running steps are not failed by elapsed time alone.",
                         affected,
                         forceAllRunningRows,
-                        staleSeconds,
-                        hardTimeoutSeconds);
+                        staleSeconds);
                 }
 
                 if (cleaned > 0)
@@ -243,7 +242,7 @@ namespace LCS_HR_MVC.Services
         {
             string reason = forceAllRunningRows
                 ? "Auto recovery: application started while commission automation had orphaned Running row(s). Marked Failed so automation can resume/retry automatically."
-                : $"Auto recovery: commission automation Running row was stale or exceeded hard timeout ({hardTimeoutSeconds} seconds). Marked Failed so automation can resume/retry automatically.";
+                : "Auto recovery: commission automation Running row heartbeat was stale. Marked Failed so automation can resume/retry automatically.";
 
             string sql = forceAllRunningRows
                 ? @"
@@ -263,8 +262,8 @@ SET status = 'Failed',
     updated_at = NOW()
 WHERE status = 'Running'
   AND (
-        TIMESTAMPDIFF(SECOND, updated_at, NOW()) >= @StaleSeconds
-        OR TIMESTAMPDIFF(SECOND, started_at, NOW()) >= @HardTimeoutSeconds
+        updated_at IS NULL
+        OR TIMESTAMPDIFF(SECOND, updated_at, NOW()) >= @StaleSeconds
       );";
 
             return await connection.ExecuteAsync(
@@ -486,7 +485,7 @@ LIMIT 1;";
 
                         if (affected > 0)
                         {
-                            Console.WriteLine($"[CommissionRecovery] Periodic auto-marked {affected} stale/over-time Running automation row(s) as Failed.");
+                            Console.WriteLine($"[CommissionRecovery] Periodic auto-marked {affected} stale-heartbeat Running automation row(s) as Failed.");
                         }
 
                         if (cleaned > 25)
