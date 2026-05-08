@@ -8,8 +8,16 @@ namespace LCS_HR_MVC.Services
     public static class CommissionAutomationExternalQueryWatchdog
     {
         private const int DefaultScanSeconds = 30;
-        private const int DefaultCashFinanceQueryTimeoutSeconds = 360;
+        private const int DefaultCashFinanceQueryTimeoutSeconds = 300;
         private const int DefaultHardStepTimeoutSeconds = 720;
+
+        private static readonly string[] ExternalConnectionNames =
+        {
+            "DefaultConnection",
+            "Central_OPS",
+            "Central_OPSNew",
+            "LHR_Billing"
+        };
 
         [ModuleInitializer]
         public static void StartExternalQueryWatchdog()
@@ -38,8 +46,8 @@ namespace LCS_HR_MVC.Services
                     return;
                 }
 
-                string? connectionString = configuration.GetConnectionString("DefaultConnection");
-                if (string.IsNullOrWhiteSpace(connectionString))
+                string? defaultConnectionString = configuration.GetConnectionString("DefaultConnection");
+                if (string.IsNullOrWhiteSpace(defaultConnectionString))
                 {
                     Console.WriteLine("[CommissionExternalWatchdog] DefaultConnection is empty. Watchdog not started.");
                     return;
@@ -64,7 +72,8 @@ namespace LCS_HR_MVC.Services
                     try
                     {
                         await KillStuckExternalQueriesAsync(
-                            connectionString,
+                            configuration,
+                            defaultConnectionString,
                             cashFinanceTimeoutSeconds,
                             hardStepTimeoutSeconds);
                     }
@@ -77,14 +86,44 @@ namespace LCS_HR_MVC.Services
         }
 
         private static async Task KillStuckExternalQueriesAsync(
-            string connectionString,
+            IConfiguration configuration,
+            string defaultConnectionString,
             int cashFinanceTimeoutSeconds,
             int hardStepTimeoutSeconds)
         {
-            await using var connection = new MySqlConnection(connectionString);
+            List<RunningCommissionStep> runningSteps = await LoadRunningCashStepsAsync(
+                defaultConnectionString,
+                Math.Min(cashFinanceTimeoutSeconds, hardStepTimeoutSeconds));
+
+            if (!runningSteps.Any())
+            {
+                return;
+            }
+
+            foreach (string connectionName in ExternalConnectionNames)
+            {
+                string? connectionString = configuration.GetConnectionString(connectionName);
+                if (string.IsNullOrWhiteSpace(connectionString))
+                {
+                    continue;
+                }
+
+                await KillMatchingQueriesOnConnectionAsync(
+                    connectionName,
+                    connectionString,
+                    cashFinanceTimeoutSeconds,
+                    runningSteps);
+            }
+        }
+
+        private static async Task<List<RunningCommissionStep>> LoadRunningCashStepsAsync(
+            string defaultConnectionString,
+            int minSeconds)
+        {
+            await using var connection = new MySqlConnection(defaultConnectionString);
             await connection.OpenAsync();
 
-            List<RunningCommissionStep> runningSteps = (await connection.QueryAsync<RunningCommissionStep>(
+            return (await connection.QueryAsync<RunningCommissionStep>(
                 @"SELECT id AS Id,
                          job_run_id AS JobRunId,
                          city_code AS CityCode,
@@ -97,13 +136,18 @@ namespace LCS_HR_MVC.Services
                     AND started_at IS NOT NULL
                     AND commission_type = 'CashCommission'
                     AND TIMESTAMPDIFF(SECOND, started_at, NOW()) >= @MinSeconds;",
-                new { MinSeconds = Math.Min(cashFinanceTimeoutSeconds, hardStepTimeoutSeconds) }))
+                new { MinSeconds = minSeconds }))
                 .ToList();
+        }
 
-            if (!runningSteps.Any())
-            {
-                return;
-            }
+        private static async Task KillMatchingQueriesOnConnectionAsync(
+            string connectionName,
+            string connectionString,
+            int cashFinanceTimeoutSeconds,
+            List<RunningCommissionStep> runningSteps)
+        {
+            await using var connection = new MySqlConnection(connectionString);
+            await connection.OpenAsync();
 
             List<ProcessListQuery> killCandidates = (await connection.QueryAsync<ProcessListQuery>(
                 @"SELECT ID AS Id,
@@ -115,7 +159,6 @@ namespace LCS_HR_MVC.Services
                          LEFT(INFO, 2000) AS Info
                   FROM information_schema.processlist
                   WHERE COMMAND = 'Query'
-                    AND DB IN ('lcs_finance')
                     AND TIME >= @CashFinanceTimeoutSeconds
                     AND INFO IS NOT NULL
                     AND INFO NOT LIKE '%information_schema.processlist%'
@@ -124,6 +167,9 @@ namespace LCS_HR_MVC.Services
                       OR INFO LIKE '%finance_vouchersubsidiarydetails%'
                       OR INFO LIKE '%RecoveryOfficerId%'
                       OR INFO LIKE '%InvoiceMonth%'
+                      OR INFO LIKE '%retail_cod%'
+                      OR INFO LIKE '%billing_details%'
+                      OR INFO LIKE '%billing_details_hist%'
                     )
                   ORDER BY TIME DESC;",
                 new { CashFinanceTimeoutSeconds = cashFinanceTimeoutSeconds }))
@@ -139,13 +185,13 @@ namespace LCS_HR_MVC.Services
                 try
                 {
                     Console.WriteLine(
-                        $"[CommissionExternalWatchdog] Killing stuck lcs_finance query Id={query.Id}, Seconds={query.SecondsRunning}. Active automation step(s): {string.Join("; ", runningSteps.Select(DescribeStep))}");
+                        $"[CommissionExternalWatchdog] Killing stuck query on {connectionName}. Id={query.Id}, Db={query.DbName}, Seconds={query.SecondsRunning}. Active automation step(s): {string.Join("; ", runningSteps.Select(DescribeStep))}");
 
                     await connection.ExecuteAsync($"KILL QUERY {query.Id};");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[CommissionExternalWatchdog] Failed to kill query Id={query.Id}: {ex.Message}");
+                    Console.WriteLine($"[CommissionExternalWatchdog] Failed to kill query Id={query.Id} on {connectionName}: {ex.Message}");
                 }
             }
         }
@@ -171,7 +217,7 @@ namespace LCS_HR_MVC.Services
             public long Id { get; set; }
             public string UserName { get; set; } = string.Empty;
             public string Host { get; set; } = string.Empty;
-            public string DbName { get; set; } = string.Empty;
+            public string? DbName { get; set; }
             public int SecondsRunning { get; set; }
             public string? State { get; set; }
             public string? Info { get; set; }
