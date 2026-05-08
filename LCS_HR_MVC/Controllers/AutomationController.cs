@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Dapper;
 using LCS_HR_MVC.Data;
 using LCS_HR_MVC.Models;
 using LCS_HR_MVC.Services;
@@ -108,7 +107,7 @@ namespace LCS_HR_MVC.Controllers
                 return RedirectToAction(nameof(Commission), new { year, month });
             }
 
-            var triggeredBy   = User.Identity?.Name ?? "Unknown";
+            var triggeredBy = User.Identity?.Name ?? "Unknown";
             var currentUserId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value ?? "0";
 
             try
@@ -148,7 +147,7 @@ namespace LCS_HR_MVC.Controllers
             Response.Headers["Pragma"] = "no-cache";
             Response.Headers["Expires"] = "0";
 
-            if (model.IsRunning || model.Entries.Any(entry => entry.Status == "Running"))
+            if (model.Entries.Any(entry => entry.Status == "Running"))
             {
                 Response.Headers["Refresh"] = "30";
             }
@@ -156,30 +155,8 @@ namespace LCS_HR_MVC.Controllers
 
         private static void ApplyAutomationButtonState(CommissionAutomationDashboardViewModel model)
         {
-            if (model.IsRunning || model.Entries.Any(entry => entry.Status == "Running"))
-            {
-                model.IsRunning = true;
-                return;
-            }
-
-            if (!model.Entries.Any())
-            {
-                return;
-            }
-
-            bool allDone = model.Entries.All(entry =>
-                entry.Status == "Completed" || entry.Status == "AlreadyProcessed");
-            if (allDone)
-            {
-                return;
-            }
-
-            DateTime latestUpdate = model.Entries.Max(entry => entry.UpdatedAt);
-            bool recentAutomationActivity = latestUpdate >= DateTime.Now.AddMinutes(-15);
-            if (recentAutomationActivity)
-            {
-                model.IsRunning = true;
-            }
+            bool hasRunningEntry = model.Entries.Any(entry => entry.Status == "Running");
+            model.IsRunning = hasRunningEntry;
         }
 
         private static string? GetLatestDashboardJobRunId(CommissionAutomationDashboardViewModel model)
@@ -197,19 +174,13 @@ namespace LCS_HR_MVC.Controllers
         {
             try
             {
-                using var connection = _connectionFactory.CreateConnection() as MySqlConnection
-                    ?? throw new InvalidOperationException("Cannot create database connection.");
-                await connection.OpenAsync();
-
-                return await connection.ExecuteScalarAsync<string?>(
-                    @"SELECT job_run_id
-                      FROM lcs_hr.hr_commission_automation_log
-                      WHERE year = @Year
-                        AND month = @Month
-                        AND status = 'Running'
-                      ORDER BY updated_at DESC, id DESC
-                      LIMIT 1;",
-                    new { Year = year, Month = month });
+                var model = await _automationService.GetDashboardAsync(year, month);
+                return model.Entries
+                    .Where(entry => entry.Status == "Running")
+                    .OrderByDescending(entry => entry.UpdatedAt)
+                    .ThenByDescending(entry => entry.Id)
+                    .Select(entry => entry.JobRunId)
+                    .FirstOrDefault(jobRunId => !string.IsNullOrWhiteSpace(jobRunId));
             }
             catch (Exception ex)
             {
@@ -252,12 +223,12 @@ namespace LCS_HR_MVC.Controllers
         public async Task<IActionResult> History(int? year, int? month)
         {
             var now = DateTime.Now;
-            var selectedYear  = year  ?? now.Year;
+            var selectedYear = year ?? now.Year;
             var selectedMonth = month ?? now.Month;
 
             if (selectedYear < 2020 || selectedYear > 2100 || selectedMonth < 1 || selectedMonth > 12)
             {
-                selectedYear  = now.Year;
+                selectedYear = now.Year;
                 selectedMonth = now.Month;
             }
 
