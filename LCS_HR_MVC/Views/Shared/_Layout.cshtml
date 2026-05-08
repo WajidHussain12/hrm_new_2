@@ -169,6 +169,30 @@
             if ('@userRole' === "021") {
                 $('input, select, textarea, button[type=submit]').attr("disabled", true).addClass('tw-cursor-not-allowed tw-opacity-60');
             }
+
+            // Commission automation button normalization.
+            // The server action is the same for first start and continuation, so the UI should not
+            // show a second confusing "Resume Automation" prompt after the user has already clicked.
+            if (window.location.pathname.toLowerCase() === '/automation/commission') {
+                const $form = $('#startCommissionForm');
+                const $button = $form.find('button[type=submit]:not(:disabled)').first();
+
+                if ($button.length) {
+                    const text = $button.text().replace(/\s+/g, ' ').trim();
+                    if (text === 'Resume Automation') {
+                        $button.html('<i class="fas fa-play mr-1"></i>Start Automation');
+                    }
+                }
+
+                $form.on('submit', function () {
+                    const $submitButton = $(this).find('button[type=submit]:not(:disabled)').first();
+                    if ($submitButton.length) {
+                        $submitButton.prop('disabled', true)
+                            .addClass('opacity-70 cursor-not-allowed')
+                            .html('<i class="fas fa-spinner fa-spin mr-1"></i>Starting…');
+                    }
+                });
+            }
         });
 
         // Ajax Loader Logic
