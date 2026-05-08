@@ -48,15 +48,22 @@ namespace LCS_HR_MVC.Services
                 "{TimeoutMessage} Closing DB connection to abort any in-flight command/transaction.",
                 timeoutMessage);
 
+            ObserveTimedOutCommissionProcessTask(processTask, cityCode, year, month);
+
             try
             {
-                await transaction.RollbackAsync();
+                if (connection.State != System.Data.ConnectionState.Closed)
+                {
+                    connection.Close();
+                }
+
+                MySqlConnection.ClearPool(connection);
             }
-            catch (Exception rollbackEx)
+            catch (Exception closeEx)
             {
                 _logger?.LogWarning(
-                    rollbackEx,
-                    "CommissionProcess watchdog rollback failed for City={CityCode}, Period={Year}/{Month}.",
+                    closeEx,
+                    "CommissionProcess watchdog failed to close/clear connection for City={CityCode}, Period={Year}/{Month}.",
                     cityCode,
                     year,
                     month);
@@ -64,19 +71,41 @@ namespace LCS_HR_MVC.Services
 
             try
             {
-                connection.Close();
+                transaction.Dispose();
             }
-            catch (Exception closeEx)
+            catch (Exception disposeEx)
             {
                 _logger?.LogWarning(
-                    closeEx,
-                    "CommissionProcess watchdog failed to close connection for City={CityCode}, Period={Year}/{Month}.",
+                    disposeEx,
+                    "CommissionProcess watchdog transaction dispose failed for City={CityCode}, Period={Year}/{Month}.",
                     cityCode,
                     year,
                     month);
             }
 
             throw new TimeoutException(timeoutMessage);
+        }
+
+        private void ObserveTimedOutCommissionProcessTask(
+            Task<CommissionProcessPreviewResult> processTask,
+            string cityCode,
+            int year,
+            int month)
+        {
+            _ = processTask.ContinueWith(
+                task =>
+                {
+                    if (task.Exception != null)
+                    {
+                        _logger?.LogWarning(
+                            task.Exception.GetBaseException(),
+                            "CommissionProcess timed-out background task ended after connection abort. City={CityCode}, Period={Year}/{Month}.",
+                            cityCode,
+                            year,
+                            month);
+                    }
+                },
+                TaskContinuationOptions.OnlyOnFaulted);
         }
     }
 }
